@@ -6,8 +6,9 @@ import { api } from "@/lib/api";
 import type { Course, CourseOffering, Department, OfferingSection } from "@/lib/types";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import ErrorMessage from "@/components/ErrorMessage";
+import { Suspense } from "react";
 
-export default function BrowsePage() {
+function BrowsePageContent() {
   // URL State (managed by nuqs)
   const [deptId, setDeptId] = useQueryState("dept");
   const [courseId, setCourseId] = useQueryState("course");
@@ -421,5 +422,13 @@ export default function BrowsePage() {
         </aside>
       </div>
     </div>
+  );
+}
+
+export default function BrowsePage() {
+  return (
+    <Suspense fallback={<LoadingSpinner />}>
+      <BrowsePageContent />
+    </Suspense>
   );
 }

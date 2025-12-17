@@ -21,10 +21,11 @@ import type { Department, Course, CourseLoadData } from "@/lib/types";
 import { formatSemester, getLoadColor, getLoadLabel } from "./graphUtils";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import ErrorMessage from "@/components/ErrorMessage";
+import { Suspense } from "react";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
-export default function GraphPage() {
+function GraphPageContent() {
   // URL State (managed by nuqs)
   const [deptId, setDeptId] = useQueryState("dept");
   const [courseId, setCourseId] = useQueryState("course");
@@ -539,5 +540,13 @@ export default function GraphPage() {
         </section>
       </div>
     </div>
+  );
+}
+
+export default function GraphPage() {
+  return (
+    <Suspense fallback={<LoadingSpinner />}>
+      <GraphPageContent />
+    </Suspense>
   );
 }

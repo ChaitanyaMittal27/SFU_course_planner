@@ -6,8 +6,9 @@ import { api } from "@/lib/api";
 import type { Department, Course, Watcher } from "@/lib/types";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import ErrorMessage from "@/components/ErrorMessage";
+import { Suspense } from "react";
 
-export default function WatchersPage() {
+function WatchersPageContent() {
   // URL State (selected watcher)
   const [watcherId, setWatcherId] = useQueryState("watcher");
 
@@ -550,5 +551,13 @@ export default function WatchersPage() {
         </aside>
       </div>
     </div>
+  );
+}
+
+export default function WatchersPage() {
+  return (
+    <Suspense fallback={<LoadingSpinner />}>
+      <WatchersPageContent />
+    </Suspense>
   );
 }
