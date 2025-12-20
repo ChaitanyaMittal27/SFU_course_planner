@@ -1,1 +1,1 @@
-# SFU-_course_planner
+# SFU-\_course_planner

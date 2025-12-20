@@ -7,95 +7,122 @@
 
 package com.example.courseplanner.controller;
 
-import com.example.courseplanner.dto.ApiGraphDataPointDTO;
-import com.example.courseplanner.dto.ApiCourseLoadDTO;
-import com.example.courseplanner.model.Department;
-import com.example.courseplanner.model.Course;
-import com.example.courseplanner.model.Offering;
-import com.example.courseplanner.model.Section;
+import com.example.courseplanner.dto.*;
+import com.example.courseplanner.entity.*;
+import com.example.courseplanner.repository.*;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/stats")
 public class StatsController {
-    private final Map<Long, Department> departmentMap;
+    private final DepartmentRepository departmentRepository;
+    private final CourseRepository courseRepository;
+    private final CourseOfferingRepository offeringRepository;
 
-    public StatsController(Map<Long, Department> departmentMap) {
-        this.departmentMap = departmentMap;
+    public StatsController(DepartmentRepository departmentRepository, CourseRepository courseRepository, CourseOfferingRepository offeringRepository) {
+        this.departmentRepository = departmentRepository;
+        this.courseRepository = courseRepository;
+        this.offeringRepository = offeringRepository;
     }
 
+    // ============================================
+    // ENDPOINT 1: GET /api/stats/students-per-semester?deptId={deptId}
+    // Returns enrollment data aggregated by semester for a department
+    // Used for department-level graphs (if you implement them later)
+    // ============================================
     @GetMapping("/students-per-semester")
-    public ResponseEntity<List<ApiGraphDataPointDTO>> getStudentsPerSemester(@RequestParam long deptId) {
-        Department department = departmentMap.get(deptId);
-        if (department == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+    public ResponseEntity<List<ApiGraphDataPointDTO>> getStudentsPerSemester(@RequestParam Long deptId) {
+        // Validate department exists
+        Department department = departmentRepository.findById(deptId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Department not found"));
+
+        // Get all courses for this department
+        List<Course> courses = courseRepository.findByDepartmentDeptId(deptId);
+        
+        // Get all offerings for all courses in this department
+        List<CourseOffering> allOfferings = new ArrayList<>();
+        for (Course course : courses) {
+            allOfferings.addAll(offeringRepository.findByCourseCourseId(course.getCourseId()));
         }
 
-        // Initialize enrollmentsBySemester with all semesters
+        // Initialize map with all semesters (to show 0 enrollments)
         Map<Integer, Long> enrollmentsBySemester = new TreeMap<>();
-        department.getCourses().values().forEach(course -> {
-            course.getOfferings().values().forEach(offering -> {
-                enrollmentsBySemester.putIfAbsent(offering.getSemester().getSemesterCode(), 0L);
-            });
-        });
+        for (CourseOffering offering : allOfferings) {
+            enrollmentsBySemester.putIfAbsent(offering.getSemesterCode(), 0L);
+        }
 
         // Add LEC enrollment totals to the initialized map
-        department.getCourses().values().forEach(course -> {
-            course.getOfferings().values().forEach(offering -> {
-                long lecEnrollment = getTotalEnrollment(offering);
-                enrollmentsBySemester.merge(offering.getSemester().getSemesterCode(), lecEnrollment, Long::sum);
-            });
-        });
+        for (CourseOffering offering : allOfferings) {
+            // Only count LEC sections
+            if ("LEC".equalsIgnoreCase(offering.getSectionType())) {
+                long lecEnrollment = offering.getEnrollmentTotal();
+                enrollmentsBySemester.merge(
+                    offering.getSemesterCode(), 
+                    lecEnrollment, 
+                    Long::sum
+                );
+            }
+        }
 
-        // Convert aggregated data to DTOs
+        // Convert to DTOs
         List<ApiGraphDataPointDTO> graphData = enrollmentsBySemester.entrySet().stream()
-                .map(entry -> new ApiGraphDataPointDTO(entry.getKey(), entry.getValue()))
+                .map(entry -> new ApiGraphDataPointDTO(
+                    entry.getKey().longValue(), 
+                    entry.getValue()
+                ))
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(graphData);
     }
 
+    // ============================================
+    // ENDPOINT 2: GET /api/stats/course-load?deptId={deptId}&courseId={courseId}
+    // Returns course load (enrollment %) over time for a specific course
+    // This is what the Graph page uses!
+    // ============================================
     @GetMapping("/course-load")
     public ResponseEntity<List<ApiCourseLoadDTO>> getCourseLoad(
-            @RequestParam long deptId,
-            @RequestParam long courseId) {
+            @RequestParam Long deptId,
+            @RequestParam Long courseId) {
         
-        Department department = departmentMap.get(deptId);
-        if (department == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
-        }
+        // Validate department exists
+        Department department = departmentRepository.findById(deptId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Department not found"));
 
-        Course course = department.getCourses().get(courseId);
-        if (course == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
-        }
+        // Validate course exists
+        Course course = courseRepository.findById(courseId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Course not found"));
+
+        // Get all offerings for this course
+        List<CourseOffering> offerings = offeringRepository.findByCourseCourseId(courseId);
 
         // Map to aggregate load data by semester
         Map<Integer, LoadAggregator> loadBySemester = new TreeMap<>();
 
         // Process each offering
-        course.getOfferings().values().forEach(offering -> {
-            int semesterCode = offering.getSemester().getSemesterCode();
+        for (CourseOffering offering : offerings) {
+            int semesterCode = offering.getSemesterCode();
             
-            // Calculate LEC enrollment and capacity for this offering
-            int lecEnrolled = 0;
-            int lecCapacity = 0;
-            
-            for (Section section : offering.getSections().values()) {
-                if ("LEC".equalsIgnoreCase(section.getComponentCode())) {
-                    lecEnrolled += section.getEnrollmentTotal();
-                    lecCapacity += section.getEnrollmentCapacity();
-                }
+            // Only process LEC sections
+            if (!"LEC".equalsIgnoreCase(offering.getSectionType())) {
+                continue;
             }
 
-            // Only process if there are LEC sections
+            // Calculate LEC enrollment and capacity for this offering
+            int lecEnrolled = offering.getEnrollmentTotal();
+            int lecCapacity = offering.getEnrollmentCap();
+
+            // Only process if there's capacity data
             if (lecCapacity > 0) {
                 LoadAggregator aggregator = loadBySemester.getOrDefault(
                     semesterCode, 
@@ -109,7 +136,7 @@ public class StatsController {
                 
                 loadBySemester.put(semesterCode, aggregator);
             }
-        });
+        }
 
         // Convert to DTOs
         List<ApiCourseLoadDTO> result = loadBySemester.entrySet().stream()
@@ -117,6 +144,7 @@ public class StatsController {
                     int semester = entry.getKey();
                     LoadAggregator agg = entry.getValue();
                     
+                    // Calculate load percentage
                     double load = (agg.capacity > 0) 
                         ? Math.round((agg.enrolled * 100.0 / agg.capacity) * 10.0) / 10.0
                         : 0.0;
@@ -134,14 +162,7 @@ public class StatsController {
 
         return ResponseEntity.ok(result);
     }
-
-    private long getTotalEnrollment(Offering offering) {
-        return offering.getSections().values().stream()
-                .filter(section -> "LEC".equalsIgnoreCase(section.getComponentCode()))
-                .mapToLong(Section::getEnrollmentTotal)
-                .sum();
-    }
-
+    
     // Helper class for aggregating load data
     private static class LoadAggregator {
         int enrolled = 0;
@@ -149,16 +170,30 @@ public class StatsController {
         Set<String> locations = new LinkedHashSet<>();
         Set<String> instructors = new LinkedHashSet<>();
 
-        void addEnrolled(int e) { enrolled += e; }
-        void addCapacity(int c) { capacity += c; }
+        void addEnrolled(int e) { 
+            enrolled += e; 
+        }
+        
+        void addCapacity(int c) { 
+            capacity += c; 
+        }
+        
         void addLocation(String loc) { 
             if (loc != null && !loc.trim().isEmpty()) {
                 locations.add(loc.trim()); 
             }
         }
+        
         void addInstructor(String inst) { 
             if (inst != null && !inst.trim().isEmpty()) {
-                instructors.add(inst.trim()); 
+                // Split multiple instructors and add each
+                String[] names = inst.split(",");
+                for (String name : names) {
+                    String trimmed = name.trim();
+                    if (!trimmed.isEmpty()) {
+                        instructors.add(trimmed);
+                    }
+                }
             }
         }
     }
