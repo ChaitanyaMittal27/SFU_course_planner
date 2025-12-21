@@ -13,6 +13,9 @@ package com.example.courseplanner.controller;
 import com.example.courseplanner.dto.*;
 import com.example.courseplanner.entity.*;
 import com.example.courseplanner.repository.*;
+import com.example.courseplanner.model.*;
+import com.example.courseplanner.service.CourseSysClient;
+import com.example.courseplanner.utils.*;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,19 +31,23 @@ public class BrowseController {
     // inject jpa repositories or services as needed
     private final DepartmentRepository departmentRepository;
     private final CourseRepository courseRepository;
-    private final CourseOfferingRepository offeringRepository;
+    private final TermRepository termRepository;
+    private final CourseSysClient courseSysClient;
+    private final CourseDiggerStatsRepository courseDiggerStatsRepository;
 
-    public BrowseController(DepartmentRepository departmentRepository, CourseRepository courseRepository, CourseOfferingRepository offeringRepository) {
+    public BrowseController(DepartmentRepository departmentRepository, CourseRepository courseRepository, TermRepository termRepository, CourseSysClient courseSysClient, CourseDiggerStatsRepository courseDiggerStatsRepository) {
         this.departmentRepository = departmentRepository;
         this.courseRepository = courseRepository;
-        this.offeringRepository = offeringRepository;
+        this.termRepository = termRepository;
+        this.courseSysClient = courseSysClient;
+        this.courseDiggerStatsRepository = courseDiggerStatsRepository;
     }
 
     @GetMapping("/departments")
     public ResponseEntity<List<ApiDepartmentDTO>> getDepartments() {
         List<ApiDepartmentDTO> departmentDTOs = departmentRepository.findAll().stream()
                 .sorted(Comparator.comparing(Department::getDeptCode, String.CASE_INSENSITIVE_ORDER))
-                .map(department -> new ApiDepartmentDTO(department.getDeptId(), department.getDeptCode()))
+                .map(department -> new ApiDepartmentDTO(department.getDeptId(), department.getDeptCode(), department.getName()))
                 .collect(Collectors.toList());
         return ResponseEntity.ok(departmentDTOs); // Return 200 OK with the list of departments
     }
@@ -53,9 +60,17 @@ public class BrowseController {
         }
 
         // Query database for courses in this department
-        List<ApiCourseDTO> courses = courseRepository.findByDepartmentDeptId(deptId).stream()
-                .sorted(Comparator.comparing(Course::getCatalogNumber, String.CASE_INSENSITIVE_ORDER))
-                .map(course -> new ApiCourseDTO(course.getCourseId(), course.getCatalogNumber()))
+        List<ApiCourseDTO> courses = courseRepository.findByDeptId(deptId).stream()
+                .map(course -> new ApiCourseDTO(course.getCourseId(),
+                    deptId,
+                    course.getCourseNumber(),
+                    course.getTitle(),
+                    course.getDescription(),
+                    Optional.ofNullable(course.getUnits()).orElse(0L),
+                    course.getDegreeLevel(),
+                    course.getPrerequisites(),
+                    course.getCorequisites(),
+                    course.getDesignation()))
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(courses);
@@ -63,113 +78,203 @@ public class BrowseController {
 
     @GetMapping("/departments/{deptId}/courses/{courseId}/offerings")
     public ResponseEntity<List<ApiCourseOfferingDTO>> getOfferings(
-        @PathVariable Long deptId, 
-        @PathVariable Long courseId
+            @PathVariable Long deptId,
+            @PathVariable Long courseId
     ) {
-        // Validate course exists
-        Course course = courseRepository.findById(courseId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Course not found"));
+        // 1. Validate course
+        Course course = courseRepository.findByIdWithDepartment(courseId)
+                .orElseThrow(() ->
+                        new ResponseStatusException(HttpStatus.NOT_FOUND, "Course not found"));
 
-        // Get all offerings for this course
-        List<CourseOffering> offerings = offeringRepository.findByCourseCourseId(courseId);
+        String dept = course.getDepartment().getDeptCode();   // CMPT
+        String number = course.getCourseNumber();             // 276
 
-        // Group by {semester + location} to consolidate sections
-        // Key format: "1241_BURNABY"
-        Map<String, CourseOffering> groupedMap = new LinkedHashMap<>();
-        
-        for (CourseOffering offering : offerings) {
-            String key = offering.getSemesterCode() + "_" + offering.getLocation();
-            
-            groupedMap.merge(key, offering, (existing, newOffering) -> {
-                // Merge instructors (deduplicate)
-                Set<String> instructors = new LinkedHashSet<>();
-                if (existing.getInstructors() != null && !existing.getInstructors().isEmpty()) {
-                    instructors.addAll(Arrays.asList(existing.getInstructors().split(", ")));
-                }
-                if (newOffering.getInstructors() != null && !newOffering.getInstructors().isEmpty()) {
-                    instructors.addAll(Arrays.asList(newOffering.getInstructors().split(", ")));
-                }
-                existing.setInstructors(String.join(", ", instructors));
-                
-                return existing;
-            });
+        // 2. Get enrolling term (optional)
+        Optional<Term> enrollingOpt = termRepository.findByIsEnrollingTrue();
+
+        long year;
+        String term;
+        long semesterCode;
+
+        if (enrollingOpt.isPresent()) {
+            Term enrolling = enrollingOpt.get();
+            year = enrolling.getYear();        // 2026
+            term = enrolling.getTerm();        // spring
+            semesterCode = SemesterUtil.buildSemesterCode(year, term);
+        } else {
+            // fallback to current term or latest known term
+            Term current = termRepository.findByIsCurrentTrue()
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.INTERNAL_SERVER_ERROR, "No term data"));
+
+            year = current.getYear();
+            term = current.getTerm();
+            semesterCode = SemesterUtil.buildSemesterCode(year, term);
         }
 
-        // Convert to DTOs and sort by semester (newest first)
-        List<ApiCourseOfferingDTO> offeringDTOs = groupedMap.values().stream()
-                .sorted(Comparator.comparing(CourseOffering::getSemesterCode).reversed())
-                .map(offering -> new ApiCourseOfferingDTO(
-                    offering.getOfferingId(),
-                    offering.getLocation(),
-                    offering.getInstructors(),
-                    getSemesterTerm(offering.getSemesterCode()),
-                    offering.getSemesterCode().longValue(),
-                    getSemesterYear(offering.getSemesterCode())
-                ))
-                .collect(Collectors.toList());
+        List<ApiCourseOfferingDTO> results = new ArrayList<>();
 
-        return ResponseEntity.ok(offeringDTOs);
+        // 3. Iterate backwards 12 semesters (4 years * 3 semesters)
+        for (int i = 0; i < 12; i++) {
+
+            CourseSysBrowseResult browse =
+                    courseSysClient.fetchCourseSections(dept, number, semesterCode);
+
+            boolean isEnrolling = (i == 0 && enrollingOpt.isPresent());
+
+            for (CourseSysOffering offering : browse.getOfferings()) {                       
+                ApiCourseOfferingDTO dto = new ApiCourseOfferingDTO(
+                        offering.getSection(),
+                        offering.getInfoUrl(),
+                        capitalize(term), // spring
+                        year,
+                        semesterCode, // 1247
+                        isEnrolling,
+                        offering.getCampus(),
+                        offering.getInstructor(),
+                        offering.getEnrolled(),
+                        offering.getCapacity(),
+                        offering.getLoadPercent()
+                );
+
+                results.add(dto);
+            }
+
+            // move to previous semester
+            SemesterUtil.Prev prev = SemesterUtil.previous(year, term);
+            year = prev.year();
+            term = prev.term();
+            semesterCode = prev.semesterCode();
+        }
+
+        return ResponseEntity.ok(results);
     }
 
-    @GetMapping("/departments/{deptId}/courses/{courseId}/offerings/{offeringId}")
-    public ResponseEntity<List<ApiOfferingSectionDTO>> getSpecificOffering(
+    @GetMapping("/departments/{deptId}/courses/{courseId}/offerings/{semesterCode}")
+    public ResponseEntity<ApiOfferingDetailDTO> getOfferingDetail(
             @PathVariable Long deptId,
             @PathVariable Long courseId,
-            @PathVariable Long offeringId) {
-        
-        // Get the main offering
-        CourseOffering mainOffering = offeringRepository.findById(offeringId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Offering not found"));
+            @PathVariable Long semesterCode
+    ) {
 
-        // Get all offerings for the same semester + location
-        // (to aggregate section types like your old logic)
-        List<CourseOffering> relatedOfferings = offeringRepository.findByCourseCourseId(courseId).stream()
-            .filter(o -> o.getSemesterCode().equals(mainOffering.getSemesterCode()) &&
-                         o.getLocation().equals(mainOffering.getLocation()))
-            .collect(Collectors.toList());
+        // 1. Validate DB entities
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Course not found"));
 
-        // Group by section type and aggregate enrollment
-        Map<String, ApiOfferingSectionDTO> sectionsMap = new HashMap<>();
-        
-        for (CourseOffering offering : relatedOfferings) {
-            String type = offering.getSectionType();
-            
-            sectionsMap.merge(type, 
-                new ApiOfferingSectionDTO(type, offering.getEnrollmentCap(), offering.getEnrollmentTotal()),
-                (existing, newSection) -> {
-                    // Aggregate enrollment numbers
-                    existing.setEnrollmentCap(existing.getEnrollmentCap() + newSection.getEnrollmentCap());
-                    existing.setEnrollmentTotal(existing.getEnrollmentTotal() + newSection.getEnrollmentTotal());
-                    return existing;
-                }
-            );
+        Department dept = departmentRepository.findById(deptId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Department not found"));
+
+        // 2. Fetch CourseSys data for this semester
+        CourseSysBrowseResult csResult =
+                courseSysClient.fetchCourseSections(
+                        dept.getDeptCode(),
+                        course.getCourseNumber(),
+                        semesterCode
+                );
+
+        // 3. Map sections
+        List<ApiCourseOfferingDTO> sections = csResult.getOfferings().stream()
+                .map(o -> new ApiCourseOfferingDTO(
+                        o.getSection(),
+                        o.getInfoUrl(),
+                        csResult.getSemester(),
+                        csResult.getYear(),
+                        csResult.getSemesterCode(),
+                        false,
+                        o.getCampus(),
+                        o.getInstructor(),
+                        o.getEnrolled(),
+                        o.getCapacity(),
+                        o.getLoadPercent()
+                ))
+                .toList();
+
+        // 4. CourseDiggers stats (optional)
+        CourseDiggerStats stats = courseDiggerStatsRepository
+                .findByCourseCourseId(courseId)
+                .orElse(null);
+
+        // 5. Assemble DTO
+        // ---- Resolve course + dept info ----
+        String deptCode = dept.getDeptCode();
+        String courseNumber = course.getCourseNumber();
+        String title = course.getTitle();
+
+        // ---- Resolve term info ----
+        long year = csResult.getYear();
+        String term = csResult.getSemester();
+
+        // ---- Resolve campus (from sections if available) ----
+        String campus = sections.isEmpty()
+                ? null
+                : sections.get(0).getLocation();
+
+        // ---- Resolve CourseDiggers stats ----
+        String medianGrade = null;
+        double failRate = 0.0;
+        Map<String, Long> gradeDistribution = null;
+
+        if (stats != null) {
+            medianGrade = stats.getMedianGrade();
+
+            if (stats.getFailRate() != null) {
+                failRate = stats.getFailRate().doubleValue();
+            }
         }
 
-        // Convert to list and sort
-        List<ApiOfferingSectionDTO> sections = new ArrayList<>(sectionsMap.values());
-        sections.sort(Comparator.comparing(ApiOfferingSectionDTO::getType, String.CASE_INSENSITIVE_ORDER));
+        if (stats != null && stats.getGradeDistribution() != null) {
+            gradeDistribution = new HashMap<>();
 
-        return ResponseEntity.ok(sections);
-    }
-    
-    // Helper methods to derive semester term and year from semester code
-    private String getSemesterTerm(int semesterCode) {
-        String codeStr = String.valueOf(semesterCode);
-        if (codeStr.length() < 4) return "Unknown";
-        
-        String termCode = codeStr.substring(3, 4);
-        return switch (termCode) {
-            case "1" -> "Spring";
-            case "4" -> "Summer";
-            case "7" -> "Fall";
-            default -> "Unknown";
-        };
+            for (Map.Entry<String, Object> entry : stats.getGradeDistribution().entrySet()) {
+                Object value = entry.getValue();
+
+                if (value instanceof Number) {
+                    gradeDistribution.put(entry.getKey(), ((Number) value).longValue());
+                }
+            }
+        }
+
+        // ---- Resolve course metadata ----
+        String description = course.getDescription();
+        String prerequisites = course.getPrerequisites();
+        String corequisites = course.getCorequisites();
+        long units = Optional.ofNullable(course.getUnits()).orElse(0L);
+        String degreeLevel = course.getDegreeLevel();
+        String designation = course.getDesignation();
+
+        // ---- Resolve outline URL ----
+        String outlineUrl =
+                "https://www.sfu.ca/outlines.html?dept="
+                        + deptCode
+                        + "&number=" + courseNumber;
+
+        // ---- Final DTO construction ----
+        ApiOfferingDetailDTO dto = new ApiOfferingDetailDTO(
+                deptCode,
+                courseNumber,
+                title,
+                year,
+                term,
+                campus,
+                medianGrade,
+                failRate,
+                gradeDistribution,
+                description,
+                prerequisites,
+                corequisites,
+                units,
+                degreeLevel,
+                designation,
+                sections,
+                outlineUrl
+        );
+        return ResponseEntity.ok(dto);
     }
 
-    private int getSemesterYear(int semesterCode) {
-        String codeStr = String.valueOf(semesterCode);
-        if (codeStr.length() < 3) return 0;
-        
-        return 1900 + Integer.parseInt(codeStr.substring(0, 3));
+    private String capitalize(String str) {
+        if (str == null || str.isEmpty()) return str;
+        return str.substring(0, 1).toUpperCase() + str.substring(1).toLowerCase();
     }
 }

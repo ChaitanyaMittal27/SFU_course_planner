@@ -8,29 +8,29 @@
 package com.example.courseplanner.dto;
 
 public final class ApiWatcherCreateDTO {
-    public long deptId;
     public long courseId;
+    private long termId;
 
     // Constructor
-    public ApiWatcherCreateDTO(long deptId, long courseId) {
-        this.deptId = deptId;
+    public ApiWatcherCreateDTO(long courseId, long termId) {
         this.courseId = courseId;
+        this.termId = termId;
     }
 
     // Getters and Setters
-    public long getDeptId() {
-        return deptId;
-    }
-
-    public void setDeptId(long deptId) {
-        this.deptId = deptId;
-    }
-
-    public long getCourseId() {
+    public Long getCourseId() {
         return courseId;
     }
 
-    public void setCourseId(long courseId) {
+    public void setCourseId(Long courseId) {
         this.courseId = courseId;
+    }
+
+    public long getTermId() {
+        return termId;
+    }
+
+    public void setTermId(long termId) {
+        this.termId = termId;
     }
 }

@@ -1,13 +1,5 @@
-import {
-  Department,
-  Course,
-  CourseOffering,
-  OfferingSection,
-  AboutInfo,
-  Watcher,
-  GraphDataPoint,
-  CourseLoadData,
-} from "@/lib/types";
+import { Department, Course, AboutInfo, Watcher, GraphDataPoint, CourseOffering, OfferingDetail } from "@/lib/types";
+
 // API base URL from environment variable
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -41,9 +33,9 @@ export const api = {
   getOfferings: (deptId: number, courseId: number) =>
     fetchAPI<CourseOffering[]>(`/api/departments/${deptId}/courses/${courseId}/offerings`),
 
-  // GET /api/departments/{deptId}/courses/{courseId}/offerings/{offeringId}
-  getOfferingDetails: (deptId: number, courseId: number, offeringId: number) =>
-    fetchAPI<OfferingSection[]>(`/api/departments/${deptId}/courses/${courseId}/offerings/${offeringId}`),
+  // GET /api/departments/{deptId}/courses/{courseId}/offerings/{semesterCode}
+  getOfferingDetail: (deptId: number, courseId: number, semesterCode: number) =>
+    fetchAPI<OfferingDetail>(`/api/departments/${deptId}/courses/${courseId}/offerings/${semesterCode}`),
 
   // GET /api/about
   getAbout: () => fetchAPI<AboutInfo>("/api/about"),
@@ -55,8 +47,8 @@ export const api = {
   getGraphData: (deptId: number) => fetchAPI<GraphDataPoint[]>(`/api/stats/students-per-semester?deptId=${deptId}`),
 
   // GET /api/stats/students-per-semester?deptId={deptId}&courseId={courseId}
-  getCourseLoad: (deptId: number, courseId: number) =>
-    fetchAPI<CourseLoadData[]>(`/api/stats/course-load?deptId=${deptId}&courseId=${courseId}`),
+  //getCourseLoad: (deptId: number, courseId: number) =>
+  //fetchAPI<CourseLoadData[]>(`/api/stats/course-load?deptId=${deptId}&courseId=${courseId}`),
 
   // POST /api/watchers - Backend returns TEXT not JSON
   createWatcher: async (deptId: number, courseId: number): Promise<string> => {
@@ -88,4 +80,4 @@ export const api = {
 };
 
 // Export types
-export type { Department, Course, CourseOffering, OfferingSection, AboutInfo, Watcher, GraphDataPoint, CourseLoadData };
+export type { Department, Course, CourseOffering, AboutInfo, Watcher, GraphDataPoint, OfferingDetail };

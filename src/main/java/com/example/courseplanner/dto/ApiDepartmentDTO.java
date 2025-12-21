@@ -8,22 +8,33 @@
 package com.example.courseplanner.dto;
 
 public class ApiDepartmentDTO {
+
     private long deptId;
+    private String deptCode;
     private String name;
 
-    // Constructor
-    public ApiDepartmentDTO(long deptId, String name) {
+    public ApiDepartmentDTO() {}
+
+    public ApiDepartmentDTO(long deptId, String deptCode, String name) {
         this.deptId = deptId;
+        this.deptCode = deptCode;
         this.name = name;
     }
 
-    // Getters and Setters
     public long getDeptId() {
         return deptId;
     }
 
     public void setDeptId(long deptId) {
         this.deptId = deptId;
+    }
+
+    public String getDeptCode() {
+        return deptCode;
+    }
+
+    public void setDeptCode(String deptCode) {
+        this.deptCode = deptCode;
     }
 
     public String getName() {

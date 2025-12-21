@@ -7,68 +7,108 @@
 package com.example.courseplanner.dto;
 
 public class ApiCourseOfferingDTO {
-    private long courseOfferingId;  // Unique identifier for the course offering
-    private String location;        // Location of the offering (e.g., "Burnaby")
-    private String instructors;     // Comma-separated list of instructor names
-    private String term;            // Term of the offering (e.g., "Fall")
-    private long semesterCode;      // SFU semester code (e.g., 1191)
-    private int year;               // Year of the offering (e.g., 2023)
+    // Section identity
+    private String section;        // D100
+    private String infoUrl;        // /browse/info/2025fa-cmpt-276-d1
 
-    // Constructor
-    public ApiCourseOfferingDTO(long courseOfferingId, String location, String instructors, String term, long semesterCode, int year) {
-        this.courseOfferingId = courseOfferingId;
-        this.location = location;
-        this.instructors = instructors;
+    // Term info
+    private String term;           // Fall
+    private Long year;              // 2025
+    private Long semesterCode;     // 1257
+    private boolean isEnrolling;   // true if from enrolling term
+
+    // Display info
+    private String location;       // Burnaby
+    private String instructors;    // Saba Alimadadi
+
+    // Enrollment data
+    private String enrolled;          // 96
+    private String capacity;          // 100
+    private Long loadPercent;       // 96
+
+    // constructors
+    public ApiCourseOfferingDTO(String section, String infoUrl, String term, Long year, Long semesterCode, boolean isEnrolling, String location, String instructors, String enrolled, String capacity, Long loadPercent) {
+        this.section = section;
+        this.infoUrl = infoUrl;
+
         this.term = term;
         this.semesterCode = semesterCode;
         this.year = year;
-    }
+        this.isEnrolling = isEnrolling;
 
-    public long getCourseOfferingId() {
-        return courseOfferingId;
-    }
-
-    public void setCourseOfferingId(long courseOfferingId) {
-        this.courseOfferingId = courseOfferingId;
-    }
-
-    public String getLocation() {
-        return location;
-    }
-
-    public void setLocation(String location) {
         this.location = location;
+        this.instructors = instructors;
+
+        this.enrolled = enrolled;
+        this.capacity = capacity;
+        this.loadPercent = loadPercent;        
     }
 
+    // getters and setters
+    public String getSection() {
+        return section;
+    }
+    public void setSection(String section) {
+        this.section = section;
+    }
+    public String getInfoUrl() {
+        return infoUrl;
+    }
+    public void setInfoUrl(String infoUrl) {
+        this.infoUrl = infoUrl;
+    }
     public String getInstructors() {
         return instructors;
     }
-
     public void setInstructors(String instructors) {
         this.instructors = instructors;
     }
-
     public String getTerm() {
         return term;
     }
-
     public void setTerm(String term) {
         this.term = term;
     }
-
-    public long getSemesterCode() {
+    public Long getSemesterCode() {
         return semesterCode;
     }
-
-    public void setSemesterCode(long semesterCode) {
+    public void setSemesterCode(Long semesterCode) {
         this.semesterCode = semesterCode;
     }
-
-    public int getYear() {
+    public boolean isEnrolling() {
+        return isEnrolling;
+    }
+    public void setEnrolling(boolean isEnrolling) {
+        this.isEnrolling = isEnrolling;
+    }
+    public Long getYear() {
         return year;
     }
-
-    public void setYear(int year) {
+    public void setYear(Long year) {
         this.year = year;
+    }
+    public String getLocation() {
+        return location;
+    }
+    public void setLocation(String location) {
+        this.location = location;
+    }
+    public String getEnrolled() {
+        return enrolled;
+    }
+    public void setEnrolled(String enrolled) {
+        this.enrolled = enrolled;
+    }
+    public String getCapacity() {
+        return capacity;
+    }
+    public void setCapacity(String capacity) {
+        this.capacity = capacity;
+    }
+    public Long getLoadPercent() {
+        return loadPercent;
+    }
+    public void setLoadPercent(Long loadPercent) {
+        this.loadPercent = loadPercent;
     }
 }

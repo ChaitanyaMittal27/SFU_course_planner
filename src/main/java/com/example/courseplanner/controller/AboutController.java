@@ -17,7 +17,7 @@ public class AboutController {
 
     @GetMapping("/about")
     public ApiAboutDTO getAboutInfo() {
-        String name = "Chaitanya Mittal";
+        String name = "Anonymouse";
         return new ApiAboutDTO("CoursePlanner", name);
     }
 }
