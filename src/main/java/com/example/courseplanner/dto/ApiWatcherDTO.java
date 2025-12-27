@@ -1,58 +1,83 @@
-/**
- * Data Transfer Object (DTO) representing a watcher.
- * Includes watcher ID, associated department and course, and a list of events triggered by updates.
- * Used in responses for watcher-related requests.
- */
-
-
 package com.example.courseplanner.dto;
-import java.util.List;
+
+import java.time.LocalDateTime;
 
 public class ApiWatcherDTO {
-    private long id;
-    private ApiDepartmentDTO department;
-    private ApiCourseDTO watchedcourse;
-    private List<String> events;
 
+    private Long watcherId;
+    private Long deptId;
+    private Long courseId;
+    private Long semesterCode;
+    private String section;
+    private LocalDateTime createdAt;
 
+    // ----------------------------
     // Constructor
-    public ApiWatcherDTO(long id, ApiDepartmentDTO department, ApiCourseDTO course, List<String> events) {
-        this.id = id;
-        this.department = department;
-        this.watchedcourse = course;
-        this.events = events;
+    // ----------------------------
+    public ApiWatcherDTO(
+        Long watcherId,
+        Long deptId,
+        Long courseId,
+        Long semesterCode,
+        String section,
+        LocalDateTime createdAt
+    ) {
+        this.watcherId = watcherId;
+        this.deptId = deptId;
+        this.courseId = courseId;
+        this.semesterCode = semesterCode;
+        this.section = section;
+        this.createdAt = createdAt;
     }
 
-    // Getters and Setters
-    public long getId() {
-        return id;
+    // ----------------------------
+    // Getters & Setters
+    // ----------------------------
+    public Long getWatcherId() {
+        return watcherId;
     }
 
-    public void setId(long id) {
-        this.id = id;
+    public void setWatcherId(Long watcherId) {
+        this.watcherId = watcherId;
     }
 
-    public ApiDepartmentDTO getDepartment() {
-        return department;
+    public Long getDeptId() {
+        return deptId;
     }
 
-    public void setDepartment(ApiDepartmentDTO department) {
-        this.department = department;
+    public void setDeptId(Long deptId) {
+        this.deptId = deptId;
     }
 
-    public ApiCourseDTO getCourse() {
-        return watchedcourse;
+    public Long getCourseId() {
+        return courseId;
     }
 
-    public void setCourse(ApiCourseDTO course) {
-        this.watchedcourse = course;
+    public void setCourseId(Long courseId) {
+        this.courseId = courseId;
     }
 
-    public List<String> getEvents() {
-        return events;
+    public Long getSemesterCode() {
+        return semesterCode;
     }
 
-    public void setEvents(List<String> events) {
-        this.events = events;
+    public void setSemesterCode(Long semesterCode) {
+        this.semesterCode = semesterCode;
+    }
+
+    public String getSection() {
+        return section;
+    }
+
+    public void setSection(String section) {
+        this.section = section;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 }

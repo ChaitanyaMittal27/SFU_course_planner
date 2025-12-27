@@ -1,5 +1,8 @@
 // API Response Types (matching Spring Boot DTOs)
 
+// ----------------------------
+// Common: Departments / Courses
+// ----------------------------
 export type Department = {
   deptId: number;
   deptCode: string;
@@ -19,6 +22,9 @@ export type Course = {
   designation: string | null;
 };
 
+// ----------------------------
+// Browse: Offerings + Details
+// ----------------------------
 export interface CourseOffering {
   section: string;
   infoUrl: string;
@@ -69,19 +75,47 @@ export interface OfferingDetail {
   outlineUrl: string; // SFU outline link
 }
 
+// ----------------------------
+// About
+// ----------------------------
 export interface AboutInfo {
   appName: string;
   authorName: string;
 }
 
-export interface Watcher {
-  id: number;
-  department: Department;
-  course: Course;
-  events: string[];
+// ----------------------------
+// Graph Data
+// ----------------------------
+// for grade distribution graph
+export interface GradeDistribution {
+  deptCode: string; // "CMPT"
+  courseNumber: string; // "276"
+  title: string; // "Introduction to Software Engineering"
+
+  medianGrade: string; // "A-"
+  failRate: number; // 2.52
+
+  distribution: Record<string, number>; // { "A+": 68, "A": 218, "A-": 196, ... }
+}
+// for load + enrollement graphs
+export interface EnrollmentDataPoint {
+  semesterCode: number; // 1257
+  term: string; // "fall", "spring", "summer"
+  year: number; // 2025
+
+  enrolled: number; // Total enrolled students
+  capacity: number; // Total capacity
+  loadPercent: number; // enrolled/capacity * 100
 }
 
-export interface GraphDataPoint {
+// ----------------------------
+// Watchers
+// ----------------------------
+export interface Watcher {
+  watcherId: number;
+  deptId: number;
+  courseId: number;
   semesterCode: number;
-  totalCoursesTaken: number;
+  section: string;
+  createdAt: string; // ISO timestamp from backend
 }

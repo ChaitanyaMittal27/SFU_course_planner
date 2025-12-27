@@ -148,4 +148,28 @@ public final class SemesterUtil {
         term = normalizeTerm(term);
         return term.substring(0, 1).toUpperCase() + term.substring(1);
     }
+
+    /**
+     * Decode SFU semester code into year and term.
+     * Example:
+     *  semesterCode=1257 → year=2025, term="fall"
+     * @param semesterCode  e.g. 1257
+     * @return DecodedSemester record
+     */
+    public static DecodedSemester decodeSemesterCode(long semesterCode) {
+        long year = semesterCode / 10;
+        int termDigit = (int) (semesterCode % 10);
+
+        String term = switch (termDigit) {
+            case 1 -> "spring";
+            case 4 -> "summer";
+            case 7 -> "fall";
+            default -> throw new IllegalArgumentException(
+                    "Invalid semester code: " + semesterCode
+            );
+        };
+
+        return new DecodedSemester(year, term);
+    }
+    public record DecodedSemester(long year, String term) { }
 }
