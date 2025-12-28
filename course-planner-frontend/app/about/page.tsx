@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState, Suspense } from "react";
+import { useState, Suspense } from "react";
 import PageContainer from "@/components/PageContainer";
+import emailjs from "@emailjs/browser";
 import LoadingSpinner from "@/components/LoadingSpinner";
-import ErrorMessage from "@/components/ErrorMessage";
 
 function AboutPageContent() {
   // FAQ state
@@ -79,15 +79,32 @@ function AboutPageContent() {
     }
 
     try {
-      // TODO: Replace with actual email service (EmailJS, SendGrid, etc.)
-      // For now, simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Initialize EmailJS
+      emailjs.init({
+        publicKey: process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY!,
+      });
 
-      console.log("Form submitted:", formData);
+      // Prepare template parameters matching your EmailJS template
+      const templateParams = {
+        from_name: formData.name,
+        name: formData.name,
+        from_email: formData.email,
+        email: formData.email,
+        subject: formData.reason,
+        message: formData.message,
+      };
+
+      // Send email
+      await emailjs.send(
+        process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID!,
+        process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID!,
+        templateParams
+      );
 
       setFormStatus("success");
       setFormData({ name: "", email: "", reason: "", message: "" });
     } catch (error) {
+      console.error("EmailJS error:", error);
       setFormError("Failed to send message. Please try again or contact us directly via GitHub.");
       setFormStatus("error");
     }
@@ -126,10 +143,9 @@ function AboutPageContent() {
           </div>
 
           {/* Key Features */}
-
           <div className="grid md:grid-cols-2 gap-6">
             <a href="/browse" className="no-underline">
-              <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
+              <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800 hover:border-orange-400 dark:hover:border-orange-600 transition-colors">
                 <div className="flex items-center mb-2">
                   <svg
                     className="w-6 h-6 text-orange-600 dark:text-orange-400 mr-2"
@@ -147,7 +163,7 @@ function AboutPageContent() {
             </a>
 
             <a href="/graph" className="no-underline">
-              <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
+              <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800 hover:border-orange-400 dark:hover:border-orange-600 transition-colors">
                 <div className="flex items-center mb-2">
                   <svg
                     className="w-6 h-6 text-orange-600 dark:text-orange-400 mr-2"
@@ -169,7 +185,7 @@ function AboutPageContent() {
             </a>
 
             <a href="/watchers" className="no-underline">
-              <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
+              <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800 hover:border-orange-400 dark:hover:border-orange-600 transition-colors">
                 <div className="flex items-center mb-2">
                   <svg
                     className="w-6 h-6 text-orange-600 dark:text-orange-400 mr-2"
@@ -192,7 +208,7 @@ function AboutPageContent() {
             </a>
 
             <a href="/compare" className="no-underline">
-              <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
+              <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800 hover:border-orange-400 dark:hover:border-orange-600 transition-colors">
                 <div className="flex items-center mb-2">
                   <svg
                     className="w-6 h-6 text-orange-600 dark:text-orange-400 mr-2"
@@ -260,6 +276,7 @@ function AboutPageContent() {
               <input
                 type="text"
                 id="name"
+                name="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="John Doe"
@@ -276,6 +293,7 @@ function AboutPageContent() {
               <input
                 type="email"
                 id="email"
+                name="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder="john.doe@example.com"
@@ -291,17 +309,18 @@ function AboutPageContent() {
               </label>
               <select
                 id="reason"
+                name="subject"
                 value={formData.reason}
                 onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
                 disabled={formStatus === "loading"}
                 className="input-field"
               >
                 <option value="">Select a reason</option>
-                <option value="bug">Bug Report</option>
-                <option value="feature">Feature Request</option>
-                <option value="inquiry">General Inquiry</option>
-                <option value="support">Technical Support</option>
-                <option value="other">Other</option>
+                <option value="Bug Report">Bug Report</option>
+                <option value="Feature Request">Feature Request</option>
+                <option value="General Inquiry">General Inquiry</option>
+                <option value="Technical Support">Technical Support</option>
+                <option value="Other">Other</option>
               </select>
             </div>
 
@@ -312,6 +331,7 @@ function AboutPageContent() {
               </label>
               <textarea
                 id="message"
+                name="message"
                 value={formData.message}
                 onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                 placeholder="Please describe your question or feedback..."
