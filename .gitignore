@@ -41,8 +41,7 @@ bin/
 ### Mac OS ###
 .DS_Store
 
-public/
 docs/
 data/
-
+test_public/
 .env
