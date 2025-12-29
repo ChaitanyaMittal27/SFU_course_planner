@@ -276,33 +276,36 @@
      - Crisp cards "float" on warm/slate backgrounds
      - Subtle shadows = depth without distraction
      - Red border on hover = SFU interaction feedback
+     
+     Usage: class="light-card" (works in both light and dark mode!)
      ========================================== */
+
+  /* Light mode styles */
   .light-card {
-    @apply bg-white border backdrop-blur-sm;
+    @apply border backdrop-blur-sm;
+    background: white;
     border-color: rgba(174, 29, 31, 0.15);
     box-shadow: 0 2px 8px rgba(174, 29, 31, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
     transition: all 0.3s ease;
   }
 
   .light-card:hover {
-    border-color: var(--sfu-red);
+    border-color: rgba(174, 29, 31, 0.4);
     box-shadow: 0 4px 12px rgba(174, 29, 31, 0.12), 0 2px 6px rgba(0, 0, 0, 0.06);
     transform: translateY(-1px);
   }
 
-  .dark-card {
-    @apply border backdrop-blur-sm;
+  /* Dark mode override - automatically applies when <html class="dark"> */
+  .dark .light-card {
     background: rgba(26, 26, 26, 0.95);
     border-color: rgba(42, 42, 42, 0.8);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    transition: all 0.3s ease;
   }
 
-  .dark-card:hover {
+  .dark .light-card:hover {
     border-color: rgba(174, 29, 31, 0.6);
     background: rgba(42, 42, 42, 0.95);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5), 0 0 24px rgba(174, 29, 31, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-    transform: translateY(-1px);
   }
 
   /* ==========================================
