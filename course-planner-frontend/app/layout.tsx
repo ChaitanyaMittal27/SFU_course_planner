@@ -4,6 +4,7 @@ import "./globals.css";
 import Navigation from "@/components/Navigation";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import Footer from "@/components/Footer";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -39,11 +40,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className={`${inter.className} transition-colors duration-300`}>
-        <NuqsAdapter>
-          <Navigation />
-          <main className="min-h-screen">{children}</main>
-          <Footer />
-        </NuqsAdapter>
+        <AuthProvider>
+          <NuqsAdapter>
+            <Navigation />
+            <main className="min-h-screen">{children}</main>
+            <Footer />
+          </NuqsAdapter>
+        </AuthProvider>
       </body>
     </html>
   );
