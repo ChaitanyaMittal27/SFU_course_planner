@@ -1,15 +1,50 @@
+/**
+ * =============================================================================
+ * NAVIGATION - AUTH-AWARE NAVBAR
+ * =============================================================================
+ *
+ * Changes from original:
+ * 1. Removed "Watchers" link (moved to dashboard)
+ * 2. Added auth state detection via useAuth()
+ * 3. When logged out: Shows "Sign In" button
+ * 4. When logged in: Shows profile picture dropdown with:
+ *    - Dashboard
+ *    - Sign Out
+ *
+ * Why these changes?
+ * - "Watchers" is user-specific, not a public feature → belongs in dashboard
+ * - Need visible way to access dashboard after login
+ * - Need visible way to sign out
+ * - Profile dropdown is standard UX pattern for authenticated apps
+ *
+ * Connection:
+ * - Uses: useAuth() hook from AuthContext
+ * - Links to: /login, /dashboard
+ * - Calls: signOut() from AuthContext
+ * =============================================================================
+ */
+
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "@/hooks/useTheme";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Navigation() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const pathname = usePathname();
   const { theme, toggleTheme, mounted } = useTheme();
+  const { user, signOut } = useAuth();
 
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * Public navigation links
+   * Removed "Watchers" - now accessed via Dashboard
+   */
   const navLinks = [
     {
       name: "Browse",
@@ -54,21 +89,6 @@ export default function Navigation() {
       ),
     },
     {
-      name: "Watchers",
-      href: "/watchers",
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-          />
-        </svg>
-      ),
-    },
-    {
       name: "About",
       href: "/about",
       icon: (
@@ -100,6 +120,44 @@ export default function Navigation() {
 
   const isActive = (href: string) => pathname === href;
 
+  /**
+   * Close dropdown when clicking outside
+   * Standard UX pattern for dropdown menus
+   */
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setProfileDropdownOpen(false);
+      }
+    };
+
+    if (profileDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [profileDropdownOpen]);
+
+  /**
+   * Handle sign out
+   * Calls signOut from AuthContext, which clears session and redirects
+   */
+  const handleSignOut = async () => {
+    setProfileDropdownOpen(false);
+    await signOut();
+  };
+
+  /**
+   * Get user initials for profile picture placeholder
+   * Falls back to "U" if no email
+   */
+  const getUserInitials = () => {
+    if (!user?.email) return "U";
+    return user.email.charAt(0).toUpperCase();
+  };
+
   return (
     <nav className="sticky top-0 z-30 bg-[#c23032] dark:bg-[#1a1a1a] shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -110,8 +168,9 @@ export default function Navigation() {
             <span className="text-lg font-semibold text-white">SFU Course Planner</span>
           </Link>
 
-          {/* Desktop Navigation + Theme Toggle */}
+          {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
+            {/* Public nav links */}
             {navLinks.map((link) => (
               <Link
                 key={link.href}
@@ -131,7 +190,7 @@ export default function Navigation() {
               </Link>
             ))}
 
-            {/* Theme Toggle (Desktop) */}
+            {/* Theme Toggle */}
             {mounted && (
               <button
                 onClick={toggleTheme}
@@ -159,6 +218,67 @@ export default function Navigation() {
                 )}
               </button>
             )}
+
+            {/* AUTH SECTION: Sign In button OR Profile dropdown */}
+            {!user ? (
+              // LOGGED OUT: Show Sign In button
+              <Link
+                href="/login"
+                className="px-4 py-1.5 bg-white text-red-600 rounded-md font-medium hover:bg-white/90 transition-colors"
+              >
+                Sign In
+              </Link>
+            ) : (
+              // LOGGED IN: Show profile dropdown
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                  className="flex items-center space-x-2 text-white hover:text-white/80 transition-colors"
+                  aria-label="Profile menu"
+                >
+                  {/* Profile picture placeholder (using initials) */}
+                  <div className="w-8 h-8 bg-white text-red-600 rounded-full flex items-center justify-center font-semibold text-sm">
+                    {getUserInitials()}
+                  </div>
+                  {/* Dropdown arrow */}
+                  <svg
+                    className={`w-4 h-4 transition-transform ${profileDropdownOpen ? "rotate-180" : ""}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {/* Dropdown menu */}
+                {profileDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-lg py-1 border border-gray-200 dark:border-slate-700">
+                    {/* User email */}
+                    <div className="px-4 py-2 border-b border-gray-200 dark:border-slate-700">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{user.email}</p>
+                    </div>
+
+                    {/* Dashboard link */}
+                    <Link
+                      href="/dashboard"
+                      onClick={() => setProfileDropdownOpen(false)}
+                      className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                    >
+                      Dashboard
+                    </Link>
+
+                    {/* Sign Out */}
+                    <button
+                      onClick={handleSignOut}
+                      className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                    >
+                      Sign Out
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -181,6 +301,7 @@ export default function Navigation() {
         {mobileMenuOpen && (
           <div className="md:hidden pb-3 animate-fade-in border-t border-white/20 pt-3">
             <div className="flex flex-col space-y-1">
+              {/* Public links */}
               {navLinks.map((link) => (
                 <Link
                   key={link.href}
@@ -195,7 +316,7 @@ export default function Navigation() {
                 </Link>
               ))}
 
-              {/* Theme Toggle (Mobile) */}
+              {/* Theme Toggle */}
               {mounted && (
                 <button
                   onClick={toggleTheme}
@@ -225,6 +346,57 @@ export default function Navigation() {
                   </span>
                 </button>
               )}
+
+              {/* Mobile Auth Section */}
+              <div className="pt-2 border-t border-white/20 mt-2">
+                {!user ? (
+                  // LOGGED OUT: Sign In link
+                  <Link
+                    href="/login"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="px-3 py-2 bg-white text-red-600 rounded flex items-center justify-center font-medium"
+                  >
+                    Sign In
+                  </Link>
+                ) : (
+                  // LOGGED IN: Dashboard + Sign Out
+                  <>
+                    <div className="px-3 py-2 text-white/80 text-sm">{user.email}</div>
+                    <Link
+                      href="/dashboard"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="px-3 py-2 text-white font-medium hover:bg-white/10 flex items-center space-x-2 rounded"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                        />
+                      </svg>
+                      <span>Dashboard</span>
+                    </Link>
+                    <button
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        handleSignOut();
+                      }}
+                      className="w-full px-3 py-2 text-red-400 font-medium hover:bg-white/10 flex items-center space-x-2 rounded"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                        />
+                      </svg>
+                      <span>Sign Out</span>
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         )}
