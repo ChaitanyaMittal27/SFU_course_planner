@@ -37,7 +37,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -129,8 +129,8 @@ function AuthCallbackPageContent() {
 
 export default function AuthCallbackPage() {
   return (
-    <div>
+    <Suspense fallback={<LoadingSpinner />}>
       <AuthCallbackPageContent />
-    </div>
+    </Suspense>
   );
 }

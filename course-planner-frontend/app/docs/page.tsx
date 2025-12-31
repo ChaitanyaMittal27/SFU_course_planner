@@ -1,8 +1,10 @@
 "use client";
 
+import LoadingSpinner from "@/components/LoadingSpinner";
 import PageContainer from "@/components/PageContainer";
+import { Suspense } from "react";
 
-export default function ApiDocsPage() {
+function ApiDocsPageContent() {
   const API_BASE = "https://api.sfucourseplanner.com";
 
   return (
@@ -432,5 +434,13 @@ export default function ApiDocsPage() {
         </div>
       </div>
     </PageContainer>
+  );
+}
+
+export default function ApiDocsPage() {
+  return (
+    <Suspense fallback={<LoadingSpinner />}>
+      <ApiDocsPageContent />
+    </Suspense>
   );
 }
