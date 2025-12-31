@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, Suspense } from "react";
 import GradeHistogram from "@/components/GradeHistogram";
 import { useQueryState } from "nuqs";
 import { api } from "@/lib/api";
-import type { Course, CourseOffering, Department } from "@/lib/types";
+import type { Course, CourseOffering, Department, OfferingDetail } from "@/lib/types";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import ErrorMessage from "@/components/ErrorMessage";
 import BookmarkButton from "@/components/BookmarkButton";
@@ -33,32 +33,6 @@ function extractSection(section: string) {
   const parts = section.trim().split(/\s+/);
   return parts[parts.length - 1].toLowerCase();
 }
-
-// ----------------------------
-// Full-screen detail component
-// ----------------------------
-type OfferingDetail = {
-  deptCode: string;
-  courseNumber: string;
-  title: string;
-  year: number;
-  term: string;
-  campus: string | null;
-
-  medianGrade: string | null;
-  failRate: number;
-  gradeDistribution: Record<string, number> | null;
-
-  description: string | null;
-  prerequisites: string | null;
-  corequisites: string | null;
-  units: number;
-  degreeLevel: string | null;
-  designation: string | null;
-
-  sections: CourseOffering[]; // You’re currently returning section rows via ApiCourseOfferingDTO mapping in detail too
-  outlineUrl: string;
-};
 
 function OfferingDetailScreen({ detail, onBack }: { detail: OfferingDetail; onBack: () => void }) {
   return (
