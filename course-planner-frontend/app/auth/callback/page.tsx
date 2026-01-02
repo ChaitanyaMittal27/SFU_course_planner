@@ -72,14 +72,25 @@ function AuthCallbackPageContent() {
         const code = searchParams.get("code");
 
         if (!code) {
-          setError("No authentication code found");
+          // No code - user navigated here directly (not from OAuth)
+          // Silently redirect to home without showing error
+          router.push("/");
           return;
         }
 
         // Exchange code for session (Supabase handles this automatically)
         const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
 
-        if (exchangeError) throw exchangeError;
+        if (exchangeError) {
+          console.error("OAuth exchange error:", exchangeError);
+          setError(exchangeError.message || "Failed to complete sign in");
+
+          // After showing error, redirect back to login
+          setTimeout(() => {
+            router.push("/login");
+          }, 3000);
+          return;
+        }
 
         // Get redirect destination
         const redirectTo = searchParams.get("redirectTo") || "/dashboard";

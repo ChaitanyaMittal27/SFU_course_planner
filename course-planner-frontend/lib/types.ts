@@ -130,3 +130,10 @@ export interface Bookmark {
   section: string;
   createdAt: string; // ISO timestamp from backend
 }
+
+// ----------------------------
+// User Preferences
+// ----------------------------
+export interface UserPreference {
+  emailNotificationsEnabled: boolean;
+}

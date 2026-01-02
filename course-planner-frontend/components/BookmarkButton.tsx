@@ -68,7 +68,8 @@ export default function BookmarkButton({
     // Not logged in - redirect to login
     if (!user) {
       const currentPath = window.location.pathname;
-      router.push(`/login?returnTo=${encodeURIComponent(currentPath)}`);
+      // FIXED: Changed returnTo to redirectTo to match login page
+      router.push(`/login?redirectTo=${encodeURIComponent(currentPath)}`);
       return;
     }
 

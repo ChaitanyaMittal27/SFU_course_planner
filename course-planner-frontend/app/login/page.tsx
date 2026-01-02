@@ -1,34 +1,34 @@
-/**
+/*
  * =============================================================================
- * LOGIN PAGE - SIGN IN & SIGN UP
+ * LOGIN PAGE - AUTHENTICATION ENTRY POINT
  * =============================================================================
  *
  * Purpose:
- * Unified authentication page with two modes:
- * 1. Sign In - Existing users log in with email/password or Google
- * 2. Sign Up - New users create account with email/password or Google
+ * Unified authentication page supporting:
+ * - Email/Password sign in
+ * - Email/Password sign up
+ * - Google OAuth
+ * - Forgot Password flow
  *
  * Features:
  * - Tabbed interface (Sign In / Sign Up)
- * - Email + password authentication
- * - Google OAuth (one-click sign in)
- * - Form validation and error messages
- * - Loading states during auth operations
- * - Auto-redirect after successful auth
- * - Redirect back to original destination (if came from protected route)
+ * - Form validation
+ * - Error handling
+ * - Loading states
+ * - Auto-redirect if already logged in
+ * - Forgot password modal
  *
- * User Flow:
- * 1. User clicks "Sign In" in navbar → comes here
- * 2. OR user tries to access /dashboard → middleware redirects here with ?redirectTo=/dashboard
- * 3. User chooses Sign In or Sign Up tab
- * 4. Fills form OR clicks "Sign in with Google"
- * 5. After success → redirect to /dashboard (or redirectTo param destination)
+ * Flow:
+ * 1. User visits /login
+ * 2. Chooses sign in or sign up tab
+ * 3. Submits credentials OR clicks Google OAuth
+ * 4. On success: Redirect to /dashboard (or ?redirectTo param)
+ * 5. On error: Show error message
  *
  * Connection:
- * - Uses: lib/supabase/client.ts for auth operations
- * - Uses: contexts/AuthContext.tsx for auth state (via useAuth hook)
- * - Middleware handles: Redirect if already logged in
- * - Redirects to: /dashboard by default, or ?redirectTo param value
+ * - Uses: Supabase Auth
+ * - Redirects to: /dashboard or ?redirectTo
+ * - OAuth callback: /auth/callback
  * =============================================================================
  */
 
@@ -40,394 +40,456 @@ import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import LoadingSpinner from "@/components/LoadingSpinner";
 
-// Tab type for Sign In vs Sign Up mode
-type AuthTab = "signin" | "signup";
-
 function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
 
-  // Form state
-  const [activeTab, setActiveTab] = useState<AuthTab>("signin");
+  const [activeTab, setActiveTab] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-
-  // UI state
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Forgot password modal
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotSuccess, setForgotSuccess] = useState(false);
 
   /**
-   * REDIRECT LOGIC
+   * AUTO-REDIRECT: If user is already logged in, redirect to dashboard
    *
-   * If user is already logged in, redirect immediately.
-   * This prevents logged-in users from seeing login page.
-   *
-   * Flow:
-   * 1. Check if user exists (from AuthContext)
-   * 2. Get redirectTo param (if came from protected route)
-   * 3. Redirect to destination
+   * This prevents logged-in users from seeing the login page.
+   * Common UX pattern for authenticated apps.
    */
   useEffect(() => {
-    if (user) {
+    if (!authLoading && user) {
       const redirectTo = searchParams.get("redirectTo") || "/dashboard";
       router.push(redirectTo);
     }
-  }, [user, router, searchParams]);
+  }, [user, authLoading, router, searchParams]);
 
   /**
-   * EMAIL/PASSWORD SIGN IN
+   * HANDLE EMAIL/PASSWORD SIGN IN
    *
    * Flow:
-   * 1. Call Supabase signInWithPassword
-   * 2. If success: AuthContext detects change, updates user state
-   * 3. useEffect above triggers redirect
-   * 4. If error: Show error message
-   *
-   * Error Handling:
-   * - Invalid credentials → "Invalid email or password"
-   * - Network error → Show technical error
+   * 1. Validate inputs
+   * 2. Call Supabase signInWithPassword
+   * 3. On success: Redirect to dashboard
+   * 4. On error: Show error message
    */
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
+    setSuccessMessage(null);
+    setIsLoading(true);
 
     try {
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (signInError) throw signInError;
+      if (error) throw error;
 
-      // Success - AuthContext will detect auth change and useEffect will redirect
+      // Success - AuthContext will handle redirect
+      const redirectTo = searchParams.get("redirectTo") || "/dashboard";
+      router.push(redirectTo);
     } catch (err: any) {
       setError(err.message || "Failed to sign in");
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   /**
-   * EMAIL/PASSWORD SIGN UP
+   * HANDLE EMAIL/PASSWORD SIGN UP
    *
    * Flow:
-   * 1. Validate passwords match
+   * 1. Validate inputs (email, password match)
    * 2. Call Supabase signUp
-   * 3. If email confirmation disabled: User logged in immediately
-   * 4. If email confirmation enabled: Show "Check your email" message
-   * 5. If success: Redirect to dashboard
-   *
-   * Note:
-   * - Supabase creates user in auth.users table
-   * - User gets UUID as user.id
-   * - This UUID is what we'll use for watchers table
+   * 3. Send confirmation email
+   * 4. Show success message
    */
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
+    setSuccessMessage(null);
 
-    // Validate passwords match
+    // Validate password match
     if (password !== confirmPassword) {
       setError("Passwords do not match");
-      setLoading(false);
       return;
     }
 
+    setIsLoading(true);
+
     try {
-      const { data, error: signUpError } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
       });
 
-      if (signUpError) throw signUpError;
+      if (error) throw error;
 
-      // Success - Check if email confirmation is required
-      if (data.user && !data.user.confirmed_at) {
-        setError("Check your email to confirm your account");
-        setLoading(false);
-        return;
-      }
+      setSuccessMessage("Account created! Please check your email to verify your account.");
 
-      // If no email confirmation required, user is logged in automatically
-      // AuthContext will detect change and redirect
+      // Clear form
+      setEmail("");
+      setPassword("");
+      setConfirmPassword("");
     } catch (err: any) {
-      setError(err.message || "Failed to sign up");
+      setError(err.message || "Failed to create account");
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   /**
-   * GOOGLE OAUTH SIGN IN
+   * HANDLE GOOGLE OAUTH
    *
    * Flow:
    * 1. Call Supabase signInWithOAuth
-   * 2. User redirected to Google login page
+   * 2. Supabase redirects to Google
    * 3. User authorizes app
-   * 4. Google redirects back to your app
-   * 5. Supabase exchanges OAuth code for session
-   * 6. Middleware detects session, allows access
-   * 7. User lands on /dashboard (or redirectTo destination)
-   *
-   * Configuration:
-   * - Requires Google OAuth setup in Supabase dashboard
-   * - Redirect URL must be whitelisted in Supabase
-   * - Works for both sign in AND sign up (Google handles account creation)
-   *
-   * Error Handling:
-   * - If OAuth fails, user returns to login page
-   * - Error shown via URL params (handled by Supabase)
+   * 4. Google redirects to /auth/callback
+   * 5. Callback page handles session creation
    */
   const handleGoogleSignIn = async () => {
-    setLoading(true);
     setError(null);
+    setIsLoading(true);
 
     try {
       const redirectTo = searchParams.get("redirectTo") || "/dashboard";
 
-      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          // After Google auth, redirect back to this URL
-          redirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`,
+          redirectTo: `${window.location.origin}/auth/callback?redirectTo=${redirectTo}`,
         },
       });
 
-      if (oauthError) throw oauthError;
+      if (error) throw error;
 
-      // User will be redirected to Google, then back to /auth/callback
+      // Note: Supabase will redirect to Google, so we won't reach here
     } catch (err: any) {
       setError(err.message || "Failed to sign in with Google");
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   /**
-   * TAB SWITCHING
+   * HANDLE FORGOT PASSWORD
    *
-   * Clears form and error when switching between Sign In/Sign Up
+   * Flow:
+   * 1. User enters email
+   * 2. Send password reset email via Supabase
+   * 3. Show success message
+   * 4. User clicks link in email
+   * 5. Redirects to password reset page
    */
-  const switchTab = (tab: AuthTab) => {
-    setActiveTab(tab);
-    setError(null);
-    setEmail("");
-    setPassword("");
-    setConfirmPassword("");
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotLoading(true);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
+
+      if (error) throw error;
+
+      setForgotSuccess(true);
+
+      // Auto-close modal after 3 seconds
+      setTimeout(() => {
+        setShowForgotPassword(false);
+        setForgotSuccess(false);
+        setForgotEmail("");
+      }, 3000);
+    } catch (err: any) {
+      setError(err.message || "Failed to send reset email");
+    } finally {
+      setForgotLoading(false);
+    }
   };
 
+  // Show loading while checking auth state
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  // Don't show login page if user is already logged in
+  if (user) {
+    return null;
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        {/* Logo & Title */}
-        <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-red-600 to-orange-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 3L1 9l11 6 9-4.91V17h2V9M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z" />
-            </svg>
-          </div>
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white">SFU Course Planner</h2>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Sign in to manage your course watchers</p>
+    <div className="min-h-screen flex items-center justify-center px-4 py-12">
+      <div className="light-card dark:dark-card p-8 max-w-md w-full">
+        {/* Header */}
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Welcome to SFU Course Planner</h1>
+          <p className="text-gray-600 dark:text-gray-400">Sign in to manage your course bookmarks</p>
         </div>
 
-        {/* Auth Card */}
-        <div className="light-card dark:dark-card p-8 space-y-6">
-          {/* Tabs */}
-          <div className="flex space-x-1 bg-gray-100 dark:bg-slate-800 p-1 rounded-lg">
-            <button
-              onClick={() => switchTab("signin")}
-              className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${
-                activeTab === "signin"
-                  ? "bg-white dark:bg-slate-700 text-gray-900 dark:text-white shadow-sm"
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-              }`}
-            >
-              Sign In
-            </button>
-            <button
-              onClick={() => switchTab("signup")}
-              className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${
-                activeTab === "signup"
-                  ? "bg-white dark:bg-slate-700 text-gray-900 dark:text-white shadow-sm"
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-              }`}
-            >
-              Sign Up
-            </button>
-          </div>
-
-          {/* Error Message */}
-          {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-              <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
-            </div>
-          )}
-
-          {/* Sign In Form */}
-          {activeTab === "signin" && (
-            <form onSubmit={handleSignIn} className="space-y-4">
-              <div>
-                <label
-                  htmlFor="signin-email"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Email
-                </label>
-                <input
-                  id="signin-email"
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="input-field"
-                  placeholder="you@example.com"
-                  disabled={loading}
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="signin-password"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Password
-                </label>
-                <input
-                  id="signin-password"
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="input-field"
-                  placeholder="••••••••"
-                  disabled={loading}
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? "Signing in..." : "Sign In"}
-              </button>
-            </form>
-          )}
-
-          {/* Sign Up Form */}
-          {activeTab === "signup" && (
-            <form onSubmit={handleSignUp} className="space-y-4">
-              <div>
-                <label
-                  htmlFor="signup-email"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Email
-                </label>
-                <input
-                  id="signup-email"
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="input-field"
-                  placeholder="you@example.com"
-                  disabled={loading}
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="signup-password"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Password
-                </label>
-                <input
-                  id="signup-password"
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="input-field"
-                  placeholder="••••••••"
-                  disabled={loading}
-                  minLength={6}
-                />
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Must be at least 6 characters</p>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="confirm-password"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Confirm Password
-                </label>
-                <input
-                  id="confirm-password"
-                  type="password"
-                  required
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="input-field"
-                  placeholder="••••••••"
-                  disabled={loading}
-                  minLength={6}
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? "Creating account..." : "Sign Up"}
-              </button>
-            </form>
-          )}
-
-          {/* Divider */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white dark:bg-slate-800 text-gray-500 dark:text-gray-400">Or continue with</span>
-            </div>
-          </div>
-
-          {/* Google OAuth Button */}
+        {/* Tab Buttons */}
+        <div className="flex border-b border-gray-200 dark:border-slate-700 mb-6">
           <button
-            onClick={handleGoogleSignIn}
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-3 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-200 bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={() => {
+              setActiveTab("signin");
+              setError(null);
+              setSuccessMessage(null);
+            }}
+            className={`flex-1 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === "signin"
+                ? "border-orange-500 text-orange-600 dark:text-orange-400"
+                : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+            }`}
           >
-            <svg className="w-5 h-5" viewBox="0 0 24 24">
-              <path
-                fill="currentColor"
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-              />
-              <path
-                fill="currentColor"
-                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-              />
-              <path
-                fill="currentColor"
-                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-              />
-              <path
-                fill="currentColor"
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-              />
-            </svg>
-            Sign in with Google
+            Sign In
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab("signup");
+              setError(null);
+              setSuccessMessage(null);
+            }}
+            className={`flex-1 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === "signup"
+                ? "border-orange-500 text-orange-600 dark:text-orange-400"
+                : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+            }`}
+          >
+            Sign Up
           </button>
         </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-800 rounded text-red-700 dark:text-red-400 text-sm">
+            {error}
+          </div>
+        )}
+
+        {/* Success Message */}
+        {successMessage && (
+          <div className="mb-4 p-3 bg-green-100 dark:bg-green-900/30 border border-green-400 dark:border-green-800 rounded text-green-700 dark:text-green-400 text-sm">
+            {successMessage}
+          </div>
+        )}
+
+        {/* Sign In Form */}
+        {activeTab === "signin" && (
+          <form onSubmit={handleSignIn} className="space-y-4" title="signin">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+              <input
+                title="signing-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
+              <input
+                title="signin-password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                required
+              />
+            </div>
+
+            {/* Forgot Password Link */}
+            <div className="text-right">
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(true)}
+                className="text-sm text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300"
+              >
+                Forgot password?
+              </button>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full py-2 px-4 bg-orange-600 hover:bg-orange-700 text-white font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? "Signing in..." : "Sign In"}
+            </button>
+          </form>
+        )}
+
+        {/* Sign Up Form */}
+        {activeTab === "signup" && (
+          <form onSubmit={handleSignUp} className="space-y-4" title="signup">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+              <input
+                title="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                required
+                minLength={6}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Confirm Password
+              </label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                required
+                minLength={6}
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full py-2 px-4 bg-orange-600 hover:bg-orange-700 text-white font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? "Creating account..." : "Create Account"}
+            </button>
+          </form>
+        )}
+
+        {/* Divider */}
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300 dark:border-slate-700"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-white dark:bg-slate-900 text-gray-500 dark:text-gray-400">Or continue with</span>
+          </div>
+        </div>
+
+        {/* Google OAuth Button */}
+        <button
+          onClick={handleGoogleSignIn}
+          disabled={isLoading}
+          className="w-full py-2 px-4 border border-gray-300 dark:border-slate-600 rounded-md flex items-center justify-center space-x-2 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <svg className="w-5 h-5" viewBox="0 0 24 24">
+            <path
+              fill="currentColor"
+              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+            />
+            <path
+              fill="currentColor"
+              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+            />
+            <path
+              fill="currentColor"
+              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+            />
+            <path
+              fill="currentColor"
+              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+            />
+          </svg>
+          <span className="text-gray-700 dark:text-gray-300 font-medium">Sign in with Google</span>
+        </button>
       </div>
+
+      {/* Forgot Password Modal */}
+      {showForgotPassword && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center px-4 z-50">
+          <div className="light-card dark:dark-card p-6 max-w-md w-full">
+            {!forgotSuccess ? (
+              <>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Reset Password</h2>
+                <p className="text-gray-600 dark:text-gray-400 mb-4">
+                  Enter your email address and we'll send you a link to reset your password.
+                </p>
+
+                <form onSubmit={handleForgotPassword} className="space-y-4" title="forgotemail">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                    <input
+                      title="emailforgot"
+                      type="email"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex space-x-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowForgotPassword(false);
+                        setForgotEmail("");
+                      }}
+                      className="flex-1 py-2 px-4 border border-gray-300 dark:border-slate-600 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={forgotLoading}
+                      className="flex-1 py-2 px-4 bg-orange-600 hover:bg-orange-700 text-white font-medium rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {forgotLoading ? "Sending..." : "Send Reset Link"}
+                    </button>
+                  </div>
+                </form>
+              </>
+            ) : (
+              <div className="text-center">
+                <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg
+                    className="w-8 h-8 text-green-600 dark:text-green-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Email Sent!</h3>
+                <p className="text-gray-600 dark:text-gray-400">Check your email for the password reset link.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -46,3 +46,4 @@ data/
 test_public/
 .env
 archive_old/
+application.jar

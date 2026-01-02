@@ -6,6 +6,7 @@ import { api, CourseOffering, Bookmark, Course, Department } from "@/lib/api";
 import { supabase } from "@/lib/supabase/client";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import ErrorMessage from "@/components/ErrorMessage";
+import EmailNotificationToggle from "@/components/Emailnotificationtoggle";
 
 function DashboardPageContent() {
   const router = useRouter();
@@ -225,9 +226,10 @@ function DashboardPageContent() {
               {/* Header */}
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  Course Watchers <span className="text-gray-500 dark:text-gray-400 text-lg">({bookmarks.length})</span>
+                  My Bookmarks <span className="text-gray-500 dark:text-gray-400 text-lg">({bookmarks.length})</span>
                 </h2>
 
+                <EmailNotificationToggle />
                 <button
                   onClick={() => router.push("/browse")}
                   className="inline-flex items-center gap-2 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white px-4 py-2 rounded-lg font-medium transition-all duration-300 shadow-md hover:shadow-lg text-sm"

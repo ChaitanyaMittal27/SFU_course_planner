@@ -103,7 +103,7 @@ export default function Navigation() {
       ),
     },
     {
-      name: "Docs",
+      name: "API Docs",
       href: "/docs",
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -178,9 +178,10 @@ export default function Navigation() {
                 className={`relative flex items-center space-x-1.5 py-1 text-white font-medium transition-all duration-200 group ${
                   isActive(link.href) ? "" : "hover:text-white/80"
                 }`}
+                title={link.name}
               >
                 {link.icon}
-                <span>{link.name}</span>
+                {/*<span>{link.name}</span>*/}
                 {/* Active underline */}
                 <span
                   className={`absolute bottom-0 left-0 w-full h-0.5 bg-white transition-all duration-200 ${
@@ -196,6 +197,7 @@ export default function Navigation() {
                 onClick={toggleTheme}
                 className="p-1.5 text-white hover:text-white/80 transition-colors"
                 aria-label="Toggle theme"
+                title="Toggle theme"
               >
                 {theme === "light" ? (
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

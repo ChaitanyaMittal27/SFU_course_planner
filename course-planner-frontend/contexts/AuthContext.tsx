@@ -117,18 +117,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * Flow:
    * 1. Call Supabase sign out
    * 2. Clear local user state
-   * 3. Supabase redirects to login (handled by middleware)
+   * 3. Redirect to home page
    *
    * Error handling:
    * - Logs error but doesn't throw (fail gracefully)
    * - Still clears local state even if API call fails
+   * - Always redirects to home page
    */
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
       setUser(null);
+      // Redirect to home page after sign out
+      window.location.href = "/";
     } catch (error) {
       console.error("Error signing out:", error);
+      // Even if sign out fails, clear state and redirect
+      setUser(null);
+      window.location.href = "/";
     }
   };
 

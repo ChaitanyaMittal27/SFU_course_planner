@@ -8,6 +8,7 @@ import {
   GradeDistribution,
   EnrollmentDataPoint,
   TermInfo,
+  UserPreference,
 } from "@/lib/types";
 import { supabase } from "@/lib/supabase/client";
 
@@ -43,6 +44,10 @@ async function fetchAPI<T>(endpoint: string): Promise<T> {
 
 // ----------------------------
 // Generic fetch wrapper (authenticated endpoints)
+// fetchAuthAPI automatically:
+//    a) Gets token: const token = await getAuthToken();
+//    b) Adds header: Authorization: Bearer
+//    c) Makes request to backend
 // ----------------------------
 async function fetchAuthAPI<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
@@ -131,14 +136,12 @@ export const api = {
   // -------------------------
   // Term Info (Public)
   // -------------------------
-
   // GET /api/terms/enrolling
   getEnrollingTerm: () => fetchAPI<TermInfo>("/api/terms/enrolling"),
 
   // -------------------------
   // Bookmarks (Authenticated - JWT Required)
   // -------------------------
-
   /**
    * Get all bookmarks for authenticated user
    *
@@ -193,6 +196,38 @@ export const api = {
       method: "DELETE",
     });
   },
+
+  // -------------------------
+  // User Preferences (Authenticated - JWT Required)
+  // -------------------------
+  /**
+   * Get email notification preference for authenticated user
+   *
+   * Defaults to false if no preference exists.
+   *
+   * @returns User's email notification preference
+   */
+  getEmailNotificationPreference: () => fetchAuthAPI<UserPreference>("/api/preferences/email-notifications"),
+
+  /**
+   * Update email notification preference for authenticated user
+   *
+   * Creates preference if it doesn't exist (upsert).
+   *
+   * @param enabled Whether to enable email notifications
+   * @returns Updated preference
+   */
+  updateEmailNotificationPreference: async (enabled: boolean): Promise<UserPreference> => {
+    return fetchAuthAPI<UserPreference>("/api/preferences/email-notifications", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        emailNotificationsEnabled: enabled,
+      }),
+    });
+  },
 };
 
 // Export types
@@ -206,4 +241,5 @@ export type {
   OfferingDetail,
   EnrollmentDataPoint,
   TermInfo,
+  UserPreference,
 };
