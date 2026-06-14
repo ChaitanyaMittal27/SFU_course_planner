@@ -1,0 +1,48 @@
+CODING STANDARDS — follow these on every file you touch:
+
+FONTS: Import style constants from @/app/fonts (inter, headerStyles, 
+bodyStyles, labelStyles, buttonStyles, displayStyles). Never hardcode 
+font sizes, weights, or line-heights inline. Example:
+  import { inter, headerStyles } from '@/app/fonts'
+  <h1 className={headerStyles.lg}>Title</h1>
+
+COLORS: Never hardcode hex values or Tailwind color names like 
+red-600, gray-300, slate-700, orange-500 etc. Always use tokens 
+from globals.css:
+  bg-primary, text-text-muted, border-border, bg-surface-raised etc.
+
+SHADCN: Always check if a shadcn component exists before writing 
+custom JSX. Use Button, Input, Card, Badge, Avatar, DropdownMenu, 
+Table, Toggle, Skeleton from @/components/ui/.
+
+ICONS: Always use Lucide React. Never write raw SVG paths inline.
+  import { Search, BarChart3, X } from 'lucide-react'
+
+DARK MODE: Never use dark: prefix with hardcoded colors like 
+dark:bg-slate-800. Dark mode is handled automatically by CSS 
+variables in globals.css.
+
+ADDING NEW TOKENS: If you need a color or value not already in 
+globals.css, add it as a CSS variable in globals.css first (both 
+:root and .dark sections), map it in the @theme inline block, 
+then use it as a Tailwind class. Never hardcode the value inline.
+
+ANIMATIONS: Use animation classes from globals.css 
+(animate-fade-in, animate-slide-up, animate-shimmer etc.) 
+Never write animation inline styles or new keyframes in component 
+files — add them to globals.css if missing.
+
+SPACING/LAYOUT: Use Tailwind spacing scale (p-4, gap-6 etc.) 
+for layout. Never hardcode px values inline like style={{padding: 
+'16px'}}.
+
+TYPESCRIPT: Every new component needs typed props interface. 
+No 'any' types. Use existing types from lib/types.ts where 
+they exist before defining new ones.
+
+COMMENTS: No large block comments or JSDoc headers in component 
+files. Inline comments only where logic is non-obvious.
+
+ONE FILE AT A TIME: Show me the diff or summary of each file 
+before moving to the next. Do not batch multiple files in one 
+edit without confirmation.

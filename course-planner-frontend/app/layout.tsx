@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { inter } from "@/app/fonts";
 import "./globals.css";
 import Navigation from "@/components/Navigation";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import Footer from "@/components/Footer";
 import { AuthProvider } from "@/contexts/AuthContext";
-
-const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "SFU Course Planner — Plan Properly. Regret Less.",
@@ -39,7 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </head>
-      <body className={`${inter.className} transition-colors duration-300`}>
+      <body className={`${inter.variable} transition-colors duration-300`}>
         <AuthProvider>
           <NuqsAdapter>
             <Navigation />
