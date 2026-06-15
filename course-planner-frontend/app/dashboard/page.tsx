@@ -7,7 +7,7 @@ import { api, CourseOffering, Bookmark, Course, Department } from "@/lib/api";
 import { supabase } from "@/lib/supabase/client";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import ErrorMessage from "@/components/ErrorMessage";
-import EmailNotificationToggle from "@/components/EmailNotificationToggle";
+import EmailNotificationToggle from "@/components/EmailNotificationtoggle";
 import ProfileAvatar from "@/components/ProfileAvatar";
 import LoadBar from "@/components/LoadBar";
 import { Card, CardContent } from "@/components/ui/card";
@@ -75,7 +75,7 @@ function DashboardPageContent() {
             } catch (err) {
               console.error(`Failed to load courses for dept ${deptId}:`, err);
             }
-          })
+          }),
         );
 
         setCourses(coursesMap);
@@ -97,7 +97,7 @@ function DashboardPageContent() {
       const deleted = bookmarks.find((b) => b.bookmarkId === bookmarkId);
       if (deleted) {
         setOfferings((prev) =>
-          prev.filter((o) => !(o.semesterCode === deleted.semesterCode && o.section === deleted.section))
+          prev.filter((o) => !(o.semesterCode === deleted.semesterCode && o.section === deleted.section)),
         );
       }
     } catch (err: any) {
@@ -202,8 +202,7 @@ function DashboardPageContent() {
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
                   <h2 className={`${headerStyles.lg} text-text-primary`}>
-                    My Bookmarks{" "}
-                    <span className={`${headerStyles.md} text-text-subtle`}>({bookmarks.length})</span>
+                    My Bookmarks <span className={`${headerStyles.md} text-text-subtle`}>({bookmarks.length})</span>
                   </h2>
 
                   <div className="flex items-center gap-3">
@@ -281,7 +280,9 @@ function DashboardPageContent() {
                                           {offering.term} {offering.year}
                                         </div>
                                         {offering.isEnrolling && (
-                                          <span className={`inline-block mt-1 px-2 py-0.5 bg-success/10 text-success ${labelStyles.sm} rounded`}>
+                                          <span
+                                            className={`inline-block mt-1 px-2 py-0.5 bg-success/10 text-success ${labelStyles.sm} rounded`}
+                                          >
                                             Enrolling
                                           </span>
                                         )}
