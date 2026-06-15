@@ -1,540 +1,458 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-@custom-variant dark (&:where(.dark, .dark *));
+@custom-variant dark (&:is(.dark *));
 
+/* ============================================
+   THEME TOKENS — map CSS vars to Tailwind
+   Use: bg-background, text-primary, etc.
+   Never hardcode colors in JSX.
+   ============================================ */
+@theme inline {
+  /* Core */
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-foreground: var(--foreground);
+
+  /* Brand */
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-foreground: var(--accent-foreground);
+
+  /* Text */
+  --color-text-primary: var(--text-primary);
+  --color-text-muted: var(--text-muted);
+  --color-text-subtle: var(--text-subtle);
+
+  /* Borders */
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  /* Semantic */
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+
+  /* shadcn compatibility — these map to our tokens */
+  --color-card: var(--surface);
+  --color-card-foreground: var(--text-primary);
+  --color-popover: var(--surface-raised);
+  --color-popover-foreground: var(--text-primary);
+  --color-secondary: var(--surface-raised);
+  --color-secondary-foreground: var(--text-primary);
+  --color-muted: var(--surface);
+  --color-muted-foreground: var(--text-muted);
+  --color-input: var(--border);
+  --color-ring: var(--primary);
+
+  /* Charts */
+  --color-chart-1: var(--primary);
+  --color-chart-2: var(--accent);
+  --color-chart-3: #60a5fa;
+  --color-chart-4: #a78bfa;
+  --color-chart-5: #34d399;
+
+  /* Navigation */
+  --color-nav-bg: var(--nav-bg);
+
+  /* Sidebar (shadcn requirement) */
+  --color-sidebar: var(--surface);
+  --color-sidebar-foreground: var(--text-primary);
+  --color-sidebar-primary: var(--primary);
+  --color-sidebar-primary-foreground: var(--primary-foreground);
+  --color-sidebar-accent: var(--surface-raised);
+  --color-sidebar-accent-foreground: var(--text-primary);
+  --color-sidebar-border: var(--border);
+  --color-sidebar-ring: var(--primary);
+
+  /* Radius */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) + 8px);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+
+  /* Fonts */
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-geist);
+  --font-heading: var(--font-inter);
+  --font-mono: ui-monospace, "Cascadia Code", monospace;
+
+  /* Breakpoints */
+  --breakpoint-xs: 30rem;
+}
+
+/* ============================================
+   LIGHT MODE
+   ============================================ */
+:root {
+  --radius: 0.375rem;
+
+  /* Backgrounds */
+  --background: #ffffff;
+  --surface: #f8f8f8;
+  --surface-raised: #f0f0f0;
+  --foreground: #111111;
+
+  /* Brand — SFU red + peach-orange */
+  --primary: #c23032;
+  --primary-hover: #a82729;
+  --primary-foreground: #ffffff;
+  --accent: #e8824a;
+  --accent-hover: #d06b36;
+  --accent-foreground: #ffffff;
+
+  /* Text */
+  --text-primary: #111111;
+  --text-muted: #555555;
+  --text-subtle: #999999;
+
+  /* Borders */
+  --border: #e2e2e2;
+  --border-strong: #c4c4c4;
+
+  /* Semantic */
+  --destructive: #c23032;
+  --destructive-foreground: #ffffff;
+  --success: #16a34a;
+  --success-foreground: #ffffff;
+  --warning: #d97706;
+  --warning-foreground: #ffffff;
+
+  /* Navigation */
+  --nav-bg: var(--primary);
+
+  /* shadcn tokens — point to our surface hierarchy */
+  --card: var(--surface);
+  --card-foreground: var(--text-primary);
+  --popover: var(--surface);
+  --popover-foreground: var(--text-primary);
+  --secondary: var(--surface-raised);
+  --secondary-foreground: var(--text-primary);
+  --muted: var(--surface);
+  --muted-foreground: var(--text-muted);
+  --input: var(--border);
+  --ring: var(--primary);
+}
+
+/* ============================================
+   DARK MODE — dark first
+   ============================================ */
+.dark {
+  /* Backgrounds */
+  --background: #0d1117;
+  --surface: #161b22;
+  --surface-raised: #21262d;
+  --foreground: #f0f0f0;
+
+  /* Brand — red pops on dark, hover goes lighter */
+  --primary: #c23032;
+  --primary-hover: #d94042;
+  --primary-foreground: #ffffff;
+  --accent: #e8824a;
+  --accent-hover: #f09060;
+  --accent-foreground: #ffffff;
+
+  /* Text */
+  --text-primary: #f0f0f0;
+  --text-muted: #888888;
+  --text-subtle: #555555;
+
+  /* Borders */
+  --border: #30363d; /* GitHub border default */
+  --border-strong: #484f58; /* GitHub border muted */
+
+  /* Semantic */
+  --destructive: #e84545;
+  --destructive-foreground: #ffffff;
+  --success: #22c55e;
+  --success-foreground: #ffffff;
+  --warning: #f59e0b;
+  --warning-foreground: #ffffff;
+
+  /* Navigation */
+  --nav-bg: #010409;
+
+  /* shadcn tokens — point to our surface hierarchy */
+  --card: var(--surface);
+  --card-foreground: var(--text-primary);
+  --popover: var(--surface-raised);
+  --popover-foreground: var(--text-primary);
+  --secondary: var(--surface-raised);
+  --secondary-foreground: var(--text-primary);
+  --muted: var(--surface);
+  --muted-foreground: var(--text-muted);
+  --input: var(--border);
+  --ring: var(--primary);
+}
+
+/* ============================================
+   BASE STYLES
+   ============================================ */
 @layer base {
+  * {
+    @apply border-border outline-ring/50;
+    box-sizing: border-box;
+  }
+
   html {
-    scroll-behavior: smooth;
+    @apply font-sans;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   body {
-    @apply transition-colors duration-300;
+    @apply bg-background text-foreground;
+    line-height: 1.6;
   }
 
-  /* ==========================================
-     LIGHT THEME - Warm Academic Canvas
-     
-     Psychology:
-     - Warm beige-gray = inviting, not clinical
-     - Academic paper with subtle warmth = comfort
-     - Energizing without harsh glare
-     ========================================== */
-  :root:not(.dark) body {
-    background: linear-gradient(135deg, #faf8f5 0%, #f0ebe3 100%);
-    min-height: 100vh;
-    position: relative;
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
   }
 
-  :root:not(.dark) body::before {
-    content: "";
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    /* Warm SFU red accent gradients for energy */
-    background: radial-gradient(circle at 15% 80%, rgba(174, 29, 31, 0.05) 0%, transparent 30%),
-      radial-gradient(circle at 85% 20%, rgba(201, 41, 43, 0.06) 0%, transparent 30%);
-    pointer-events: none;
-    z-index: -1;
+  /* Scrollbar — SFU red on hover */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
   }
-
-  /* ==========================================
-     DARK THEME - Charcoal Black with Purple Hint
-     
-     Psychology:
-     - Deep charcoal = professional, serious
-     - Subtle purple = modern, tech-forward
-     - Red accents maintain SFU warmth and identity
-     ========================================== */
-  .dark body {
-    background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 25%, #252535 50%, #2a2a2a 75%, #1a1a1a 100%);
-    min-height: 100vh;
-    position: relative;
-    overflow-x: hidden;
+  ::-webkit-scrollbar-track {
+    background: var(--surface);
   }
-
-  .dark body::before {
-    content: "";
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    /* SFU red glow + subtle purple ambience */
-    background-image: radial-gradient(circle at 20% 80%, rgba(174, 29, 31, 0.08) 0%, transparent 35%),
-      radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.04) 0%, transparent 35%),
-      radial-gradient(circle at 50% 50%, rgba(201, 41, 43, 0.05) 0%, transparent 40%);
-    pointer-events: none;
-    z-index: -1;
-    animation: subtle-glow 8s ease-in-out infinite;
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
   }
 }
 
-/* SFU Color Palette - True SFU Red */
-:root {
-  --sfu-red: #ae1d1f; /* True SFU red (not orange) */
-  --sfu-red-dark: #8b1719; /* Darker SFU red */
-  --sfu-red-light: #c9292b; /* Lighter SFU red */
-  --warm-beige: #faf8f5; /* Light mode base */
-  --warm-tan: #f0ebe3; /* Light mode gradient */
-  --charcoal: #1a1a1a; /* Dark mode base */
-  --charcoal-light: #2a2a2a; /* Dark mode gradient */
-}
-
-@keyframes subtle-glow {
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.85;
-    transform: scale(1.02);
-  }
-}
-
-/* ==========================================
-   SPLASH SCREEN ANIMATIONS
-   ========================================== */
-@keyframes float {
-  0%,
-  100% {
-    transform: translateY(0) rotate(12deg);
-  }
-  50% {
-    transform: translateY(-20px) rotate(-12deg);
-  }
-}
-
-@keyframes pulse-slow {
-  0%,
-  100% {
-    opacity: 0.3;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.5;
-    transform: scale(1.1);
-  }
-}
-
-@keyframes spin-slow {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes spin-reverse {
-  from {
-    transform: rotate(360deg);
-  }
-  to {
-    transform: rotate(0deg);
-  }
-}
-
-@keyframes scale-in {
-  from {
-    opacity: 0;
-    transform: scale(0.8);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fade-in-delay {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slide-up {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes width-expand {
-  from {
-    width: 0;
-  }
-  to {
-    width: 8rem;
-  }
-}
-
-@keyframes shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
-}
-
-@keyframes fade-in-stagger {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Apply animations */
-.animate-float {
-  animation: float 3s ease-in-out infinite;
-}
-
-.animate-pulse-slow {
-  animation: pulse-slow 4s ease-in-out infinite;
-}
-
-.animate-spin-slow {
-  animation: spin-slow 8s linear infinite;
-}
-
-.animate-spin-reverse {
-  animation: spin-reverse 6s linear infinite;
-}
-
-.animate-scale-in {
-  animation: scale-in 0.6s ease-out;
-}
-
-.animate-fade-in {
-  animation: fade-in 0.8s ease-out;
-}
-
-.animate-fade-in-delay {
-  animation: fade-in-delay 1s ease-out 0.3s both;
-}
-
-.animate-slide-up {
-  animation: slide-up 0.6s ease-out 0.5s both;
-}
-
-.animate-width-expand {
-  animation: width-expand 0.8s ease-out 0.5s both;
-}
-
-.animate-shimmer {
-  animation: shimmer 2s infinite;
-}
-
-.animate-fade-in-stagger-1 {
-  animation: fade-in-stagger 0.6s ease-out 0.8s both;
-}
-
-.animate-fade-in-stagger-2 {
-  animation: fade-in-stagger 0.6s ease-out 1s both;
-}
-
-.animate-fade-in-stagger-3 {
-  animation: fade-in-stagger 0.6s ease-out 1.2s both;
-}
-
-/* Glow effect for progress bar */
-.shadow-glow {
-  box-shadow: 0 0 20px rgba(251, 146, 60, 0.6), 0 0 40px rgba(251, 146, 60, 0.4), 0 0 60px rgba(251, 146, 60, 0.2);
-}
-
+/* ============================================
+   TYPOGRAPHY SCALE
+   Use these classes in JSX.
+   Never hardcode font sizes inline.
+   ============================================ */
 @layer utilities {
-  /* ==========================================
-     CARD STYLES - SFU Heritage
-     
-     Psychology:
-     - Crisp cards "float" on warm/slate backgrounds
-     - Subtle shadows = depth without distraction
-     - Red border on hover = SFU interaction feedback
-     
-     Usage: class="light-card" (works in both light and dark mode!)
-     ========================================== */
-
-  /* Light mode styles */
-  .light-card {
-    @apply border backdrop-blur-sm;
-    background: white;
-    border-color: rgba(174, 29, 31, 0.15);
-    box-shadow: 0 2px 8px rgba(174, 29, 31, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
-    transition: all 0.3s ease;
+  .text-display-lg {
+    font-size: 2.5rem;
+    font-weight: 600;
+    line-height: 1.1;
   }
-
-  .light-card:hover {
-    border-color: rgba(174, 29, 31, 0.4);
-    box-shadow: 0 4px 12px rgba(174, 29, 31, 0.12), 0 2px 6px rgba(0, 0, 0, 0.06);
-    transform: translateY(-1px);
+  .text-display-md {
+    font-size: 2rem;
+    font-weight: 600;
+    line-height: 1.1;
   }
-
-  /* Dark mode override - automatically applies when <html class="dark"> */
-  .dark .light-card {
-    background: rgba(26, 26, 26, 0.95);
-    border-color: rgba(42, 42, 42, 0.8);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  .text-display-sm {
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1.2;
   }
-
-  .dark .light-card:hover {
-    border-color: rgba(174, 29, 31, 0.6);
-    background: rgba(42, 42, 42, 0.95);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5), 0 0 24px rgba(174, 29, 31, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  .text-heading-lg {
+    font-size: 1.25rem;
+    font-weight: 600;
+    line-height: 1.3;
   }
-
-  /* ==========================================
-     BUTTON STYLES - SFU Identity
-     
-     Psychology:
-     - Red gradient = SFU action/urgency
-     - Subtle lift on hover = tactile feedback
-     - High contrast ensures accessibility
-     ========================================== */
-  .btn-primary {
-    @apply text-white px-6 py-2.5 rounded-lg font-medium
-           shadow-md hover:shadow-lg transition-all duration-300;
-    background: linear-gradient(135deg, #ae1d1f 0%, #c9292b 100%);
+  .text-heading-md {
+    font-size: 1.125rem;
+    font-weight: 600;
+    line-height: 1.3;
   }
-
-  .btn-primary:hover {
-    background: linear-gradient(135deg, #8b1719 0%, #ae1d1f 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(174, 29, 31, 0.3);
+  .text-heading-sm {
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.4;
   }
-
-  .btn-secondary {
-    @apply bg-red-50 dark:bg-slate-600 
-           hover:bg-red-100 dark:hover:bg-slate-500 
-           text-gray-800 dark:text-gray-100 
-           px-6 py-2.5 rounded-lg font-medium
-           transition-all duration-300;
+  .text-body-lg {
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.6;
   }
-
-  .btn-secondary:hover {
-    transform: translateY(-1px);
+  .text-body-md {
+    font-size: 0.875rem;
+    font-weight: 400;
+    line-height: 1.6;
   }
-
-  /* ==========================================
-     INPUT FIELDS - Clean & Accessible
-     ========================================== */
-  .input-field {
-    @apply w-full px-4 py-2.5 
-           border rounded-lg 
-           bg-white dark:bg-slate-700 
-           text-gray-900 dark:text-gray-100 
-           focus:outline-none 
-           transition-all duration-200;
-    border-color: rgba(174, 29, 31, 0.2);
+  .text-body-sm {
+    font-size: 0.75rem;
+    font-weight: 400;
+    line-height: 1.5;
   }
-
-  .input-field:focus {
-    border-color: transparent;
-    box-shadow: 0 0 0 2px rgba(174, 29, 31, 0.5);
+  .text-label-lg {
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.2;
   }
-
-  .dark .input-field {
-    border-color: rgba(42, 42, 42, 0.8);
+  .text-label-md {
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.2;
   }
-
-  .dark .input-field:focus {
-    box-shadow: 0 0 0 2px rgba(201, 41, 43, 0.5);
-  }
-
-  /* ==========================================
-     SECTION BACKGROUNDS - Subtle Hierarchy
-     ========================================== */
-  .light-section-bg {
-    background: linear-gradient(180deg, rgba(250, 248, 245, 0.6) 0%, rgba(240, 235, 227, 0.4) 100%);
-  }
-
-  .dark-section-bg {
-    background: linear-gradient(
-      180deg,
-      rgba(55, 65, 81, 0.6) 0%,
-      rgba(71, 85, 105, 0.4) 50%,
-      rgba(55, 65, 81, 0.6) 100%
-    );
-  }
-
-  /* ==========================================
-     TABLE STYLES - Academic Data Display
-     ========================================== */
-  .table-header {
-    @apply bg-red-50 dark:bg-slate-600 
-           text-gray-800 dark:text-gray-100 
-           font-semibold px-4 py-3 
-           border-b-2;
-    border-bottom-color: rgba(174, 29, 31, 0.3);
-  }
-
-  .dark .table-header {
-    border-bottom-color: rgba(42, 42, 42, 0.8);
-  }
-
-  .table-row {
-    @apply bg-white dark:bg-slate-700 
-           hover:bg-red-50 dark:hover:bg-slate-600
-           transition-colors duration-200 cursor-pointer;
-  }
-
-  .table-cell {
-    @apply px-4 py-3 border-b;
-    border-bottom-color: rgba(174, 29, 31, 0.1);
-  }
-
-  .dark .table-cell {
-    border-bottom-color: rgba(42, 42, 42, 0.6);
+  .text-label-sm {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    line-height: 1.2;
   }
 }
 
-/* ==========================================
-   CUSTOM SCROLLBAR - SFU Red Branded
-   ========================================== */
-::-webkit-scrollbar {
-  width: 10px;
-}
-
-::-webkit-scrollbar-track {
-  @apply bg-red-50 dark:bg-slate-700;
-}
-
-::-webkit-scrollbar-thumb {
-  @apply rounded-full;
-  background: linear-gradient(180deg, #ae1d1f 0%, #8b1719 100%);
-  transition: background-color 0.2s ease;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #8b1719 0%, #6d1315 100%);
-}
-
-/* ==========================================
-   FOCUS STYLES - Accessibility First
-   ========================================== */
-*:focus {
-  @apply outline-none;
-}
-
-.light *:focus-visible {
-  @apply ring-2 ring-offset-2;
-  --tw-ring-color: #ae1d1f;
-}
-
-.dark *:focus-visible {
-  @apply ring-2 ring-offset-2;
-  --tw-ring-color: #c9292b;
-  --tw-ring-offset-color: #1a1a1a;
-}
-
-/* ==========================================
-   ACCESSIBILITY - Reduced Motion Support
-   ========================================== */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+@layer utilities {
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
-}
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes slide-down {
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-6px);
+    }
+  }
+  @keyframes pulse-soft {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.6;
+    }
+  }
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
 
-/* ==========================================
-   TYPOGRAPHY - High Contrast for Readability
-   ========================================== */
-.dark h1,
-.dark h2,
-.dark h3,
-.dark h4,
-.dark h5,
-.dark h6 {
-  @apply text-gray-50;
-}
+  .animate-fade-in {
+    animation: fade-in 0.2s ease-out;
+  }
+  .animate-slide-up {
+    animation: slide-up 0.25s ease-out;
+  }
+  .animate-slide-down {
+    animation: slide-down 0.2s ease-out;
+  }
+  .animate-scale-in {
+    animation: scale-in 0.2s ease-out;
+  }
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+  .animate-pulse-soft {
+    animation: pulse-soft 2s ease-in-out infinite;
+  }
 
-.dark .text-muted {
-  @apply text-gray-300;
-}
+  .animate-shimmer {
+    background: linear-gradient(90deg, var(--surface) 25%, var(--surface-raised) 50%, var(--surface) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
 
-/* Light mode text (ensure proper contrast on warm background) */
-:root:not(.dark) h1,
-:root:not(.dark) h2,
-:root:not(.dark) h3,
-:root:not(.dark) h4,
-:root:not(.dark) h5,
-:root:not(.dark) h6 {
-  @apply text-gray-900;
-}
+  .stagger-children > *:nth-child(1) {
+    animation: slide-up 0.3s ease-out 0.05s both;
+  }
+  .stagger-children > *:nth-child(2) {
+    animation: slide-up 0.3s ease-out 0.1s both;
+  }
+  .stagger-children > *:nth-child(3) {
+    animation: slide-up 0.3s ease-out 0.15s both;
+  }
+  .stagger-children > *:nth-child(4) {
+    animation: slide-up 0.3s ease-out 0.2s both;
+  }
+  .stagger-children > *:nth-child(5) {
+    animation: slide-up 0.3s ease-out 0.25s both;
+  }
 
-:root:not(.dark) .text-muted {
-  @apply text-gray-600;
-}
+  @keyframes spin-slow {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @keyframes width-expand {
+    from {
+      width: 0;
+      opacity: 0;
+    }
+    to {
+      width: 8rem;
+      opacity: 1;
+    }
+  }
 
-/* ==========================================
-   SELECTION COLORS - SFU Branded
-   ========================================== */
-::selection {
-  background-color: rgba(174, 29, 31, 0.2);
-  color: #6d1315;
-}
-
-.dark ::selection {
-  background-color: rgba(174, 29, 31, 0.4);
-  color: #fca5a5;
-}
-
-/* ==========================================
-   FOOTER STYLES - Minimal & Polished
-   ========================================== */
-footer {
-  @apply bg-white/80 dark:bg-slate-700/80 backdrop-blur-sm;
-}
-
-footer a {
-  @apply relative;
-}
-
-footer a::after {
-  content: "";
-  @apply absolute bottom-0 left-0 w-0 h-0.5 
-         transition-all duration-300;
-  background-color: #ae1d1f;
-}
-
-footer a:hover::after {
-  @apply w-full;
-}
-
-/* Ensure footer stays at bottom */
-body {
-  @apply flex flex-col min-h-screen;
-}
-
-main {
-  @apply flex-1;
+  .animate-spin-slow {
+    animation: spin-slow 3s linear infinite;
+  }
+  .animate-spin-reverse {
+    animation: spin-slow 4s linear infinite reverse;
+  }
+  .animate-pulse-slow {
+    animation: pulse-soft 3s ease-in-out infinite;
+  }
+  .animate-fade-in-delay {
+    animation: fade-in 0.4s ease-out 0.5s both;
+  }
+  .animate-fade-in-stagger-1 {
+    animation: fade-in 0.3s ease-out 0.7s both;
+  }
+  .animate-fade-in-stagger-2 {
+    animation: fade-in 0.3s ease-out 0.9s both;
+  }
+  .animate-fade-in-stagger-3 {
+    animation: fade-in 0.3s ease-out 1.1s both;
+  }
+  .animate-width-expand {
+    animation: width-expand 0.5s ease-out 0.3s both;
+  }
 }

@@ -1,11 +1,25 @@
 "use client";
 
+import { X } from "lucide-react";
 import { CourseOffering, Bookmark, Course } from "@/lib/api";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import LoadBar from "@/components/LoadBar";
+import StatusBadge from "@/components/StatusBadge";
+import { headerStyles, bodyStyles, labelStyles } from "@/app/fonts";
 
 interface BookmarksTableProps {
   offerings: CourseOffering[];
   bookmarks: Bookmark[];
-  courses: Map<number, Course>; // ← courseId → Course
+  courses: Map<number, Course>;
   onDelete: (bookmarkId: number) => void;
   onRowClick: (offering: CourseOffering, bookmark: Bookmark) => void;
 }
@@ -13,165 +27,130 @@ interface BookmarksTableProps {
 export default function BookmarksTable({
   offerings,
   bookmarks,
-  courses, // ← Get course lookup
+  courses,
   onDelete,
   onRowClick,
 }: BookmarksTableProps) {
-  // Get bookmark for this offering
-  const getBookmark = (offering: CourseOffering): Bookmark | null => {
-    return bookmarks.find((b) => b.semesterCode === offering.semesterCode && b.section === offering.section) ?? null;
-  };
+  const getBookmark = (offering: CourseOffering): Bookmark | null =>
+    bookmarks.find(
+      (b) => b.semesterCode === offering.semesterCode && b.section === offering.section
+    ) ?? null;
 
-  // Get course info for this offering
   const getCourseInfo = (bookmark: Bookmark) => {
     const course = courses.get(bookmark.courseId);
     if (!course) return null;
-
-    return {
-      deptCode: course.deptId, // We need to get deptCode somehow...
-      courseNumber: course.courseNumber,
-      title: course.title,
-    };
+    return { courseNumber: course.courseNumber, title: course.title };
   };
 
   return (
-    <div className="light-card dark:dark-card overflow-hidden">
-      {/* Desktop Table */}
-      <div className="hidden md:block overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-gray-200 dark:border-slate-700">
-              <th className="table-header text-left">Course</th> {/* NEW */}
-              <th className="table-header text-left">Section</th>
-              <th className="table-header text-left">Term</th>
-              <th className="table-header text-left">Campus</th>
-              <th className="table-header text-left">Instructor</th>
-              <th className="table-header text-right">Enrolled</th>
-              <th className="table-header text-right">Capacity</th>
-              <th className="table-header text-right">Load</th>
-              <th className="table-header text-center">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
+    <Card className="overflow-hidden">
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className={`${labelStyles.md} text-text-muted`}>Course</TableHead>
+              <TableHead className={`${labelStyles.md} text-text-muted`}>Section</TableHead>
+              <TableHead className={`${labelStyles.md} text-text-muted`}>Term</TableHead>
+              <TableHead className={`${labelStyles.md} text-text-muted`}>Campus</TableHead>
+              <TableHead className={`${labelStyles.md} text-text-muted`}>Instructor</TableHead>
+              <TableHead className={`${labelStyles.md} text-text-muted text-right`}>Enrolled</TableHead>
+              <TableHead className={`${labelStyles.md} text-text-muted text-right`}>Capacity</TableHead>
+              <TableHead className={`${labelStyles.md} text-text-muted text-right`}>Load</TableHead>
+              <TableHead className={`${labelStyles.md} text-text-muted text-center`}>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {offerings.map((offering) => {
               const bookmark = getBookmark(offering);
               if (!bookmark) return null;
 
               const courseInfo = getCourseInfo(bookmark);
-              const bookmarkId = bookmark.bookmarkId;
 
               return (
-                <tr
+                <TableRow
                   key={`${offering.semesterCode}-${offering.section}`}
-                  className="table-row group"
+                  className="cursor-pointer"
                   onClick={() => onRowClick(offering, bookmark)}
                 >
-                  {/* Course Info Column */}
-                  <td className="table-cell">
+                  <TableCell>
                     {courseInfo ? (
                       <div>
-                        <div className="font-semibold text-gray-900 dark:text-white">{courseInfo.courseNumber}</div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400 truncate max-w-xs">
+                        <div className={`${headerStyles.sm} text-text-primary`}>
+                          {courseInfo.courseNumber}
+                        </div>
+                        <div className={`${bodyStyles.md} text-text-muted truncate max-w-xs`}>
                           {courseInfo.title}
                         </div>
                       </div>
                     ) : (
-                      <span className="text-gray-500">Loading...</span>
+                      <span className="text-text-subtle">Loading...</span>
                     )}
-                  </td>
+                  </TableCell>
 
-                  {/* Section */}
-                  <td className="table-cell">
-                    <span className="font-semibold text-gray-900 dark:text-white">{offering.section}</span>
-                  </td>
+                  <TableCell>
+                    <span className={`${headerStyles.sm} text-text-primary`}>
+                      {offering.section}
+                    </span>
+                  </TableCell>
 
-                  {/* Term */}
-                  <td className="table-cell">
-                    <div className="text-sm">
-                      <div className="font-medium text-gray-900 dark:text-white">
+                  <TableCell>
+                    <div className={bodyStyles.md}>
+                      <div className="text-text-primary font-medium">
                         {offering.term} {offering.year}
                       </div>
                       {offering.isEnrolling && (
-                        <span className="inline-block mt-1 px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-medium rounded">
-                          Enrolling Now
-                        </span>
+                        <StatusBadge status="Enrolling" className="mt-1" />
                       )}
                     </div>
-                  </td>
+                  </TableCell>
 
-                  {/* Campus */}
-                  <td className="table-cell">
-                    <span className="text-gray-700 dark:text-gray-300">{offering.location}</span>
-                  </td>
+                  <TableCell className={`${bodyStyles.md} text-text-muted`}>
+                    {offering.location}
+                  </TableCell>
 
-                  {/* Instructor */}
-                  <td className="table-cell">
-                    <span className="text-gray-700 dark:text-gray-300">{offering.instructors || "TBA"}</span>
-                  </td>
+                  <TableCell className={`${bodyStyles.md} text-text-muted`}>
+                    {offering.instructors || "TBA"}
+                  </TableCell>
 
-                  {/* Enrolled */}
-                  <td className="table-cell text-right">
-                    <span className="text-gray-900 dark:text-white font-medium">{offering.enrolled}</span>
-                  </td>
+                  <TableCell className="text-right">
+                    <span className="text-text-primary font-medium">{offering.enrolled}</span>
+                  </TableCell>
 
-                  {/* Capacity */}
-                  <td className="table-cell text-right">
-                    <span className="text-gray-700 dark:text-gray-300">{offering.capacity}</span>
-                  </td>
+                  <TableCell className={`${bodyStyles.md} text-text-muted text-right`}>
+                    {offering.capacity}
+                  </TableCell>
 
-                  {/* Load */}
-                  <td className="table-cell text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <div className="w-24 bg-gray-200 dark:bg-slate-700 rounded-full h-2">
-                        <div
-                          className={`h-2 rounded-full transition-all ${
-                            offering.loadPercent >= 95
-                              ? "bg-red-500"
-                              : offering.loadPercent >= 80
-                              ? "bg-yellow-500"
-                              : "bg-green-500"
-                          }`}
-                          style={{ width: `${Math.min(offering.loadPercent, 100)}%` }}
-                        />
-                      </div>
-                      <span className="text-sm font-medium text-gray-900 dark:text-white w-12 text-right">
-                        {offering.loadPercent}%
-                      </span>
-                    </div>
-                  </td>
+                  <TableCell className="text-right">
+                    <LoadBar percent={offering.loadPercent} />
+                  </TableCell>
 
-                  {/* Delete Button */}
-                  <td className="table-cell text-center">
-                    <button
+                  <TableCell className="text-center">
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onDelete(bookmarkId);
+                        onDelete(bookmark.bookmarkId);
                       }}
-                      className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
+                      className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                       title="Remove bookmark"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </td>
-                </tr>
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
               );
             })}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
-      {/* Mobile Cards - Similar updates */}
-      {/* ... (abbreviated for space) */}
-
-      {/* Summary Footer */}
-      <div className="border-t border-gray-200 dark:border-slate-700 px-6 py-4 bg-gray-50 dark:bg-slate-800/50">
-        <div className="text-sm text-gray-600 dark:text-gray-400">
-          <strong className="text-gray-900 dark:text-white">{offerings.length}</strong> bookmarked{" "}
-          {offerings.length === 1 ? "section" : "sections"}
-        </div>
+      <div className="border-t border-border px-6 py-4 bg-surface">
+        <p className={`${bodyStyles.md} text-text-muted`}>
+          <span className="text-text-primary font-semibold">{offerings.length}</span>{" "}
+          bookmarked {offerings.length === 1 ? "section" : "sections"}
+        </p>
       </div>
-    </div>
+    </Card>
   );
 }

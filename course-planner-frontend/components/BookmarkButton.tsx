@@ -2,15 +2,18 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { api, Bookmark } from "@/lib/api";
+import { Bookmark, Loader2 } from "lucide-react";
+import { api } from "@/lib/api";
 import { supabase } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
+import { buttonStyles } from "@/app/fonts";
 
 interface BookmarkButtonProps {
   deptId: number;
   courseId: number;
   semesterCode: number;
   section: string;
-  onBookmarkChange?: () => void; // Optional callback for refresh
+  onBookmarkChange?: () => void;
 }
 
 export default function BookmarkButton({
@@ -26,19 +29,14 @@ export default function BookmarkButton({
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
 
-  // Check if user is logged in
   useEffect(() => {
     async function checkAuth() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user ?? null);
     }
-
     checkAuth();
   }, []);
 
-  // Check if this section is already bookmarked
   useEffect(() => {
     if (!user) {
       setChecking(false);
@@ -50,7 +48,10 @@ export default function BookmarkButton({
         const bookmarks = await api.getBookmarks();
         const exists = bookmarks.some(
           (b) =>
-            b.deptId === deptId && b.courseId === courseId && b.semesterCode === semesterCode && b.section === section
+            b.deptId === deptId &&
+            b.courseId === courseId &&
+            b.semesterCode === semesterCode &&
+            b.section === section
         );
         setIsBookmarked(exists);
       } catch (err) {
@@ -63,36 +64,20 @@ export default function BookmarkButton({
     checkBookmark();
   }, [user, deptId, courseId, semesterCode, section]);
 
-  // Handle bookmark action
   const handleClick = async () => {
-    // Not logged in - redirect to login
     if (!user) {
       const currentPath = window.location.pathname;
-      // FIXED: Changed returnTo to redirectTo to match login page
       router.push(`/login?redirectTo=${encodeURIComponent(currentPath)}`);
       return;
     }
 
-    // Already bookmarked - do nothing (can only delete from dashboard)
-    if (isBookmarked) {
-      return;
-    }
+    if (isBookmarked) return;
 
-    // Add bookmark
     try {
       setLoading(true);
-
       await api.createBookmark(deptId, courseId, semesterCode, section);
-
       setIsBookmarked(true);
-
-      // Success feedback
-      console.log("Bookmark added successfully");
-
-      // Call optional callback
-      if (onBookmarkChange) {
-        onBookmarkChange();
-      }
+      onBookmarkChange?.();
     } catch (err: any) {
       console.error("Failed to add bookmark:", err);
       alert("Failed to add bookmark: " + err.message);
@@ -101,68 +86,45 @@ export default function BookmarkButton({
     }
   };
 
-  // Show loading while checking
   if (checking) {
     return (
-      <button disabled className="px-4 py-2 rounded-lg bg-gray-100 dark:bg-slate-700 text-gray-400 text-sm">
+      <Button variant="ghost" disabled className={buttonStyles.md}>
         ...
-      </button>
+      </Button>
     );
   }
 
-  // Already bookmarked - show disabled state
   if (isBookmarked) {
     return (
-      <button
+      <Button
         disabled
-        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-sm font-medium cursor-not-allowed"
-        title="Already bookmarked - remove from dashboard to unbookmark"
+        className={`${buttonStyles.md} bg-success/10 text-success border border-success/20 cursor-not-allowed`}
+        title="Already bookmarked — remove from dashboard to unbookmark"
       >
-        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-        </svg>
+        <Bookmark className="w-4 h-4 fill-current" />
         Bookmarked
-      </button>
+      </Button>
     );
   }
 
-  // Not bookmarked - show add button
   return (
-    <button
+    <Button
       onClick={handleClick}
       disabled={loading}
-      className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-        loading
-          ? "bg-gray-300 dark:bg-slate-600 text-gray-500 cursor-not-allowed"
-          : "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 hover:bg-orange-200 dark:hover:bg-orange-900/50"
-      }`}
+      className={`${buttonStyles.md} bg-accent/10 text-accent border border-accent/30 hover:bg-accent/20`}
       title={user ? "Bookmark this section" : "Login to bookmark"}
     >
       {loading ? (
         <>
-          <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            />
-          </svg>
+          <Loader2 className="w-4 h-4 animate-spin" />
           Adding...
         </>
       ) : (
         <>
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
-            />
-          </svg>
+          <Bookmark className="w-4 h-4" />
           Bookmark
         </>
       )}
-    </button>
+    </Button>
   );
 }

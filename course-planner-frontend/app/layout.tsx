@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { inter, geist } from "@/app/fonts";
 import "./globals.css";
 import Navigation from "@/components/Navigation";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import Footer from "@/components/Footer";
 import { AuthProvider } from "@/contexts/AuthContext";
-
-const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "SFU Course Planner — Plan Properly. Regret Less.",
@@ -19,7 +17,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning className="scroll-smooth">
+    <html lang="en" suppressHydrationWarning className={`scroll-smooth ${inter.variable} ${geist.variable}`}>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -39,7 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </head>
-      <body className={`${inter.className} transition-colors duration-300`}>
+      <body className="transition-colors duration-300" suppressHydrationWarning>
         <AuthProvider>
           <NuqsAdapter>
             <Navigation />
