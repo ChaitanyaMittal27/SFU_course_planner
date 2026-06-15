@@ -7,7 +7,7 @@ import { api, CourseOffering, Bookmark, Course, Department } from "@/lib/api";
 import { supabase } from "@/lib/supabase/client";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import ErrorMessage from "@/components/ErrorMessage";
-import EmailNotificationToggle from "@/components/EmailNotificationtoggle";
+import EmailNotificationToggle from "@/components/EmailNotificationToggle";
 import ProfileAvatar from "@/components/ProfileAvatar";
 import LoadBar from "@/components/LoadBar";
 import { Card, CardContent } from "@/components/ui/card";
