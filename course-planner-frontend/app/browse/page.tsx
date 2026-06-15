@@ -13,6 +13,7 @@ import { Search } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { displayStyles, headerStyles, bodyStyles, labelStyles } from "@/app/fonts";
+import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 const selectClass =
   "w-full rounded-md border border-border bg-background text-text-primary px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50";
@@ -365,6 +366,8 @@ function BrowsePageContent() {
     }
   };
 
+  const mainGridRef = useScrollReveal();
+
   if (offeringDetail) {
     return <OfferingDetailScreen detail={offeringDetail} onBack={() => setOfferingDetail(null)} />;
   }
@@ -425,7 +428,7 @@ function BrowsePageContent() {
       )}
 
       {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div ref={mainGridRef} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* LEFT */}
         <aside className="lg:col-span-3">
           <Card className="p-5 rounded-2xl sticky top-24">

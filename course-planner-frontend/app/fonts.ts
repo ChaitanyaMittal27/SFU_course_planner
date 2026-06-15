@@ -1,9 +1,15 @@
-import { Inter } from "next/font/google";
+import { Inter, Geist } from "next/font/google";
 
 export const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
+
+export const geist = Geist({
+  variable: "--font-geist",
+  subsets: ["latin"],
   display: "swap",
 });
 
@@ -15,16 +21,16 @@ export const inter = Inter({
 
 // Display — hero text, splash screen, big numbers
 export const displayStyles = {
-  lg: "text-[2.5rem] font-semibold leading-[1.1]",
-  md: "text-[2rem] font-semibold leading-[1.1]",
+  lg: "font-display text-[2.5rem] font-semibold leading-[1.1]",
+  md: "font-display text-[2rem] font-semibold leading-[1.1]",
   sm: "text-[1.5rem] font-semibold leading-[1.2]",
 
   // Responsive variants
-  lgResponsive: "text-[1.75rem] md:text-[2.5rem] font-semibold leading-[1.1]",
-  mdResponsive: "text-[1.5rem] md:text-[2rem] font-semibold leading-[1.1]",
+  lgResponsive: "font-display text-[1.75rem] md:text-[2.5rem] font-semibold leading-[1.1]",
+  mdResponsive: "font-display text-[1.5rem] md:text-[2rem] font-semibold leading-[1.1]",
 
   // Hero — splash screen / fullscreen takeover only
-  hero: "text-[3.75rem] md:text-[4.5rem] font-bold leading-[1.1] tracking-tight",
+  hero: "font-display text-[3.75rem] md:text-[4.5rem] font-bold leading-[1.1] tracking-tight",
 };
 
 // Headers — page titles, section headings, card titles

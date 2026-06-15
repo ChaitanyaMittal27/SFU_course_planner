@@ -7,6 +7,7 @@ import { BookOpen, ClipboardList, ArrowRight } from "lucide-react";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { Card } from "@/components/ui/card";
 import { displayStyles, headerStyles, bodyStyles, labelStyles } from "@/app/fonts";
+import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 const modes = [
   {
@@ -42,6 +43,10 @@ const modes = [
 ];
 
 function CompareLandingContent() {
+  const mode0Ref = useScrollReveal({ delay: 0 });
+  const mode1Ref = useScrollReveal({ delay: 100 });
+  const modeRefs = [mode0Ref, mode1Ref];
+
   return (
     <PageContainer>
       <div className="max-w-5xl mx-auto">
@@ -56,10 +61,11 @@ function CompareLandingContent() {
 
         {/* Two Mode Cards */}
         <div className="grid md:grid-cols-2 gap-8">
-          {modes.map((mode) => {
+          {modes.map((mode, i) => {
             const Icon = mode.icon;
             return (
-              <Link href={mode.href} key={mode.href}>
+              <div ref={modeRefs[i]} key={mode.href}>
+              <Link href={mode.href}>
                 <Card className="p-8 cursor-pointer transition-all duration-300 hover:scale-105 h-full">
                   <div className="flex flex-col h-full">
                     <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center mb-6 mx-auto">
@@ -85,6 +91,7 @@ function CompareLandingContent() {
                   </div>
                 </Card>
               </Link>
+              </div>
             );
           })}
         </div>

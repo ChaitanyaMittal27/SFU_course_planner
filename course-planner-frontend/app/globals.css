@@ -83,6 +83,7 @@
 
   /* Fonts */
   --font-sans: var(--font-inter);
+  --font-display: var(--font-geist);
   --font-heading: var(--font-inter);
   --font-mono: ui-monospace, "Cascadia Code", monospace;
 
@@ -130,17 +131,17 @@
   /* Navigation */
   --nav-bg: var(--primary);
 
-  /* shadcn tokens that don't map to our system */
-  --card: #ffffff;
-  --card-foreground: #111111;
-  --popover: #ffffff;
-  --popover-foreground: #111111;
-  --secondary: #f0f0f0;
-  --secondary-foreground: #111111;
-  --muted: #f8f8f8;
-  --muted-foreground: #555555;
-  --input: #e2e2e2;
-  --ring: #c23032;
+  /* shadcn tokens — point to our surface hierarchy */
+  --card: var(--surface);
+  --card-foreground: var(--text-primary);
+  --popover: var(--surface);
+  --popover-foreground: var(--text-primary);
+  --secondary: var(--surface-raised);
+  --secondary-foreground: var(--text-primary);
+  --muted: var(--surface);
+  --muted-foreground: var(--text-muted);
+  --input: var(--border);
+  --ring: var(--primary);
 }
 
 /* ============================================
@@ -148,9 +149,9 @@
    ============================================ */
 .dark {
   /* Backgrounds */
-  --background: #0a0a0a;
-  --surface: #161616;
-  --surface-raised: #1e1e1e;
+  --background: #0d1117;
+  --surface: #161b22;
+  --surface-raised: #21262d;
   --foreground: #f0f0f0;
 
   /* Brand — red pops on dark, hover goes lighter */
@@ -167,8 +168,8 @@
   --text-subtle: #555555;
 
   /* Borders */
-  --border: #2a2a2a;
-  --border-strong: #3a3a3a;
+  --border: #30363d; /* GitHub border default */
+  --border-strong: #484f58; /* GitHub border muted */
 
   /* Semantic */
   --destructive: #e84545;
@@ -179,19 +180,19 @@
   --warning-foreground: #ffffff;
 
   /* Navigation */
-  --nav-bg: var(--surface);
+  --nav-bg: #010409;
 
-  /* shadcn tokens */
-  --card: #161616;
-  --card-foreground: #f0f0f0;
-  --popover: #1e1e1e;
-  --popover-foreground: #f0f0f0;
-  --secondary: #1e1e1e;
-  --secondary-foreground: #f0f0f0;
-  --muted: #161616;
-  --muted-foreground: #888888;
-  --input: #2a2a2a;
-  --ring: #c23032;
+  /* shadcn tokens — point to our surface hierarchy */
+  --card: var(--surface);
+  --card-foreground: var(--text-primary);
+  --popover: var(--surface-raised);
+  --popover-foreground: var(--text-primary);
+  --secondary: var(--surface-raised);
+  --secondary-foreground: var(--text-primary);
+  --muted: var(--surface);
+  --muted-foreground: var(--text-muted);
+  --input: var(--border);
+  --ring: var(--primary);
 }
 
 /* ============================================

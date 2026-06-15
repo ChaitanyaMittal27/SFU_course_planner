@@ -7,6 +7,7 @@ import PageContainer from "@/components/PageContainer";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { Card } from "@/components/ui/card";
 import { displayStyles, headerStyles, bodyStyles } from "@/app/fonts";
+import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 const chartTypes = [
   {
@@ -43,6 +44,11 @@ const chartTypes = [
 ];
 
 function GraphLandingPageContent() {
+  const chart0Ref = useScrollReveal({ delay: 0 });
+  const chart1Ref = useScrollReveal({ delay: 100 });
+  const chart2Ref = useScrollReveal({ delay: 200 });
+  const chartRefs = [chart0Ref, chart1Ref, chart2Ref];
+
   return (
     <PageContainer>
       {/* HERO SECTION */}
@@ -64,10 +70,11 @@ function GraphLandingPageContent() {
 
       {/* CHART TYPE CARDS */}
       <div className="grid md:grid-cols-3 gap-6 mt-12">
-        {chartTypes.map((chart) => {
+        {chartTypes.map((chart, i) => {
           const Icon = chart.icon;
           return (
-            <Link key={chart.href} href={chart.href} className="group">
+            <div ref={chartRefs[i]} key={chart.href}>
+            <Link href={chart.href} className="group">
               <Card className="p-6 h-full hover:scale-105 transition-all duration-300">
                 <div className="flex items-start justify-between mb-4">
                   <div className="w-14 h-14 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center shadow-lg">
@@ -91,6 +98,7 @@ function GraphLandingPageContent() {
                 </ul>
               </Card>
             </Link>
+            </div>
           );
         })}
       </div>

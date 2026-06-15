@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { inter } from "@/app/fonts";
+import { inter, geist } from "@/app/fonts";
 import "./globals.css";
 import Navigation from "@/components/Navigation";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning className="scroll-smooth">
+    <html lang="en" suppressHydrationWarning className={`scroll-smooth ${inter.variable} ${geist.variable}`}>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -37,7 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </head>
-      <body className={`${inter.variable} transition-colors duration-300`}>
+      <body className="transition-colors duration-300" suppressHydrationWarning>
         <AuthProvider>
           <NuqsAdapter>
             <Navigation />

@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { displayStyles, bodyStyles, labelStyles, headerStyles } from "@/app/fonts";
+import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 const features = [
   { href: "/browse", icon: BookOpen, title: "Browse Courses", description: "Explore 500+ courses across 50+ departments with real-time enrollment data" },
@@ -47,6 +48,10 @@ function AboutPageContent() {
   const [formData, setFormData] = useState({ name: "", email: "", reason: "", message: "" });
   const [formStatus, setFormStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [formError, setFormError] = useState<string | null>(null);
+
+  const aboutRef = useScrollReveal({ delay: 0 });
+  const faqRef = useScrollReveal({ delay: 100 });
+  const contactRef = useScrollReveal({ delay: 200 });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,6 +101,7 @@ function AboutPageContent() {
     <PageContainer>
       <div className="max-w-4xl mx-auto space-y-12">
         {/* About Section */}
+        <div ref={aboutRef}>
         <Card>
           <CardContent className="p-8">
             <h1 className={`${displayStyles.sm} text-text-primary mb-6`}>About SFU Course Planner</h1>
@@ -137,8 +143,10 @@ function AboutPageContent() {
             </div>
           </CardContent>
         </Card>
+        </div>
 
         {/* FAQ Section */}
+        <div ref={faqRef}>
         <Card>
           <CardContent className="p-8">
             <h2 className={`${displayStyles.sm} text-text-primary mb-6`}>Frequently Asked Questions</h2>
@@ -164,8 +172,10 @@ function AboutPageContent() {
             </div>
           </CardContent>
         </Card>
+        </div>
 
         {/* Contact Form */}
+        <div ref={contactRef}>
         <Card>
           <CardContent className="p-8">
             <h2 className={`${displayStyles.sm} text-text-primary mb-2`}>Contact Us</h2>
@@ -257,6 +267,7 @@ function AboutPageContent() {
             </form>
           </CardContent>
         </Card>
+        </div>
       </div>
     </PageContainer>
   );

@@ -6,6 +6,7 @@ import { GraduationCap, BookOpen, TrendingUp, ClipboardList, Eye } from "lucide-
 import Splash from "@/components/Splash";
 import { Card } from "@/components/ui/card";
 import { displayStyles, bodyStyles, headerStyles, labelStyles } from "@/app/fonts";
+import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 const features = [
   {
@@ -37,16 +38,36 @@ const features = [
 export default function LandingPage() {
   const [showSplash, setShowSplash] = useState(true);
 
+  // All hooks before early return — Rules of Hooks
+  const heroRef = useScrollReveal({ threshold: 0.1 });
+  const feat0Ref = useScrollReveal({ delay: 0 });
+  const feat1Ref = useScrollReveal({ delay: 100 });
+  const feat2Ref = useScrollReveal({ delay: 200 });
+  const feat3Ref = useScrollReveal({ delay: 300 });
+  const featureRefs = [feat0Ref, feat1Ref, feat2Ref, feat3Ref];
+
   if (showSplash) {
     return <Splash onComplete={() => setShowSplash(false)} />;
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <div className="flex-1 flex items-center justify-center">
+    <div className="min-h-screen flex flex-col relative overflow-hidden">
+      {/* Dot grid */}
+      <div
+        className="absolute inset-0 z-0 pointer-events-none"
+        style={{
+          backgroundImage: "radial-gradient(circle, var(--border-strong) 1px, transparent 1px)",
+          backgroundSize: "24px 24px",
+          opacity: 0.5,
+        }}
+      />
+
+      {/* Content sits above all background layers */}
+      <div className="flex-1 flex items-center justify-center relative z-10">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
+
           {/* Hero */}
-          <div className="mb-12">
+          <div ref={heroRef} className="mb-12">
             <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center shadow-2xl">
               <GraduationCap className="w-12 h-12 text-primary-foreground" />
             </div>
@@ -76,16 +97,18 @@ export default function LandingPage() {
 
           {/* Feature Cards */}
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mt-20">
-            {features.map(({ href, icon: Icon, title, description }) => (
-              <Link href={href} key={href} className="group">
-                <Card className="p-6 h-full transition-transform duration-300 group-hover:-translate-y-1">
-                  <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mb-4 mx-auto">
-                    <Icon className="w-6 h-6 text-accent" />
-                  </div>
-                  <h3 className={`${headerStyles.md} text-text-primary mb-2`}>{title}</h3>
-                  <p className={`${bodyStyles.md} text-text-muted`}>{description}</p>
-                </Card>
-              </Link>
+            {features.map(({ href, icon: Icon, title, description }, i) => (
+              <div ref={featureRefs[i]} key={href}>
+                <Link href={href} className="group">
+                  <Card className="p-6 h-full transition-transform duration-300 group-hover:-translate-y-1">
+                    <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mb-4 mx-auto">
+                      <Icon className="w-6 h-6 text-accent" />
+                    </div>
+                    <h3 className={`${headerStyles.md} text-text-primary mb-2`}>{title}</h3>
+                    <p className={`${bodyStyles.md} text-text-muted`}>{description}</p>
+                  </Card>
+                </Link>
+              </div>
             ))}
           </div>
 
@@ -101,6 +124,7 @@ export default function LandingPage() {
               </Link>
             </div>
           </div>
+
         </div>
       </div>
     </div>

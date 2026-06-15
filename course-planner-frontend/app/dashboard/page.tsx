@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { displayStyles, headerStyles, bodyStyles, labelStyles } from "@/app/fonts";
+import { useScrollReveal } from "@/hooks/useScrollReveal";
 
 function DashboardPageContent() {
   const router = useRouter();
@@ -126,6 +127,9 @@ function DashboardPageContent() {
     return offerings.find((o) => o.semesterCode === bookmark.semesterCode && o.section === bookmark.section);
   };
 
+  const profileRef = useScrollReveal({ delay: 0 });
+  const watchersRef = useScrollReveal({ delay: 100 });
+
   if (!user && loading) return null;
 
   return (
@@ -135,7 +139,7 @@ function DashboardPageContent() {
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* LEFT SIDE - Profile Section */}
-          <div className="lg:col-span-1">
+          <div ref={profileRef} className="lg:col-span-1">
             <Card className="p-6 sticky top-24">
               <CardContent className="p-0">
                 {/* Profile Picture */}
@@ -192,7 +196,7 @@ function DashboardPageContent() {
           </div>
 
           {/* RIGHT SIDE - Bookmarks Section */}
-          <div className="lg:col-span-3">
+          <div ref={watchersRef} className="lg:col-span-3">
             <Card className="p-6">
               <CardContent className="p-0">
                 {/* Header */}
