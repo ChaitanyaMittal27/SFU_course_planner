@@ -31,6 +31,9 @@ export const displayStyles = {
 
   // Hero — splash screen / fullscreen takeover only
   hero: "font-display text-[3.75rem] md:text-[4.5rem] font-bold leading-[1.1] tracking-tight",
+
+  // Landing — main landing page heading
+  landing: "font-display text-[2rem] md:text-[3.25rem] font-semibold leading-[1.04] tracking-tight",
 };
 
 // Headers — page titles, section headings, card titles

@@ -4,11 +4,12 @@ import { useEffect, useMemo, useState, Suspense } from "react";
 import GradeHistogram from "@/components/GradeHistogram";
 import { useQueryState } from "nuqs";
 import { api } from "@/lib/api";
-import type { Course, CourseOffering, Department, OfferingDetail } from "@/lib/types";
+import type { Course, CourseOffering, Department, OfferingDetail, TermInfo } from "@/lib/types";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import ErrorMessage from "@/components/ErrorMessage";
 import BookmarkButton from "@/components/BookmarkButton";
 import BackButton from "@/components/BackButton";
+import OfferingsTable from "@/components/OfferingsTable";
 import { Search } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -20,10 +21,6 @@ const selectClass =
 
 function sortAlphaNum(a: string, b: string) {
   return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
-}
-
-function formatSemesterLabel(o: CourseOffering) {
-  return `${o.term} ${o.year}`;
 }
 
 function extractSection(section: string) {
@@ -133,7 +130,7 @@ function OfferingDetailScreen({ detail, onBack }: { detail: OfferingDetail; onBa
                           href={`https://www.sfu.ca/outlines.html?${
                             detail.year
                           }/${detail.term.toLowerCase()}/${detail.deptCode.toLowerCase()}/${detail.courseNumber.toLowerCase()}/${extractSection(
-                            s.section
+                            s.section,
                           )}`}
                           target="_blank"
                           rel="noreferrer"
@@ -189,13 +186,15 @@ function BrowsePageContent() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [offerings, setOfferings] = useState<CourseOffering[]>([]);
   const [offeringDetail, setOfferingDetail] = useState<OfferingDetail | null>(null);
-  const [selectedOffering, setSelectedOffering] = useState<CourseOffering | null>(null);
+  const [, setSelectedOffering] = useState<CourseOffering | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Array<{ dept: Department; course: Course }>>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
 
   const [courseCache, setCourseCache] = useState<Record<number, Course[]>>({});
+
+  const [enrollingTerm, setEnrollingTerm] = useState<TermInfo | null>(null);
 
   const [loadingDepartments, setLoadingDepartments] = useState(false);
   const [loadingCourses, setLoadingCourses] = useState(false);
@@ -205,13 +204,20 @@ function BrowsePageContent() {
 
   const selectedDept = useMemo(
     () => departments.find((d) => d.deptId === Number(deptId)) ?? null,
-    [departments, deptId]
+    [departments, deptId],
   );
 
   const selectedCourse = useMemo(
     () => courses.find((c) => c.courseId === Number(courseId)) ?? null,
-    [courses, courseId]
+    [courses, courseId],
   );
+
+  useEffect(() => {
+    api
+      .getEnrollingTerm()
+      .then(setEnrollingTerm)
+      .catch(() => null);
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -376,8 +382,8 @@ function BrowsePageContent() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       {/* Header */}
       <div className="mb-6">
-        <h1 className={`${displayStyles.sm} text-text-primary`}>Browse Courses</h1>
-        <p className={`${bodyStyles.md} text-text-muted mt-1`}>
+        <h1 className={`${displayStyles.hero} text-text-primary`}>Browse Courses</h1>
+        <p className={`${bodyStyles.lg} text-text-muted mt-1`}>
           Pick a Department → Course → Click to view enrollments by term offering.
         </p>
       </div>
@@ -501,11 +507,9 @@ function BrowsePageContent() {
                 <div className="flex items-start justify-between gap-3 mb-4">
                   <div>
                     <div className={`${headerStyles.md} text-text-primary`}>
-                      {selectedDept?.name} {selectedCourse.courseNumber}
+                      {selectedDept?.name} {selectedCourse.courseNumber} : {selectedCourse.title}
                     </div>
-                    <div className={`${bodyStyles.md} text-text-muted`}>
-                      Click a term row to open full details.
-                    </div>
+                    <div className={`${bodyStyles.md} text-text-muted`}>Click a term row to open full details.</div>
                   </div>
                 </div>
 
@@ -515,54 +519,7 @@ function BrowsePageContent() {
                   <div className={`${bodyStyles.md} text-text-muted`}>No offerings found.</div>
                 )}
 
-                {offerings.length > 0 && (
-                  <div className="overflow-x-auto rounded-xl border border-border/50">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Term</TableHead>
-                          <TableHead>Section</TableHead>
-                          <TableHead>Instructor</TableHead>
-                          <TableHead>Campus</TableHead>
-                          <TableHead>Enrolled / Cap</TableHead>
-                          <TableHead>Load</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {offerings.map((o, idx) => {
-                          const active = selectedOffering?.semesterCode === o.semesterCode;
-                          const baseRowBg = idx % 2 === 0 ? "bg-background" : "bg-accent/5";
-                          const enrollingTint = o.isEnrolling ? "bg-success/5" : "";
-                          const bgClass = active ? "bg-accent/10" : enrollingTint || baseRowBg;
-
-                          return (
-                            <TableRow
-                              key={`${o.semesterCode}-${o.section}`}
-                              onClick={() => openOfferingDetail(o)}
-                              className={`cursor-pointer transition ${bgClass}`}
-                            >
-                              <TableCell>
-                                {formatSemesterLabel(o)}
-                                {o.isEnrolling && (
-                                  <span className={`ml-2 inline-flex items-center px-2 py-0.5 rounded-full ${labelStyles.sm} bg-success/10 text-success`}>
-                                    Enrolling
-                                  </span>
-                                )}
-                              </TableCell>
-                              <TableCell>{o.section}</TableCell>
-                              <TableCell>{o.instructors || "—"}</TableCell>
-                              <TableCell>{o.location || "—"}</TableCell>
-                              <TableCell>
-                                {o.enrolled} / {o.capacity}
-                              </TableCell>
-                              <TableCell>{o.loadPercent ?? 0}%</TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
+                <OfferingsTable offerings={offerings} enrollingTerm={enrollingTerm} onRowClick={openOfferingDetail} />
 
                 {loadingDetail && (
                   <div className="mt-4">

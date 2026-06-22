@@ -30,6 +30,11 @@ function LoginPageContent() {
   const [forgotSuccess, setForgotSuccess] = useState(false);
 
   useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab === "signup") setActiveTab("signup");
+  }, [searchParams]);
+
+  useEffect(() => {
     if (!authLoading && user) {
       const redirectTo = searchParams.get("redirectTo") || "/dashboard";
       router.push(redirectTo);
