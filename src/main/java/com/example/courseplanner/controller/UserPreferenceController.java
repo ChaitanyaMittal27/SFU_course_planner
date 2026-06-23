@@ -128,17 +128,15 @@ public class UserPreferenceController {
         UserPreference preference = userPreferenceRepository.findById(userId)
             .orElse(new UserPreference(userId, false));
 
-        // Update notification toggle
-        preference.setEmailNotificationsEnabled(dto.getEmailNotificationsEnabled());
-
-        // Only update email if provided
+        // Update preference fields based on DTO (only if provided)
+        if (dto.getEmailNotificationsEnabled() != null) {
+            preference.setEmailNotificationsEnabled(dto.getEmailNotificationsEnabled());
+        }
         if (dto.getUserEmail() != null) {
             preference.setUserEmail(dto.getUserEmail());
         }
-
         preference.setUpdatedAt(Instant.now());
         userPreferenceRepository.save(preference);
-
         return ResponseEntity.ok(toDTO(preference));
     }
 
