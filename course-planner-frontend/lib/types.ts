@@ -136,4 +136,5 @@ export interface Bookmark {
 // ----------------------------
 export interface UserPreference {
   emailNotificationsEnabled: boolean;
+  userEmail: string | null;
 }

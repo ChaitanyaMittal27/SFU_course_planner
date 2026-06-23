@@ -16,11 +16,11 @@ export default function EmailNotificationToggle() {
   useEffect(() => {
     const fetchPreference = async () => {
       try {
-        const preference = await api.getEmailNotificationPreference();
+        const preference = await api.getUserPreferences();
         setEnabled(preference.emailNotificationsEnabled);
       } catch (err: any) {
-        console.error("Failed to fetch email preference:", err);
-        setError("Failed to load preference");
+        console.error("Failed to fetch user preferences:", err);
+        setError("Failed to load user preferences");
       } finally {
         setLoading(false);
       }
@@ -38,8 +38,8 @@ export default function EmailNotificationToggle() {
       const updated = await api.updateEmailNotificationPreference(newValue);
       setEnabled(updated.emailNotificationsEnabled);
     } catch (err: any) {
-      console.error("Failed to update email preference:", err);
-      setError("Failed to update preference");
+      console.error("Failed to update email notification preference:", err);
+      setError("Failed to update email notification preference");
     } finally {
       setUpdating(false);
     }
@@ -66,9 +66,7 @@ export default function EmailNotificationToggle() {
         <div className="flex flex-col">
           <span className={`${labelStyles.lg} text-text-primary`}>Email Notifications</span>
           <span className={`${labelStyles.sm} text-text-muted`}>
-            {enabled
-              ? "You'll receive updates about your bookmarks"
-              : "Enable to receive enrollment alerts"}
+            {enabled ? "You'll receive updates about your bookmarks" : "Enable to receive enrollment alerts"}
           </span>
         </div>
       </div>

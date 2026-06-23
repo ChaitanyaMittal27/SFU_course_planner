@@ -7,6 +7,12 @@ import { supabase } from "@/lib/supabase/client";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { Card, CardContent } from "@/components/ui/card";
 import { bodyStyles, headerStyles } from "@/app/fonts";
+import { api } from "@/lib/api";
+
+// callback page
+// This page is used as the redirect URL for OAuth sign-in flows.
+// and for signup flows, it handles the email verification callback and exchanges the code for a session.
+// also for email sign-in flows (magic link). It handles the OAuth callback and exchanges the code for a session.
 
 function AuthCallbackPageContent() {
   const router = useRouter();
@@ -27,6 +33,18 @@ function AuthCallbackPageContent() {
           setError(exchangeError.message || "Failed to complete sign in");
           setTimeout(() => router.push("/login"), 3000);
           return;
+        }
+        // Initialize preferences now that user is fully confirmed
+        // Non-critical — don't block redirect if this fails
+        try {
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
+          if (session?.user?.email) {
+            await api.initializePreferencesOnSignup(session.user.email);
+          }
+        } catch {
+          console.warn("Failed to initialize preferences after confirmation");
         }
         router.push(searchParams.get("redirectTo") || "/dashboard");
       } catch (err: any) {
