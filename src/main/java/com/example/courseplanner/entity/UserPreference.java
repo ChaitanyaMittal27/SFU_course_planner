@@ -31,6 +31,12 @@ public class UserPreference {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    @Column(name = "user_email")
+    private String userEmail;
+
+    @Column(name = "last_notified_at")
+    private Instant lastNotifiedAt;
+
     // =====================================================
     // CONSTRUCTORS
     // =====================================================
@@ -99,5 +105,21 @@ public class UserPreference {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getUserEmail() {
+        return userEmail;
+    }
+
+    public void setUserEmail(String userEmail) {
+        this.userEmail = userEmail;
+    }
+
+    public Instant getLastNotifiedAt() {
+        return lastNotifiedAt;
+    }
+
+    public void setLastNotifiedAt(Instant lastNotifiedAt) {
+        this.lastNotifiedAt = lastNotifiedAt;
     }
 }

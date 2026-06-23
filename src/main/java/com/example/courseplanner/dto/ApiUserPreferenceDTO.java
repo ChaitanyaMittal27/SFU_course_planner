@@ -19,6 +19,7 @@ package com.example.courseplanner.dto;
 public class ApiUserPreferenceDTO {
 
     private Boolean emailNotificationsEnabled;
+    private String userEmail;
 
     public ApiUserPreferenceDTO() {
         // Default constructor
@@ -38,5 +39,13 @@ public class ApiUserPreferenceDTO {
 
     public void setEmailNotificationsEnabled(Boolean emailNotificationsEnabled) {
         this.emailNotificationsEnabled = emailNotificationsEnabled;
+    }
+
+    public String getUserEmail() {
+        return userEmail;
+    }
+
+    public void setUserEmail(String userEmail) {
+        this.userEmail = userEmail;
     }
 }
