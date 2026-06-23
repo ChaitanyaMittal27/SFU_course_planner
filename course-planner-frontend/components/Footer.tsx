@@ -6,7 +6,9 @@ export default function Footer() {
   return (
     <footer className="border-t border-border mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 ${bodyStyles.md} text-text-muted`}>
+        <div
+          className={`flex flex-col sm:flex-row items-center justify-between gap-4 ${bodyStyles.md} text-text-muted`}
+        >
           <div className="flex items-center space-x-2">
             <span>© 2025 Anonymouse</span>
             <span className="hidden sm:inline">•</span>
@@ -21,7 +23,7 @@ export default function Footer() {
             <Link href="/privacy" className="hover:text-accent transition-colors">
               Privacy
             </Link>
-            <Link href="/terms" className="hover:text-accent transition-colors">
+            <Link href="/termsofservice" className="hover:text-accent transition-colors">
               Terms
             </Link>
 
