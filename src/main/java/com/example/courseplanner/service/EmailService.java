@@ -81,7 +81,6 @@ public class EmailService {
     }
 
     public void sendNotificationDigest(String toEmail, String subject, String htmlBody) {
-        // Phase 3: send daily enrollment digest to opted-in user
-        throw new UnsupportedOperationException("Not yet implemented");
+        send(toEmail, FROM_NOTIFICATIONS, subject, htmlBody, null);
     }
 }
