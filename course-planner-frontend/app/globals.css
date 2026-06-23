@@ -62,6 +62,9 @@
 
   /* Navigation */
   --color-nav-bg: var(--nav-bg);
+  --color-nav-text: var(--nav-text);
+  --color-nav-muted: var(--nav-muted);
+  --color-nav-border-top: var(--nav-border-top);
 
   /* Sidebar (shadcn requirement) */
   --color-sidebar: var(--surface);
@@ -130,6 +133,9 @@
 
   /* Navigation */
   --nav-bg: var(--primary);
+  --nav-text: #ffffff;
+  --nav-muted: rgba(255, 255, 255, 0.7);
+  --nav-border-top: transparent;
 
   /* shadcn tokens — point to our surface hierarchy */
   --card: var(--surface);
@@ -181,6 +187,9 @@
 
   /* Navigation */
   --nav-bg: #010409;
+  --nav-text: #e6edf3;
+  --nav-muted: #8b949e;
+  --nav-border-top: var(--primary);
 
   /* shadcn tokens — point to our surface hierarchy */
   --card: var(--surface);
@@ -454,5 +463,28 @@
   }
   .animate-width-expand {
     animation: width-expand 0.5s ease-out 0.3s both;
+  }
+
+  @keyframes reveal-up {
+    from {
+      opacity: 0;
+      transform: translateY(40px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-reveal-up {
+    animation: reveal-up 0.6s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  }
+
+  .dot-grid-hero {
+    background-image: radial-gradient(circle, var(--border-strong) 1px, transparent 1px);
+    background-size: 26px 26px;
+    opacity: 0.18;
+    -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 35%, transparent 75%);
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 35%, transparent 75%);
   }
 }

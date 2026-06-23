@@ -209,7 +209,7 @@ function DashboardPageContent() {
                     <EmailNotificationToggle />
                     <Button onClick={() => router.push("/browse")} className="gap-2">
                       <Plus className="w-4 h-4" />
-                      Add Watcher
+                      Add Bookmark
                     </Button>
                   </div>
                 </div>

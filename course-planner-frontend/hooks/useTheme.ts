@@ -34,7 +34,7 @@ export function useTheme() {
   };
 
   const toggleTheme = () => {
-    if (!mounted) return; // Don't toggle if not mounted
+    if (!mounted) return;
 
     const newTheme = theme === "light" ? "dark" : "light";
     setTheme(newTheme);
@@ -42,5 +42,12 @@ export function useTheme() {
     applyTheme(newTheme);
   };
 
-  return { theme, toggleTheme, mounted };
+  const setThemeTo = (newTheme: "light" | "dark") => {
+    if (!mounted) return;
+    setTheme(newTheme);
+    localStorage.setItem("theme", newTheme);
+    applyTheme(newTheme);
+  };
+
+  return { theme, toggleTheme, setThemeTo, mounted };
 }
