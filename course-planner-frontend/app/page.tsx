@@ -106,8 +106,8 @@ const features = [
   },
   {
     icon: Bell,
-    title: "Track Watchers",
-    description: "Watch any section and get an email the moment a seat opens or the waitlist moves.",
+    title: "Track Bookmarks",
+    description: "Watch any section and get an email update everyday so you never miss an opportunity.",
     color: "primary" as const,
     layout: "text-right" as const,
     link: "/dashboard",
@@ -115,14 +115,14 @@ const features = [
       <div className="flex flex-col gap-2.5">
         {[
           { label: "MATH 232 · D100", badge: "2 SEATS OPEN", cls: "bg-success/[0.15] text-success" },
-          { label: "CMPT 225 · D200", badge: "FULL · WAITLIST 4", cls: "bg-primary/[0.15] text-primary" },
+          { label: "CMPT 225 · D200", badge: "WAITLIST FULL", cls: "bg-primary/[0.15] text-primary" },
           { label: "BUS 272 · D300", badge: "3 ON WAITLIST", cls: "bg-warning/[0.15] text-warning" },
         ].map((item) => (
           <div
             key={item.label}
-            className="flex items-center justify-between px-4 py-[13px] border border-border rounded-[11px]"
+            className="flex items-center justify-between px-5 py-[13px] gap-3 border border-border rounded-[11px]"
           >
-            <span className={`${headerStyles.xs} text-text-primary`}>{item.label}</span>
+            <span className={`${headerStyles.xs} text-text-primary whitespace-nowrap`}>{item.label}</span>
             <span className={`text-[10.5px] font-semibold px-2.5 py-1 rounded-full ${item.cls}`}>{item.badge}</span>
           </div>
         ))}
@@ -251,7 +251,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── Feature rows ─────────────────────── */}
-      <section className="max-w-[1180px] mx-auto px-4 sm:px-7 pt-6 pb-[90px] flex flex-col gap-5">
+      <section className="max-w-[1180px] mx-auto px-4 sm:px-7 pt-6 pb-[90px] grid grid-cols-1 sm:grid-cols-2 gap-5">
         {features.map((feat, i) => {
           const Icon = feat.icon;
           const isTextLeft = feat.layout === "text-left";
