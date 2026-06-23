@@ -12,6 +12,8 @@ const statusClasses: Record<string, string> = {
   full: "bg-destructive/10 text-destructive border-destructive/20",
   closed: "bg-destructive/10 text-destructive border-destructive/20",
   waitlist: "bg-warning/10 text-warning border-warning/20",
+  filling: "bg-warning/10 text-warning border-warning/20",
+  "almost full": "bg-destructive/10 text-destructive border-destructive/20",
   cancelled: "bg-surface-raised text-text-subtle border-border",
 };
 
