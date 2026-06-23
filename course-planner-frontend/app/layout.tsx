@@ -11,7 +11,11 @@ export const metadata: Metadata = {
   description:
     "Minimize hassle and make informed course decisions with all your SFU planning tools in one place — clear comparisons, better choices, less second-guessing.",
   icons: {
-    icon: "/favicon.ico",
+    icon: [
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: "/apple-touch-icon.png",
   },
 };
 
