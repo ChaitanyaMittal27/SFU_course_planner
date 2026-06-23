@@ -130,7 +130,7 @@ export const api = {
   // GET /api/graph/enrollment-history?deptId={}&courseId={}&range=5yr
   getEnrollmentHistory: (deptId: number, courseId: number, range: string = "5yr") =>
     fetchAPI<EnrollmentDataPoint[]>(
-      `/api/graph/enrollment-history?deptId=${deptId}&courseId=${courseId}&range=${range}`
+      `/api/graph/enrollment-history?deptId=${deptId}&courseId=${courseId}&range=${range}`,
     ),
 
   // -------------------------
@@ -170,7 +170,7 @@ export const api = {
     deptId: number,
     courseId: number,
     semesterCode: number,
-    section: string
+    section: string,
   ): Promise<Bookmark> => {
     return fetchAuthAPI<Bookmark>("/api/bookmarks", {
       method: "POST",
@@ -201,33 +201,60 @@ export const api = {
   // User Preferences (Authenticated - JWT Required)
   // -------------------------
   /**
-   * Get email notification preference for authenticated user
+   * Get all user preferences for authenticated user.
+   * Returns both email notification toggle state and preferred email.
+   * Defaults to false + null email if no preference exists.
    *
-   * Defaults to false if no preference exists.
-   *
-   * @returns User's email notification preference
+   * @returns User preferences (emailNotificationsEnabled + userEmail)
    */
-  getEmailNotificationPreference: () => fetchAuthAPI<UserPreference>("/api/preferences/email-notifications"),
+  getUserPreferences: () => fetchAuthAPI<UserPreference>("/api/preferences/email-notifications"),
 
   /**
-   * Update email notification preference for authenticated user
+   * Update email notification toggle for authenticated user.
+   * Does not affect preferred email.
    *
-   * Creates preference if it doesn't exist (upsert).
-   *
-   * @param enabled Whether to enable email notifications
-   * @returns Updated preference
+   * @param enabled - Whether to enable email notifications
+   * @returns Updated user preferences
    */
-  updateEmailNotificationPreference: async (enabled: boolean): Promise<UserPreference> => {
-    return fetchAuthAPI<UserPreference>("/api/preferences/email-notifications", {
+  updateEmailNotificationPreference: async (enabled: boolean): Promise<UserPreference> =>
+    fetchAuthAPI<UserPreference>("/api/preferences/email-notifications", {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ emailNotificationsEnabled: enabled }),
+    }),
+
+  /**
+   * Update preferred email for authenticated user.
+   * Does not affect notification toggle state.
+   *
+   * @param userEmail - New preferred email address
+   * @returns Updated user preferences
+   */
+  updatePreferredEmail: async (userEmail: string): Promise<UserPreference> =>
+    fetchAuthAPI<UserPreference>("/api/preferences/email-notifications", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userEmail }),
+    }),
+
+  /**
+   * Initialize user preferences on signup.
+   * Sets preferred email to signup email and enables
+   * email notifications by default.
+   * If preferences already exist, returns existing row without overwriting.
+   *
+   * @param userEmail - User's signup email address
+   * @returns Created or existing user preferences
+   */
+  initializePreferencesOnSignup: async (userEmail: string): Promise<UserPreference> =>
+    fetchAuthAPI<UserPreference>("/api/preferences", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        emailNotificationsEnabled: enabled,
+        userEmail,
+        emailNotificationsEnabled: true,
       }),
-    });
-  },
+    }),
 };
 
 // Export types

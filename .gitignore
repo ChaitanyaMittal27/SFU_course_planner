@@ -47,3 +47,6 @@ test_public/
 .env
 archive_old/
 application.jar
+
+claude.md
+CLAUDE.md
