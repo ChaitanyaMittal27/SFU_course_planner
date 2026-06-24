@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { Activity, MessageSquare, Calendar, Users, Eye, Bell, FlaskConical, ArrowRight } from "lucide-react";
-import { api, ServiceHealthCheck } from "@/lib/api";
+import { api } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { displayStyles, headerStyles, bodyStyles, labelStyles } from "@/app/fonts";
@@ -20,8 +20,15 @@ interface HealthData {
   badgeClass: string;
 }
 
+interface TermsData {
+  meta: string;
+  badgeLabel: string;
+  badgeClass: string;
+}
+
 interface DashboardData {
   health: HealthData | null;
+  terms: TermsData | null;
 }
 
 // --- Loaders (one per section, called concurrently) ---
@@ -41,6 +48,38 @@ async function loadHealth(): Promise<HealthData> {
     meta: allUp ? `${total} services up` : `${upCount}/${total} services up`,
     badgeLabel: allUp ? "OK" : `${upCount}/${total}`,
     badgeClass: allUp ? "bg-success/15 text-success" : "bg-warning/15 text-warning",
+  };
+}
+
+function capitalize(s: string) {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+async function loadTerms(): Promise<TermsData> {
+  const terms = await api.getAdminTerms();
+  const enrolling = terms.find((t) => t.isEnrolling);
+
+  if (enrolling) {
+    return {
+      meta: `${capitalize(enrolling.term)} ${enrolling.year}`,
+      badgeLabel: "Enrolling",
+      badgeClass: "bg-success/15 text-success",
+    };
+  }
+
+  const current = terms.find((t) => t.isCurrent);
+  if (current) {
+    return {
+      meta: `${capitalize(current.term)} ${current.year}`,
+      badgeLabel: "Current",
+      badgeClass: "bg-accent/15 text-accent",
+    };
+  }
+
+  return {
+    meta: "No enrolling term",
+    badgeLabel: "",
+    badgeClass: "",
   };
 }
 
@@ -91,7 +130,7 @@ const staticSections: SectionCard[] = [
     href: "/admin/terms",
     icon: Calendar,
     desc: "Manage which terms are current and enrolling.",
-    meta: "Summer 2026",
+    meta: "Loading…",
     iconColorClass: "text-accent bg-accent/10 border-accent/20",
   },
   {
@@ -133,12 +172,15 @@ const staticSections: SectionCard[] = [
 ];
 
 export default function AdminDashboardPage() {
-  const [data, setData] = useState<DashboardData>({ health: null });
+  const [data, setData] = useState<DashboardData>({ health: null, terms: null });
   const [loading, setLoading] = useState(true);
 
   const loadDashboard = useCallback(async () => {
-    const [health] = await Promise.all([loadHealth().catch(() => null)]);
-    setData({ health });
+    const [health, terms] = await Promise.all([
+      loadHealth().catch(() => null),
+      loadTerms().catch(() => null),
+    ]);
+    setData({ health, terms });
   }, []);
 
   useEffect(() => {
@@ -181,6 +223,14 @@ export default function AdminDashboardPage() {
         meta: data.health.meta,
         badge: data.health.badgeLabel,
         badgeClass: data.health.badgeClass,
+      };
+    }
+    if (s.key === "Terms" && data.terms) {
+      return {
+        ...s,
+        meta: data.terms.meta,
+        badge: data.terms.badgeLabel || undefined,
+        badgeClass: data.terms.badgeClass || undefined,
       };
     }
     return s;
@@ -230,7 +280,8 @@ export default function AdminDashboardPage() {
       <div ref={cardsRef} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5">
         {sections.map((section) => {
           const Icon = section.icon;
-          const isHealthLoading = section.key === "Health" && loading;
+          const isLiveSection = section.key === "Health" || section.key === "Terms";
+          const isSectionLoading = isLiveSection && loading;
           return (
             <Link key={section.key} href={section.href} className="group">
               <Card className="h-full flex flex-col p-[18px] transition-colors hover:border-border-strong hover:bg-surface-raised">
@@ -242,14 +293,14 @@ export default function AdminDashboardPage() {
                     >
                       <Icon className="w-[17px] h-[17px]" />
                     </div>
-                    {section.badge && !isHealthLoading && (
+                    {section.badge && !isSectionLoading && (
                       <span
                         className={`font-mono font-semibold text-[10.5px] px-2 py-0.5 rounded-full ${section.badgeClass}`}
                       >
                         {section.badge}
                       </span>
                     )}
-                    {isHealthLoading && <Skeleton className="h-5 w-10 rounded-full" />}
+                    {isSectionLoading && <Skeleton className="h-5 w-10 rounded-full" />}
                   </div>
 
                   {/* Title */}
@@ -260,7 +311,7 @@ export default function AdminDashboardPage() {
 
                   {/* Footer */}
                   <div className="flex items-center justify-between pt-3 border-t border-border">
-                    {isHealthLoading ? (
+                    {isSectionLoading ? (
                       <Skeleton className="h-4 w-24" />
                     ) : (
                       <span className={`${labelStyles.sm} font-mono text-text-subtle`}>{section.meta}</span>

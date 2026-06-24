@@ -148,3 +148,19 @@ export interface ServiceHealthCheck {
   latencyMs: number;
   url: string;
 }
+
+export interface AdminTerm {
+  termId: number;
+  year: number;
+  term: string;
+  isCurrent: boolean;
+  isEnrolling: boolean;
+  updatedAt: string | null;
+}
+
+export interface UpdateTermsRequest {
+  currentYear: number;
+  currentTerm: string;
+  enrollingYear: number;
+  enrollingTerm: string;
+}

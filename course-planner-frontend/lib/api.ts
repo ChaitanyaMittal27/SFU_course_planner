@@ -10,6 +10,8 @@ import {
   TermInfo,
   UserPreference,
   ServiceHealthCheck,
+  AdminTerm,
+  UpdateTermsRequest,
 } from "@/lib/types";
 import { supabase } from "@/lib/supabase/client";
 
@@ -265,6 +267,15 @@ export const api = {
 
   getServiceHealth: (service: string) =>
     fetchAuthAPI<ServiceHealthCheck[]>(`/api/admin/health?service=${service}`),
+
+  getAdminTerms: () => fetchAuthAPI<AdminTerm[]>("/api/admin/terms"),
+
+  updateTerms: (data: UpdateTermsRequest) =>
+    fetchAuthAPI<AdminTerm[]>("/api/admin/terms", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }),
 };
 
 // Export types
@@ -280,4 +291,6 @@ export type {
   TermInfo,
   UserPreference,
   ServiceHealthCheck,
+  AdminTerm,
+  UpdateTermsRequest,
 };
