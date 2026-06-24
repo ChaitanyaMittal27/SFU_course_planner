@@ -43,7 +43,24 @@ public interface BookmarkRepository extends JpaRepository<Bookmark, Long> {
         @Param("section") String section
     );
 
-    @Query(value = "SELECT * FROM bookmarks WHERE user_id = CAST(:userId AS UUID)", 
+    @Query(value = "SELECT * FROM bookmarks WHERE user_id = CAST(:userId AS UUID)",
            nativeQuery = true)
     List<Bookmark> findAllByUserId(@Param("userId") UUID userId);
+
+    @Query(value = """
+            SELECT b.bookmark_id AS bookmarkId,
+                   CAST(b.user_id AS text) AS userId,
+                   b.dept_id AS deptId,
+                   b.course_id AS courseId,
+                   b.semester_code AS semesterCode,
+                   b.section AS section,
+                   d.dept_code AS deptCode,
+                   c.course_number AS courseNumber,
+                   c.title AS title
+            FROM bookmarks b
+            JOIN courses c ON b.course_id = c.course_id
+            JOIN departments d ON b.dept_id = d.dept_id
+            WHERE b.user_id IN (SELECT CAST(unnest(:userIds) AS UUID))
+            """, nativeQuery = true)
+    List<BookmarkWithCourseInfo> findAllByUserIdsWithCourseInfo(@Param("userIds") String[] userIds);
 }

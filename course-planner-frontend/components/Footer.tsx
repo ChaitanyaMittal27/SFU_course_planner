@@ -10,7 +10,7 @@ export default function Footer() {
           className={`flex flex-col sm:flex-row items-center justify-between gap-4 ${bodyStyles.md} text-text-muted`}
         >
           <div className="flex items-center space-x-2">
-            <span>© 2025 Anonymouse</span>
+            <span>© 2026 Anonymouse</span>
             <span className="hidden sm:inline">•</span>
             <span className="flex items-center gap-1">
               Made with
