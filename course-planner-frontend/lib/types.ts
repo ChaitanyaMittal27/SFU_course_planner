@@ -138,3 +138,13 @@ export interface UserPreference {
   emailNotificationsEnabled: boolean;
   userEmail: string | null;
 }
+
+// ----------------------------
+// Admin
+// ----------------------------
+export interface ServiceHealthCheck {
+  service: string;
+  status: "up" | "down";
+  latencyMs: number;
+  url: string;
+}

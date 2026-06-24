@@ -9,6 +9,7 @@ import {
   EnrollmentDataPoint,
   TermInfo,
   UserPreference,
+  ServiceHealthCheck,
 } from "@/lib/types";
 import { supabase } from "@/lib/supabase/client";
 
@@ -255,6 +256,15 @@ export const api = {
         emailNotificationsEnabled: true,
       }),
     }),
+
+  // -------------------------
+  // Admin (Authenticated — JWT + admin role required)
+  // -------------------------
+
+  getHealthStatus: () => fetchAuthAPI<ServiceHealthCheck[]>("/api/admin/health"),
+
+  getServiceHealth: (service: string) =>
+    fetchAuthAPI<ServiceHealthCheck[]>(`/api/admin/health?service=${service}`),
 };
 
 // Export types
@@ -269,4 +279,5 @@ export type {
   EnrollmentDataPoint,
   TermInfo,
   UserPreference,
+  ServiceHealthCheck,
 };

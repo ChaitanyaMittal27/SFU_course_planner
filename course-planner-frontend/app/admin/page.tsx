@@ -1,19 +1,50 @@
 "use client";
 
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import {
-  Activity,
-  MessageSquare,
-  Calendar,
-  Users,
-  Eye,
-  Bell,
-  FlaskConical,
-  ArrowRight,
-} from "lucide-react";
+import { Activity, MessageSquare, Calendar, Users, Eye, Bell, FlaskConical, ArrowRight } from "lucide-react";
+import { api, ServiceHealthCheck } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { displayStyles, headerStyles, bodyStyles, labelStyles } from "@/app/fonts";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
+
+// --- Loader results per section ---
+interface HealthData {
+  statusLabel: string;
+  statusColor: string;
+  delta: string;
+  deltaColor: string;
+  meta: string;
+  badgeLabel: string;
+  badgeClass: string;
+}
+
+interface DashboardData {
+  health: HealthData | null;
+}
+
+// --- Loaders (one per section, called concurrently) ---
+
+async function loadHealth(): Promise<HealthData> {
+  const checks = await api.getHealthStatus();
+  const upCount = checks.filter((c) => c.status === "up").length;
+  const total = checks.length;
+  const allUp = upCount === total;
+  const allDown = upCount === 0;
+
+  return {
+    statusLabel: allUp ? "OK" : allDown ? "Down" : "Degraded",
+    statusColor: allUp ? "text-success" : allDown ? "text-destructive" : "text-warning",
+    delta: allUp ? `${total}/${total}` : `${upCount}/${total}`,
+    deltaColor: allUp ? "text-success" : "text-warning",
+    meta: allUp ? `${total} services up` : `${upCount}/${total} services up`,
+    badgeLabel: allUp ? "OK" : `${upCount}/${total}`,
+    badgeClass: allUp ? "bg-success/15 text-success" : "bg-warning/15 text-warning",
+  };
+}
+
+// --- Static data (placeholder) ---
 
 interface KpiCard {
   label: string;
@@ -22,13 +53,6 @@ interface KpiCard {
   delta: string;
   deltaColor: string;
 }
-
-const kpis: KpiCard[] = [
-  { label: "Total Users", value: "8,420", valueColor: "text-text-primary", delta: "▲ 6.2%", deltaColor: "text-success" },
-  { label: "API Status", value: "Operational", valueColor: "text-success", delta: "99.9%", deltaColor: "text-success" },
-  { label: "Open Tickets", value: "12", valueColor: "text-text-primary", delta: "▲ 3", deltaColor: "text-warning" },
-  { label: "Alerts Sent Today", value: "3,940", valueColor: "text-text-primary", delta: "▲ 11%", deltaColor: "text-text-muted" },
-];
 
 interface SectionCard {
   key: string;
@@ -41,14 +65,14 @@ interface SectionCard {
   iconColorClass: string;
 }
 
-const sections: SectionCard[] = [
+const staticSections: SectionCard[] = [
   {
     key: "Health",
     href: "/admin/health",
     icon: Activity,
     desc: "Live status checks for API, Database, CourseSys, CourseDiggers and the Resend email service.",
-    meta: "4 services up",
-    badge: "OK",
+    meta: "Checking…",
+    badge: "…",
     badgeClass: "bg-success/15 text-success",
     iconColorClass: "text-success bg-success/10 border-success/20",
   },
@@ -109,9 +133,58 @@ const sections: SectionCard[] = [
 ];
 
 export default function AdminDashboardPage() {
+  const [data, setData] = useState<DashboardData>({ health: null });
+  const [loading, setLoading] = useState(true);
+
+  const loadDashboard = useCallback(async () => {
+    const [health] = await Promise.all([loadHealth().catch(() => null)]);
+    setData({ health });
+  }, []);
+
+  useEffect(() => {
+    loadDashboard().finally(() => setLoading(false));
+  }, [loadDashboard]);
+
   const headingRef = useScrollReveal({ delay: 0 });
   const kpiRef = useScrollReveal({ delay: 50 });
   const cardsRef = useScrollReveal({ delay: 100 });
+
+  const kpis: KpiCard[] = [
+    {
+      label: "Total Users",
+      value: "8,420",
+      valueColor: "text-text-primary",
+      delta: "▲ 6.2%",
+      deltaColor: "text-success",
+    },
+    {
+      label: "API Status",
+      value: data.health?.statusLabel ?? "—",
+      valueColor: data.health?.statusColor ?? "text-text-muted",
+      delta: data.health?.delta ?? "",
+      deltaColor: data.health?.deltaColor ?? "text-text-muted",
+    },
+    { label: "Open Tickets", value: "12", valueColor: "text-text-primary", delta: "▲ 3", deltaColor: "text-warning" },
+    {
+      label: "Alerts Sent Today",
+      value: "3,940",
+      valueColor: "text-text-primary",
+      delta: "▲ 11%",
+      deltaColor: "text-text-muted",
+    },
+  ];
+
+  const sections: SectionCard[] = staticSections.map((s) => {
+    if (s.key === "Health" && data.health) {
+      return {
+        ...s,
+        meta: data.health.meta,
+        badge: data.health.badgeLabel,
+        badgeClass: data.health.badgeClass,
+      };
+    }
+    return s;
+  });
 
   return (
     <div className="flex-1 p-8 max-w-[1180px]">
@@ -129,14 +202,19 @@ export default function AdminDashboardPage() {
           <Card key={kpi.label} className="p-4">
             <CardContent className="p-0">
               <div className={`${labelStyles.md} text-text-muted mb-2`}>{kpi.label}</div>
-              <div className="flex items-baseline gap-2">
-                <span className={`font-mono font-semibold text-[23px] tracking-tight ${kpi.valueColor}`}>
-                  {kpi.value}
-                </span>
-                <span className={`font-mono font-semibold ${labelStyles.sm} ${kpi.deltaColor}`}>
-                  {kpi.delta}
-                </span>
-              </div>
+              {kpi.label === "API Status" && loading ? (
+                <div className="flex items-baseline gap-2">
+                  <Skeleton className="h-7 w-28" />
+                  <Skeleton className="h-4 w-10" />
+                </div>
+              ) : (
+                <div className="flex items-baseline gap-2">
+                  <span className={`font-mono font-semibold text-[23px] tracking-tight ${kpi.valueColor}`}>
+                    {kpi.value}
+                  </span>
+                  <span className={`font-mono font-semibold ${labelStyles.sm} ${kpi.deltaColor}`}>{kpi.delta}</span>
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}
@@ -152,20 +230,26 @@ export default function AdminDashboardPage() {
       <div ref={cardsRef} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5">
         {sections.map((section) => {
           const Icon = section.icon;
+          const isHealthLoading = section.key === "Health" && loading;
           return (
             <Link key={section.key} href={section.href} className="group">
               <Card className="h-full flex flex-col p-[18px] transition-colors hover:border-border-strong hover:bg-surface-raised">
                 <CardContent className="p-0 flex flex-col flex-1">
                   {/* Icon + badge row */}
                   <div className="flex items-center justify-between mb-3">
-                    <div className={`w-9 h-9 rounded-[9px] border flex items-center justify-center ${section.iconColorClass}`}>
+                    <div
+                      className={`w-9 h-9 rounded-[9px] border flex items-center justify-center ${section.iconColorClass}`}
+                    >
                       <Icon className="w-[17px] h-[17px]" />
                     </div>
-                    {section.badge && (
-                      <span className={`font-mono font-semibold text-[10.5px] px-2 py-0.5 rounded-full ${section.badgeClass}`}>
+                    {section.badge && !isHealthLoading && (
+                      <span
+                        className={`font-mono font-semibold text-[10.5px] px-2 py-0.5 rounded-full ${section.badgeClass}`}
+                      >
                         {section.badge}
                       </span>
                     )}
+                    {isHealthLoading && <Skeleton className="h-5 w-10 rounded-full" />}
                   </div>
 
                   {/* Title */}
@@ -176,8 +260,14 @@ export default function AdminDashboardPage() {
 
                   {/* Footer */}
                   <div className="flex items-center justify-between pt-3 border-t border-border">
-                    <span className={`${labelStyles.sm} font-mono text-text-subtle`}>{section.meta}</span>
-                    <span className={`${labelStyles.md} font-semibold text-text-muted group-hover:text-text-primary flex items-center gap-1 transition-colors`}>
+                    {isHealthLoading ? (
+                      <Skeleton className="h-4 w-24" />
+                    ) : (
+                      <span className={`${labelStyles.sm} font-mono text-text-subtle`}>{section.meta}</span>
+                    )}
+                    <span
+                      className={`${labelStyles.md} font-semibold text-text-muted group-hover:text-text-primary flex items-center gap-1 transition-colors`}
+                    >
                       Manage
                       <ArrowRight className="w-3.5 h-3.5" />
                     </span>
