@@ -26,9 +26,16 @@ interface TermsData {
   badgeClass: string;
 }
 
+interface UsersData {
+  kpiValue: string;
+  kpiDelta: string;
+  meta: string;
+}
+
 interface DashboardData {
   health: HealthData | null;
   terms: TermsData | null;
+  users: UsersData | null;
 }
 
 // --- Loaders (one per section, called concurrently) ---
@@ -80,6 +87,16 @@ async function loadTerms(): Promise<TermsData> {
     meta: "No enrolling term",
     badgeLabel: "",
     badgeClass: "",
+  };
+}
+
+async function loadUsers(): Promise<UsersData> {
+  const res = await api.getAdminUsers();
+  const { stats } = res;
+  return {
+    kpiValue: stats.totalUsers.toLocaleString(),
+    kpiDelta: `+${stats.newThisMonth} this mo`,
+    meta: `${stats.totalUsers.toLocaleString()} registered`,
   };
 }
 
@@ -138,7 +155,7 @@ const staticSections: SectionCard[] = [
     href: "/admin/users",
     icon: Users,
     desc: "Total users, signup trends over time and the full users table.",
-    meta: "8,420 users",
+    meta: "Loading…",
     iconColorClass: "text-accent bg-accent/10 border-accent/20",
   },
   {
@@ -172,15 +189,16 @@ const staticSections: SectionCard[] = [
 ];
 
 export default function AdminDashboardPage() {
-  const [data, setData] = useState<DashboardData>({ health: null, terms: null });
+  const [data, setData] = useState<DashboardData>({ health: null, terms: null, users: null });
   const [loading, setLoading] = useState(true);
 
   const loadDashboard = useCallback(async () => {
-    const [health, terms] = await Promise.all([
+    const [health, terms, users] = await Promise.all([
       loadHealth().catch(() => null),
       loadTerms().catch(() => null),
+      loadUsers().catch(() => null),
     ]);
-    setData({ health, terms });
+    setData({ health, terms, users });
   }, []);
 
   useEffect(() => {
@@ -194,9 +212,9 @@ export default function AdminDashboardPage() {
   const kpis: KpiCard[] = [
     {
       label: "Total Users",
-      value: "8,420",
+      value: data.users?.kpiValue ?? "—",
       valueColor: "text-text-primary",
-      delta: "▲ 6.2%",
+      delta: data.users?.kpiDelta ?? "",
       deltaColor: "text-success",
     },
     {
@@ -233,6 +251,9 @@ export default function AdminDashboardPage() {
         badgeClass: data.terms.badgeClass || undefined,
       };
     }
+    if (s.key === "Users" && data.users) {
+      return { ...s, meta: data.users.meta };
+    }
     return s;
   });
 
@@ -252,7 +273,7 @@ export default function AdminDashboardPage() {
           <Card key={kpi.label} className="p-4">
             <CardContent className="p-0">
               <div className={`${labelStyles.md} text-text-muted mb-2`}>{kpi.label}</div>
-              {kpi.label === "API Status" && loading ? (
+              {(kpi.label === "API Status" || kpi.label === "Total Users") && loading ? (
                 <div className="flex items-baseline gap-2">
                   <Skeleton className="h-7 w-28" />
                   <Skeleton className="h-4 w-10" />
@@ -280,7 +301,7 @@ export default function AdminDashboardPage() {
       <div ref={cardsRef} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5">
         {sections.map((section) => {
           const Icon = section.icon;
-          const isLiveSection = section.key === "Health" || section.key === "Terms";
+          const isLiveSection = section.key === "Health" || section.key === "Terms" || section.key === "Users";
           const isSectionLoading = isLiveSection && loading;
           return (
             <Link key={section.key} href={section.href} className="group">

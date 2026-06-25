@@ -12,6 +12,10 @@ import {
   ServiceHealthCheck,
   AdminTerm,
   UpdateTermsRequest,
+  AdminUsersResponse,
+  AdminUserDetailResponse,
+  AdminUser,
+  AdminUserBookmark,
 } from "@/lib/types";
 import { supabase } from "@/lib/supabase/client";
 
@@ -276,6 +280,10 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     }),
+
+  getAdminUsers: () => fetchAuthAPI<AdminUsersResponse>("/api/admin/users"),
+
+  getAdminUser: (id: string) => fetchAuthAPI<AdminUserDetailResponse>(`/api/admin/users/${id}`),
 };
 
 // Export types
@@ -293,4 +301,8 @@ export type {
   ServiceHealthCheck,
   AdminTerm,
   UpdateTermsRequest,
+  AdminUsersResponse,
+  AdminUserDetailResponse,
+  AdminUser,
+  AdminUserBookmark,
 };

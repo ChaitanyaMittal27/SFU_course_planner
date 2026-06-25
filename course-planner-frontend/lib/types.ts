@@ -164,3 +164,46 @@ export interface UpdateTermsRequest {
   enrollingYear: number;
   enrollingTerm: string;
 }
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  createdAt: string;
+  lastSignInAt: string | null;
+  provider: string;
+  displayName: string | null;
+  emailVerified: boolean;
+  isAnonymous: boolean;
+  emailNotificationsEnabled: boolean;
+  preferredEmail: string | null;
+  lastNotifiedAt: string | null;
+  bookmarkCount: number;
+}
+
+export interface AdminUserStats {
+  totalUsers: number;
+  newThisMonth: number;
+  optedInNotifications: number;
+  activeInLast30Days: number;
+  providerGoogle: number;
+  providerEmail: number;
+}
+
+export interface AdminUsersResponse {
+  stats: AdminUserStats;
+  users: AdminUser[];
+}
+
+export interface AdminUserBookmark {
+  bookmarkId: number;
+  deptCode: string;
+  courseNumber: string;
+  title: string;
+  section: string;
+  semesterCode: number;
+}
+
+export interface AdminUserDetailResponse {
+  user: AdminUser;
+  bookmarks: AdminUserBookmark[];
+}
