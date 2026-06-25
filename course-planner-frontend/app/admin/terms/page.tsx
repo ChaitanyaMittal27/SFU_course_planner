@@ -5,7 +5,7 @@ import { Calendar, Pencil, X, Check } from "lucide-react";
 import { api, AdminTerm } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import AdminPageSkeleton from "@/components/admin/AdminPageSkeleton";
 import ErrorMessage from "@/components/ErrorMessage";
 import { displayStyles, headerStyles, bodyStyles, labelStyles } from "@/app/fonts";
 
@@ -112,19 +112,7 @@ export default function AdminTermsPage() {
   const currentCode = currentTermObj ? semesterCode(currentTermObj.year, currentTermObj.term) : 0;
 
   if (loading) {
-    return (
-      <div className="flex-1 p-8 max-w-[1180px]">
-        <div className="mb-6">
-          <Skeleton className="h-8 w-52 mb-2" />
-          <Skeleton className="h-5 w-80" />
-        </div>
-        <div className="grid grid-cols-2 gap-3.5 mb-7">
-          <Skeleton className="h-24 rounded-xl" />
-          <Skeleton className="h-24 rounded-xl" />
-        </div>
-        <Skeleton className="h-64 rounded-xl" />
-      </div>
-    );
+    return <AdminPageSkeleton statCards={2} hasTable tableRows={4} />;
   }
 
   if (error && terms.length === 0) {

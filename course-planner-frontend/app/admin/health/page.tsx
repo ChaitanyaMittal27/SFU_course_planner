@@ -6,7 +6,7 @@ import { api, ServiceHealthCheck } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import AdminPageSkeleton from "@/components/admin/AdminPageSkeleton";
 import ErrorMessage from "@/components/ErrorMessage";
 import { displayStyles, headerStyles, bodyStyles, labelStyles } from "@/app/fonts";
 
@@ -79,26 +79,7 @@ export default function AdminHealthPage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex-1 p-8 max-w-[1180px]">
-        <div className="mb-6">
-          <Skeleton className="h-8 w-48 mb-2" />
-          <Skeleton className="h-5 w-80" />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Card key={i} className="p-5">
-              <CardContent className="p-0 space-y-3">
-                <Skeleton className="h-9 w-9 rounded-[9px]" />
-                <Skeleton className="h-5 w-28" />
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-4 w-36" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
+    return <AdminPageSkeleton hasTable tableRows={5} />;
   }
 
   if (error && checks.length === 0) {

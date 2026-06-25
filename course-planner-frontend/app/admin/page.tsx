@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Activity, MessageSquare, Calendar, Users, Eye, FlaskConical, ArrowRight } from "lucide-react";
 import { api } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import AdminPageSkeleton from "@/components/admin/AdminPageSkeleton";
 import { displayStyles, headerStyles, bodyStyles, labelStyles } from "@/app/fonts";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 
@@ -227,6 +227,10 @@ export default function AdminDashboardPage() {
   const kpiRef = useScrollReveal({ delay: 50 });
   const cardsRef = useScrollReveal({ delay: 100 });
 
+  if (loading) {
+    return <AdminPageSkeleton statCards={4} />;
+  }
+
   const kpis: KpiCard[] = [
     {
       label: "Total Users",
@@ -294,19 +298,14 @@ export default function AdminDashboardPage() {
           <Card key={kpi.label} className="p-4">
             <CardContent className="p-0">
               <div className={`${labelStyles.md} text-text-muted mb-2`}>{kpi.label}</div>
-              {(kpi.label === "API Status" || kpi.label === "Total Users" || kpi.label === "Notifications Sent") && loading ? (
-                <div className="flex items-baseline gap-2">
-                  <Skeleton className="h-7 w-28" />
-                  <Skeleton className="h-4 w-10" />
-                </div>
-              ) : (
-                <div className="flex items-baseline gap-2">
-                  <span className={`font-mono font-semibold text-[23px] tracking-tight ${kpi.valueColor}`}>
-                    {kpi.value}
-                  </span>
+              <div className="flex items-baseline gap-2">
+                <span className={`font-mono font-semibold text-[23px] tracking-tight ${kpi.valueColor}`}>
+                  {kpi.value}
+                </span>
+                {kpi.delta && (
                   <span className={`font-mono font-semibold ${labelStyles.sm} ${kpi.deltaColor}`}>{kpi.delta}</span>
-                </div>
-              )}
+                )}
+              </div>
             </CardContent>
           </Card>
         ))}
@@ -322,8 +321,6 @@ export default function AdminDashboardPage() {
       <div ref={cardsRef} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5">
         {sections.map((section) => {
           const Icon = section.icon;
-          const isLiveSection = section.key === "Health" || section.key === "Terms" || section.key === "Users" || section.key === "Bookmarks";
-          const isSectionLoading = isLiveSection && loading;
           return (
             <Link key={section.key} href={section.href} className="group">
               <Card className="h-full flex flex-col p-[18px] transition-colors hover:border-border-strong hover:bg-surface-raised">
@@ -335,14 +332,13 @@ export default function AdminDashboardPage() {
                     >
                       <Icon className="w-[17px] h-[17px]" />
                     </div>
-                    {section.badge && !isSectionLoading && (
+                    {section.badge && (
                       <span
                         className={`font-mono font-semibold text-[10.5px] px-2 py-0.5 rounded-full ${section.badgeClass}`}
                       >
                         {section.badge}
                       </span>
                     )}
-                    {isSectionLoading && <Skeleton className="h-5 w-10 rounded-full" />}
                   </div>
 
                   {/* Title */}
@@ -353,11 +349,7 @@ export default function AdminDashboardPage() {
 
                   {/* Footer */}
                   <div className="flex items-center justify-between pt-3 border-t border-border">
-                    {isSectionLoading ? (
-                      <Skeleton className="h-4 w-24" />
-                    ) : (
-                      <span className={`${labelStyles.sm} font-mono text-text-subtle`}>{section.meta}</span>
-                    )}
+                    <span className={`${labelStyles.sm} font-mono text-text-subtle`}>{section.meta}</span>
                     <span
                       className={`${labelStyles.md} font-semibold text-text-muted group-hover:text-text-primary flex items-center gap-1 transition-colors`}
                     >

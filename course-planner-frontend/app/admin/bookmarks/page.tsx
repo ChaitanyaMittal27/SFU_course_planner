@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { Bookmark, Users, Trophy, GraduationCap } from "lucide-react";
 import { api, AdminBookmarksResponse } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import AdminPageSkeleton from "@/components/admin/AdminPageSkeleton";
 import ErrorMessage from "@/components/ErrorMessage";
 import { displayStyles, headerStyles, bodyStyles, labelStyles } from "@/app/fonts";
 import {
@@ -41,22 +41,7 @@ export default function AdminBookmarksPage() {
   }, [data]);
 
   if (loading) {
-    return (
-      <div className="flex-1 p-8 max-w-[1180px]">
-        <div className="mb-6">
-          <Skeleton className="h-8 w-52 mb-2" />
-          <Skeleton className="h-5 w-80" />
-        </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-8">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-24 rounded-xl" />
-          ))}
-        </div>
-        <Skeleton className="h-64 rounded-xl mb-8" />
-        <Skeleton className="h-96 rounded-xl mb-8" />
-        <Skeleton className="h-64 rounded-xl" />
-      </div>
-    );
+    return <AdminPageSkeleton statCards={4} hasChart hasTable tableRows={10} />;
   }
 
   if (error && !data) {
