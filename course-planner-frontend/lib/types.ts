@@ -207,3 +207,38 @@ export interface AdminUserDetailResponse {
   user: AdminUser;
   bookmarks: AdminUserBookmark[];
 }
+
+export interface AdminTopCourse {
+  deptCode: string;
+  courseNumber: string;
+  title: string;
+  departmentName: string;
+  bookmarkCount: number;
+}
+
+export interface AdminDeptRanking {
+  deptCode: string;
+  departmentName: string;
+  bookmarkCount: number;
+  percentage: number;
+}
+
+export interface AdminBookmarkMonth {
+  month: string;
+  count: number;
+}
+
+export interface AdminBookmarkStats {
+  totalBookmarks: number;
+  avgPerUser: number;
+  topDepartment: string;
+  topDepartmentName: string;
+  uniqueCourses: number;
+}
+
+export interface AdminBookmarksResponse {
+  stats: AdminBookmarkStats;
+  topCourses: AdminTopCourse[];
+  departmentRankings: AdminDeptRanking[];
+  monthlyGrowth: AdminBookmarkMonth[];
+}

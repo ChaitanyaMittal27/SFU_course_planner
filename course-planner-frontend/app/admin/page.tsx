@@ -32,10 +32,15 @@ interface UsersData {
   meta: string;
 }
 
+interface BookmarksData {
+  meta: string;
+}
+
 interface DashboardData {
   health: HealthData | null;
   terms: TermsData | null;
   users: UsersData | null;
+  bookmarks: BookmarksData | null;
 }
 
 // --- Loaders (one per section, called concurrently) ---
@@ -97,6 +102,13 @@ async function loadUsers(): Promise<UsersData> {
     kpiValue: stats.totalUsers.toLocaleString(),
     kpiDelta: `+${stats.newThisMonth} this mo`,
     meta: `${stats.totalUsers.toLocaleString()} registered`,
+  };
+}
+
+async function loadBookmarks(): Promise<BookmarksData> {
+  const res = await api.getAdminBookmarks();
+  return {
+    meta: `${res.stats.totalBookmarks.toLocaleString()} tracked`,
   };
 }
 
@@ -163,7 +175,7 @@ const staticSections: SectionCard[] = [
     href: "/admin/bookmarks",
     icon: Eye,
     desc: "Total bookmarks, most-bookmarked courses and department rankings.",
-    meta: "31.2k tracked",
+    meta: "Loading…",
     iconColorClass: "text-accent bg-accent/10 border-accent/20",
   },
   {
@@ -179,16 +191,17 @@ const staticSections: SectionCard[] = [
 ];
 
 export default function AdminDashboardPage() {
-  const [data, setData] = useState<DashboardData>({ health: null, terms: null, users: null });
+  const [data, setData] = useState<DashboardData>({ health: null, terms: null, users: null, bookmarks: null });
   const [loading, setLoading] = useState(true);
 
   const loadDashboard = useCallback(async () => {
-    const [health, terms, users] = await Promise.all([
+    const [health, terms, users, bookmarks] = await Promise.all([
       loadHealth().catch(() => null),
       loadTerms().catch(() => null),
       loadUsers().catch(() => null),
+      loadBookmarks().catch(() => null),
     ]);
-    setData({ health, terms, users });
+    setData({ health, terms, users, bookmarks });
   }, []);
 
   useEffect(() => {
@@ -244,6 +257,9 @@ export default function AdminDashboardPage() {
     if (s.key === "Users" && data.users) {
       return { ...s, meta: data.users.meta };
     }
+    if (s.key === "Bookmarks" && data.bookmarks) {
+      return { ...s, meta: data.bookmarks.meta };
+    }
     return s;
   });
 
@@ -291,7 +307,7 @@ export default function AdminDashboardPage() {
       <div ref={cardsRef} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5">
         {sections.map((section) => {
           const Icon = section.icon;
-          const isLiveSection = section.key === "Health" || section.key === "Terms" || section.key === "Users";
+          const isLiveSection = section.key === "Health" || section.key === "Terms" || section.key === "Users" || section.key === "Bookmarks";
           const isSectionLoading = isLiveSection && loading;
           return (
             <Link key={section.key} href={section.href} className="group">

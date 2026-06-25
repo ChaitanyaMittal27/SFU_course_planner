@@ -16,6 +16,7 @@ import {
   AdminUserDetailResponse,
   AdminUser,
   AdminUserBookmark,
+  AdminBookmarksResponse,
 } from "@/lib/types";
 import { supabase } from "@/lib/supabase/client";
 
@@ -284,6 +285,8 @@ export const api = {
   getAdminUsers: () => fetchAuthAPI<AdminUsersResponse>("/api/admin/users"),
 
   getAdminUser: (id: string) => fetchAuthAPI<AdminUserDetailResponse>(`/api/admin/users/${id}`),
+
+  getAdminBookmarks: () => fetchAuthAPI<AdminBookmarksResponse>("/api/admin/bookmarks"),
 };
 
 // Export types
@@ -305,4 +308,5 @@ export type {
   AdminUserDetailResponse,
   AdminUser,
   AdminUserBookmark,
+  AdminBookmarksResponse,
 };
