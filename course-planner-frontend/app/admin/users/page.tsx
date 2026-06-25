@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Users as UsersIcon, UserPlus, Bell, Activity, Mail } from "lucide-react";
+import { Users as UsersIcon, UserPlus, Bell, Activity, Send } from "lucide-react";
 import { api, AdminUsersResponse, AdminUser } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -11,6 +11,8 @@ import { displayStyles, headerStyles, bodyStyles, labelStyles } from "@/app/font
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
+
+const TWENTY_FIVE_HOURS_MS = 25 * 60 * 60 * 1000;
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -24,6 +26,11 @@ function formatRelative(iso: string | null) {
   if (days === 1) return "Yesterday";
   if (days < 30) return `${days}d ago`;
   return formatDate(iso);
+}
+
+function isNotifiedRecently(lastNotifiedAt: string | null): boolean {
+  if (!lastNotifiedAt) return false;
+  return Date.now() - new Date(lastNotifiedAt).getTime() < TWENTY_FIVE_HOURS_MS;
 }
 
 function buildSignupChart(users: AdminUser[]) {
@@ -68,6 +75,15 @@ export default function AdminUsersPage() {
     return buildSignupChart(data.users);
   }, [data]);
 
+  const eligibleUsers = useMemo(() => {
+    if (!data) return [];
+    return data.users.filter((u) => u.emailNotificationsEnabled && u.preferredEmail);
+  }, [data]);
+
+  const sentCount = useMemo(() => {
+    return eligibleUsers.filter((u) => isNotifiedRecently(u.lastNotifiedAt)).length;
+  }, [eligibleUsers]);
+
   if (loading) {
     return (
       <div className="flex-1 p-8 max-w-[1180px]">
@@ -98,12 +114,18 @@ export default function AdminUsersPage() {
 
   const { stats, users } = data;
 
+  const notifSentColor =
+    eligibleUsers.length === 0 ? "text-text-muted"
+    : sentCount === eligibleUsers.length ? "text-success"
+    : sentCount === 0 ? "text-destructive"
+    : "text-warning";
+
   const statCards = [
     { label: "Total Users", value: stats.totalUsers.toLocaleString(), icon: UsersIcon, color: "text-accent" },
     { label: "New This Month", value: `+${stats.newThisMonth}`, icon: UserPlus, color: "text-success" },
     { label: "Notifications On", value: String(stats.optedInNotifications), icon: Bell, color: "text-warning" },
     { label: "Active (30d)", value: String(stats.activeInLast30Days), icon: Activity, color: "text-success" },
-    { label: "Google / Email", value: `${stats.providerGoogle} / ${stats.providerEmail}`, icon: Mail, color: "text-accent" },
+    { label: "Notifications Sent", value: eligibleUsers.length > 0 ? `${sentCount}/${eligibleUsers.length}` : "0/0", icon: Send, color: notifSentColor },
   ];
 
   return (
@@ -186,7 +208,7 @@ export default function AdminUsersPage() {
         <span className={`${labelStyles.sm} font-mono text-text-subtle`}>{users.length} users</span>
       </div>
 
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden mb-8">
         <CardContent className="p-0">
           {/* Header */}
           <div className="grid grid-cols-[1fr_90px_100px_90px_80px_70px] px-[18px] py-2.5 bg-surface-raised border-b border-border">
@@ -241,6 +263,59 @@ export default function AdminUsersPage() {
           ))}
           {users.length === 0 && (
             <div className={`${bodyStyles.md} text-text-muted text-center py-8`}>No users found</div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Notification Status */}
+      <div className="flex items-center justify-between mb-3">
+        <h2 className={`${headerStyles.xs} text-text-primary`}>Notification Status</h2>
+        <span className={`${labelStyles.sm} font-mono text-text-subtle`}>{eligibleUsers.length} eligible</span>
+      </div>
+
+      <Card className="overflow-hidden">
+        <CardContent className="p-0">
+          {eligibleUsers.length > 0 ? (
+            <>
+              <div className="grid grid-cols-[1fr_1fr_100px_100px] px-[18px] py-2.5 bg-surface-raised border-b border-border">
+                <span className={`${labelStyles.sm} uppercase tracking-wider text-text-subtle`}>Email</span>
+                <span className={`${labelStyles.sm} uppercase tracking-wider text-text-subtle`}>Preferred Email</span>
+                <span className={`${labelStyles.sm} uppercase tracking-wider text-text-subtle text-center`}>Last Notified</span>
+                <span className={`${labelStyles.sm} uppercase tracking-wider text-text-subtle text-center`}>Status</span>
+              </div>
+              {eligibleUsers.map((user, i) => {
+                const notified = isNotifiedRecently(user.lastNotifiedAt);
+                return (
+                  <div
+                    key={user.id}
+                    className={`grid grid-cols-[1fr_1fr_100px_100px] px-[18px] py-3 items-center hover:bg-surface-raised transition-colors ${
+                      i < eligibleUsers.length - 1 ? "border-b border-border" : ""
+                    }`}
+                  >
+                    <span className={`${labelStyles.lg} text-text-primary truncate`}>{user.email}</span>
+                    <span className={`${labelStyles.md} font-mono text-text-muted truncate`}>{user.preferredEmail}</span>
+                    <div className={`${labelStyles.sm} font-mono text-text-subtle text-center`}>
+                      {formatRelative(user.lastNotifiedAt)}
+                    </div>
+                    <div className="flex items-center justify-center">
+                      {notified ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-success/15 text-success">
+                          Notified ✓
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-warning/15 text-warning">
+                          Missed
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </>
+          ) : (
+            <div className={`${bodyStyles.md} text-text-muted text-center py-8`}>
+              No users have notifications configured
+            </div>
           )}
         </CardContent>
       </Card>
