@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, MessageSquare, Calendar, Users, Eye, Bell, FlaskConical, Sun, Moon } from "lucide-react";
+import { Activity, MessageSquare, Calendar, Users, Eye, FlaskConical, Sun, Moon } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
 import { labelStyles, bodyStyles } from "@/app/fonts";
@@ -13,7 +13,6 @@ const navItems = [
   { label: "Terms", href: "/admin/terms", icon: Calendar },
   { label: "Users", href: "/admin/users", icon: Users },
   { label: "Bookmarks", href: "/admin/bookmarks", icon: Eye },
-  { label: "Notifications", href: "/admin/notifications", icon: Bell },
   { label: "Test", href: "/admin/test", icon: FlaskConical },
 ];
 
@@ -34,12 +33,14 @@ export default function AdminSidebar() {
           <div className="w-[30px] h-[30px] rounded-[7px] bg-primary flex items-center justify-center flex-none">
             <span className="font-display font-bold text-[12px] text-primary-foreground tracking-tight">SFU</span>
           </div>
-          <div className="min-w-0">
-            <div className="font-display font-semibold text-[13.5px] text-sidebar-foreground leading-tight">
-              Course Planner
+          <Link href="/admin">
+            <div className="min-w-0">
+              <div className="font-display font-semibold text-[13.5px] text-sidebar-foreground leading-tight">
+                Course Planner
+              </div>
+              <span className={`${labelStyles.sm} uppercase tracking-widest text-accent`}>Admin Dashboard</span>
             </div>
-            <span className={`${labelStyles.sm} uppercase tracking-widest text-accent`}>Admin</span>
-          </div>
+          </Link>
         </div>
       </div>
 

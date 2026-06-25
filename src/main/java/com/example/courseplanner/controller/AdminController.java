@@ -33,7 +33,6 @@ public class AdminController {
                 "/api/admin/terms",
                 "/api/admin/users",
                 "/api/admin/bookmarks",
-                "/api/admin/notifications",
                 "/api/admin/test"
             )
         ));

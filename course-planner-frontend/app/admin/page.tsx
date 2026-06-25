@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { Activity, MessageSquare, Calendar, Users, Eye, Bell, FlaskConical, ArrowRight } from "lucide-react";
+import { Activity, MessageSquare, Calendar, Users, Eye, FlaskConical, ArrowRight } from "lucide-react";
 import { api } from "@/lib/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -167,16 +167,6 @@ const staticSections: SectionCard[] = [
     iconColorClass: "text-accent bg-accent/10 border-accent/20",
   },
   {
-    key: "Notifications",
-    href: "/admin/notifications",
-    icon: Bell,
-    desc: "Opted-in users list and scheduler run history.",
-    meta: "2 scheduled",
-    badge: "2",
-    badgeClass: "bg-warning/15 text-warning",
-    iconColorClass: "text-warning bg-warning/10 border-warning/20",
-  },
-  {
     key: "Test",
     href: "/admin/test",
     icon: FlaskConical,
@@ -294,7 +284,7 @@ export default function AdminDashboardPage() {
       {/* Sections heading */}
       <div className="flex items-center justify-between mb-3.5">
         <h2 className={`${headerStyles.xs} text-text-primary`}>Sections</h2>
-        <span className={`${labelStyles.sm} font-mono text-text-subtle`}>7 modules</span>
+        <span className={`${labelStyles.sm} font-mono text-text-subtle`}>6 modules</span>
       </div>
 
       {/* Section cards */}
