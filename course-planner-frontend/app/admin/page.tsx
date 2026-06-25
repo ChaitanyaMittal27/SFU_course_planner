@@ -30,6 +30,8 @@ interface UsersData {
   kpiValue: string;
   kpiDelta: string;
   meta: string;
+  notifValue: string;
+  notifColor: string;
 }
 
 interface BookmarksData {
@@ -97,11 +99,24 @@ async function loadTerms(): Promise<TermsData> {
 
 async function loadUsers(): Promise<UsersData> {
   const res = await api.getAdminUsers();
-  const { stats } = res;
+  const { stats, users } = res;
+
+  const eligible = users.filter((u) => u.emailNotificationsEnabled && u.preferredEmail);
+  const twentyFiveHours = 25 * 60 * 60 * 1000;
+  const sent = eligible.filter((u) => u.lastNotifiedAt && Date.now() - new Date(u.lastNotifiedAt).getTime() < twentyFiveHours).length;
+
+  const notifColor =
+    eligible.length === 0 ? "text-text-muted"
+    : sent === eligible.length ? "text-success"
+    : sent === 0 ? "text-destructive"
+    : "text-warning";
+
   return {
     kpiValue: stats.totalUsers.toLocaleString(),
     kpiDelta: `+${stats.newThisMonth} this mo`,
     meta: `${stats.totalUsers.toLocaleString()} registered`,
+    notifValue: `${sent}/${eligible.length}`,
+    notifColor,
   };
 }
 
@@ -229,10 +244,10 @@ export default function AdminDashboardPage() {
     },
     { label: "Open Tickets", value: "12", valueColor: "text-text-primary", delta: "▲ 3", deltaColor: "text-warning" },
     {
-      label: "Alerts Sent Today",
-      value: "3,940",
-      valueColor: "text-text-primary",
-      delta: "▲ 11%",
+      label: "Notifications Sent",
+      value: data.users?.notifValue ?? "—",
+      valueColor: data.users?.notifColor ?? "text-text-muted",
+      delta: "",
       deltaColor: "text-text-muted",
     },
   ];
@@ -279,7 +294,7 @@ export default function AdminDashboardPage() {
           <Card key={kpi.label} className="p-4">
             <CardContent className="p-0">
               <div className={`${labelStyles.md} text-text-muted mb-2`}>{kpi.label}</div>
-              {(kpi.label === "API Status" || kpi.label === "Total Users") && loading ? (
+              {(kpi.label === "API Status" || kpi.label === "Total Users" || kpi.label === "Notifications Sent") && loading ? (
                 <div className="flex items-baseline gap-2">
                   <Skeleton className="h-7 w-28" />
                   <Skeleton className="h-4 w-10" />
