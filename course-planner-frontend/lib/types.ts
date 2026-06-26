@@ -242,3 +242,29 @@ export interface AdminBookmarksResponse {
   departmentRankings: AdminDeptRanking[];
   monthlyGrowth: AdminBookmarkMonth[];
 }
+
+export interface AdminContactSubmission {
+  id: string;
+  name: string;
+  email: string;
+  reason: string | null;
+  message: string;
+  isRead: boolean;
+  isArchived: boolean;
+  isReplied: boolean;
+  replyMessage: string | null;
+  replySentTo: string | null;
+  repliedAt: string | null;
+  submittedAt: string;
+}
+
+export interface AdminSupportStats {
+  totalSubmissions: number;
+  unreadCount: number;
+  archivedCount: number;
+}
+
+export interface AdminSupportResponse {
+  stats: AdminSupportStats;
+  submissions: AdminContactSubmission[];
+}

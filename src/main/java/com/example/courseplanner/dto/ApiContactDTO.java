@@ -4,6 +4,7 @@ public class ApiContactDTO {
 
     private String name;
     private String email;
+    private String reason;
     private String message;
 
     public ApiContactDTO() {}
@@ -11,6 +12,13 @@ public class ApiContactDTO {
     public ApiContactDTO(String name, String email, String message) {
         this.name = name;
         this.email = email;
+        this.message = message;
+    }
+
+    public ApiContactDTO(String name, String email, String reason, String message) {
+        this.name = name;
+        this.email = email;
+        this.reason = reason;
         this.message = message;
     }
 
@@ -28,6 +36,14 @@ public class ApiContactDTO {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getReason() {
+        return reason;
+    }
+
+    public void setReason(String reason) {
+        this.reason = reason;
     }
 
     public String getMessage() {

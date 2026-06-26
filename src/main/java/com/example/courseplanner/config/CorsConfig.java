@@ -10,7 +10,7 @@ public class CorsConfig implements WebMvcConfigurer {
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
                 .allowedOrigins("http://localhost:3000","http://localhost:5000", "https://sfu-course-planner.vercel.app", "https://*.vercel.app", "https://api.sfucourseplanner.com", "https://sfucourseplanner.com", "https://www.api.sfucourseplanner.com", "https://www.sfucourseplanner.com")
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .exposedHeaders("*")
                 .allowCredentials(false)

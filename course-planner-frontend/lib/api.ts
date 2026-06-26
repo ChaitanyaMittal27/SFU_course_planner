@@ -17,6 +17,8 @@ import {
   AdminUser,
   AdminUserBookmark,
   AdminBookmarksResponse,
+  AdminSupportResponse,
+  AdminContactSubmission,
 } from "@/lib/types";
 import { supabase } from "@/lib/supabase/client";
 
@@ -287,6 +289,22 @@ export const api = {
   getAdminUser: (id: string) => fetchAuthAPI<AdminUserDetailResponse>(`/api/admin/users/${id}`),
 
   getAdminBookmarks: () => fetchAuthAPI<AdminBookmarksResponse>("/api/admin/bookmarks"),
+
+  getAdminSupport: (filter?: string) =>
+    fetchAuthAPI<AdminSupportResponse>(`/api/admin/support/submissions${filter ? `?filter=${filter}` : ""}`),
+
+  markSubmissionRead: (id: string) =>
+    fetchAuthAPI<AdminContactSubmission>(`/api/admin/support/submissions/${id}/read`, { method: "PATCH" }),
+
+  archiveSubmission: (id: string) =>
+    fetchAuthAPI<AdminContactSubmission>(`/api/admin/support/submissions/${id}/archive`, { method: "PATCH" }),
+
+  replyToSubmission: (id: string, message: string) =>
+    fetchAuthAPI<AdminContactSubmission>(`/api/admin/support/submissions/${id}/reply`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message }),
+    }),
 };
 
 // Export types
@@ -309,4 +327,6 @@ export type {
   AdminUser,
   AdminUserBookmark,
   AdminBookmarksResponse,
+  AdminSupportResponse,
+  AdminContactSubmission,
 };

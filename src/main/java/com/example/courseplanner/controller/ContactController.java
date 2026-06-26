@@ -1,6 +1,8 @@
 package com.example.courseplanner.controller;
 
 import com.example.courseplanner.dto.ApiContactDTO;
+import com.example.courseplanner.entity.ContactSubmission;
+import com.example.courseplanner.repository.ContactSubmissionRepository;
 import com.example.courseplanner.service.EmailService;
 
 import org.springframework.http.HttpStatus;
@@ -15,9 +17,11 @@ import java.util.Map;
 public class ContactController {
 
     private final EmailService emailService;
+    private final ContactSubmissionRepository contactSubmissionRepository;
 
-    public ContactController(EmailService emailService) {
+    public ContactController(EmailService emailService, ContactSubmissionRepository contactSubmissionRepository) {
         this.emailService = emailService;
+        this.contactSubmissionRepository = contactSubmissionRepository;
     }
 
     @PostMapping
@@ -34,7 +38,17 @@ public class ContactController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Message is required");
         }
 
-        emailService.sendContactFormEmail(dto.getName(), dto.getEmail(), dto.getMessage());
+        String emailMessage = dto.getReason() != null
+            ? dto.getReason() + ": " + dto.getMessage()
+            : dto.getMessage();
+        emailService.sendContactFormEmail(dto.getName(), dto.getEmail(), emailMessage);
+
+        ContactSubmission submission = new ContactSubmission();
+        submission.setName(dto.getName());
+        submission.setEmail(dto.getEmail());
+        submission.setReason(dto.getReason());
+        submission.setMessage(dto.getMessage());
+        contactSubmissionRepository.save(submission);
 
         return ResponseEntity
             .status(HttpStatus.CREATED)

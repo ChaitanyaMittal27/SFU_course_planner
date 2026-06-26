@@ -1,5 +1,7 @@
 package com.example.courseplanner.exception;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -25,23 +27,12 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    /**
-     * Handles JWT authentication failures.
-     * 
-     * Returns 401 Unauthorized for:
-     * - Missing Authorization header
-     * - Invalid JWT signature
-     * - Expired JWT token
-     * - Malformed JWT
-     */
-    @ExceptionHandler({
-        IllegalArgumentException.class,
-        RuntimeException.class
-    })
-    public ResponseEntity<Map<String, Object>> handleAuthenticationException(Exception ex) {
-        // Check if this is a JWT-related error
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException ex) {
         String message = ex.getMessage();
-        
+
         if (message != null && (
             message.contains("Authorization header") ||
             message.contains("JWT") ||
@@ -53,12 +44,37 @@ public class GlobalExceptionHandler {
                 message
             );
         }
-        
-        // If not JWT-related, return 400 Bad Request
+
         return buildErrorResponse(
             HttpStatus.BAD_REQUEST,
             "Bad request",
             message
+        );
+    }
+
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<Map<String, Object>> handleUnexpectedException(RuntimeException ex) {
+        String message = ex.getMessage();
+
+        if (message != null && (
+            message.contains("Authorization header") ||
+            message.contains("JWT") ||
+            message.contains("token") ||
+            message.contains("Supabase") ||
+            message.contains("verify")
+        )) {
+            return buildErrorResponse(
+                HttpStatus.UNAUTHORIZED,
+                "Authentication failed",
+                message
+            );
+        }
+
+        log.error("Unexpected error", ex);
+        return buildErrorResponse(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "Internal server error",
+            "An unexpected error occurred"
         );
     }
 

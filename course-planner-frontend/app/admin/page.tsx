@@ -38,11 +38,19 @@ interface BookmarksData {
   meta: string;
 }
 
+interface SupportData {
+  meta: string;
+  badgeLabel: string;
+  badgeClass: string;
+  unreadCount: number;
+}
+
 interface DashboardData {
   health: HealthData | null;
   terms: TermsData | null;
   users: UsersData | null;
   bookmarks: BookmarksData | null;
+  support: SupportData | null;
 }
 
 // --- Loaders (one per section, called concurrently) ---
@@ -120,6 +128,17 @@ async function loadUsers(): Promise<UsersData> {
   };
 }
 
+async function loadSupport(): Promise<SupportData> {
+  const res = await api.getAdminSupport();
+  const unread = res.stats.unreadCount;
+  return {
+    meta: unread > 0 ? `${unread} unread` : "All caught up",
+    badgeLabel: unread > 0 ? String(unread) : "",
+    badgeClass: unread > 0 ? "bg-primary/15 text-primary" : "",
+    unreadCount: unread,
+  };
+}
+
 async function loadBookmarks(): Promise<BookmarksData> {
   const res = await api.getAdminBookmarks();
   return {
@@ -164,9 +183,7 @@ const staticSections: SectionCard[] = [
     href: "/admin/support",
     icon: MessageSquare,
     desc: "Contact form inbox with read/unread tracking and reply functionality.",
-    meta: "12 open",
-    badge: "12",
-    badgeClass: "bg-primary/15 text-primary",
+    meta: "Loading…",
     iconColorClass: "text-accent bg-accent/10 border-accent/20",
   },
   {
@@ -206,17 +223,18 @@ const staticSections: SectionCard[] = [
 ];
 
 export default function AdminDashboardPage() {
-  const [data, setData] = useState<DashboardData>({ health: null, terms: null, users: null, bookmarks: null });
+  const [data, setData] = useState<DashboardData>({ health: null, terms: null, users: null, bookmarks: null, support: null });
   const [loading, setLoading] = useState(true);
 
   const loadDashboard = useCallback(async () => {
-    const [health, terms, users, bookmarks] = await Promise.all([
+    const [health, terms, users, bookmarks, support] = await Promise.all([
       loadHealth().catch(() => null),
       loadTerms().catch(() => null),
       loadUsers().catch(() => null),
       loadBookmarks().catch(() => null),
+      loadSupport().catch(() => null),
     ]);
-    setData({ health, terms, users, bookmarks });
+    setData({ health, terms, users, bookmarks, support });
   }, []);
 
   useEffect(() => {
@@ -246,7 +264,13 @@ export default function AdminDashboardPage() {
       delta: data.health?.delta ?? "",
       deltaColor: data.health?.deltaColor ?? "text-text-muted",
     },
-    { label: "Open Tickets", value: "12", valueColor: "text-text-primary", delta: "▲ 3", deltaColor: "text-warning" },
+    {
+      label: "Open Tickets",
+      value: data.support ? String(data.support.unreadCount) : "—",
+      valueColor: data.support && data.support.unreadCount > 0 ? "text-warning" : "text-text-primary",
+      delta: "",
+      deltaColor: "text-text-muted",
+    },
     {
       label: "Notifications Sent",
       value: data.users?.notifValue ?? "—",
@@ -278,6 +302,14 @@ export default function AdminDashboardPage() {
     }
     if (s.key === "Bookmarks" && data.bookmarks) {
       return { ...s, meta: data.bookmarks.meta };
+    }
+    if (s.key === "Support" && data.support) {
+      return {
+        ...s,
+        meta: data.support.meta,
+        badge: data.support.badgeLabel || undefined,
+        badgeClass: data.support.badgeClass || undefined,
+      };
     }
     return s;
   });

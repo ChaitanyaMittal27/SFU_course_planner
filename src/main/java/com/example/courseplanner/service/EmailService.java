@@ -15,6 +15,7 @@ public class EmailService {
 
     private static final String FROM_CONTACT = "SFU Course Planner <contact@sfucourseplanner.com>";
     private static final String FROM_NOTIFICATIONS = "SFU Course Planner <notifications@sfucourseplanner.com>";
+    private static final String FROM_SUPPORT = "SFU Course Planner Support <support@sfucourseplanner.com>";
     private static final String SUPPORT_EMAIL = "support@sfucourseplanner.com";
 
     @Value("${RESEND_API_KEY}")
@@ -82,5 +83,24 @@ public class EmailService {
 
     public void sendNotificationDigest(String toEmail, String subject, String htmlBody) {
         send(toEmail, FROM_NOTIFICATIONS, subject, htmlBody, null);
+    }
+
+    public void sendSupportReply(String toEmail, String userName, String replyMessage) {
+        String subject = "Re: Your message to SFU Course Planner";
+
+        String html = """
+                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+                    <p>Hi %s,</p>
+                    <div style="padding: 16px; background: #f5f5f5; border-radius: 8px; margin-bottom: 16px;">
+                        <p style="margin: 0; white-space: pre-wrap;">%s</p>
+                    </div>
+                    <p style="color: #888; font-size: 13px;">— SFU Course Planner Support</p>
+                </div>
+                """.formatted(
+                escapeHtml(userName),
+                escapeHtml(replyMessage)
+        );
+
+        send(toEmail, FROM_SUPPORT, subject, html, SUPPORT_EMAIL);
     }
 }
