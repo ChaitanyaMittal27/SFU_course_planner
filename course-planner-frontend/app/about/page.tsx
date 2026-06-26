@@ -110,7 +110,8 @@ function AboutPageContent() {
         body: JSON.stringify({
           name: formData.name,
           email: formData.email,
-          message: `Reason: ${formData.reason}\n\n${formData.message}`,
+          reason: formData.reason,
+          message: formData.message,
         }),
       });
 

@@ -206,9 +206,7 @@ function CourseComparisonContent() {
 
             {selectedCourses.length > 0 && (
               <div className="border-t border-border pt-4">
-                <h3 className={`${labelStyles.md} text-text-muted mb-2`}>
-                  Selected ({selectedCourses.length}/3):
-                </h3>
+                <h3 className={`${labelStyles.md} text-text-muted mb-2`}>Selected ({selectedCourses.length}/3):</h3>
                 <div className="flex flex-wrap gap-2">
                   {selectedCourses.map((course) => (
                     <div
@@ -219,6 +217,7 @@ function CourseComparisonContent() {
                         {course.deptCode} {course.courseNumber}
                       </span>
                       <button
+                        title="Remove Course"
                         onClick={() => removeCourse(course.courseId)}
                         className="hover:text-destructive transition-colors"
                       >
@@ -257,23 +256,31 @@ function CourseComparisonContent() {
                   </ComparisonRow>
                   <ComparisonRow label="Title">
                     {comparisonData.map((data, idx) => (
-                      <TableCell key={idx} className="text-text-primary">{data.title}</TableCell>
+                      <TableCell key={idx} className="text-text-primary">
+                        {data.title}
+                      </TableCell>
                     ))}
                   </ComparisonRow>
                   <ComparisonRow label="Units">
                     {comparisonData.map((data, idx) => (
-                      <TableCell key={idx} className="text-text-primary">{data.units}</TableCell>
+                      <TableCell key={idx} className="text-text-primary">
+                        {data.units}
+                      </TableCell>
                     ))}
                   </ComparisonRow>
                   <ComparisonRow label="Degree Level">
                     {comparisonData.map((data, idx) => (
-                      <TableCell key={idx} className="text-text-primary">{data.degreeLevel}</TableCell>
+                      <TableCell key={idx} className="text-text-primary">
+                        {data.degreeLevel}
+                      </TableCell>
                     ))}
                   </ComparisonRow>
                   {comparisonData.some((d) => d.designation) && (
                     <ComparisonRow label="Designation">
                       {comparisonData.map((data, idx) => (
-                        <TableCell key={idx} className="text-text-primary">{data.designation || "—"}</TableCell>
+                        <TableCell key={idx} className="text-text-primary">
+                          {data.designation || "—"}
+                        </TableCell>
                       ))}
                     </ComparisonRow>
                   )}
@@ -357,11 +364,7 @@ function CourseComparisonContent() {
             <ComparisonSection title="View Full Details">
               <div className="grid md:grid-cols-3 gap-4">
                 {selectedCourses.map((course, idx) => (
-                  <Link
-                    key={idx}
-                    href={`/browse?dept=${course.deptId}&course=${course.courseId}`}
-                    className="group"
-                  >
+                  <Link key={idx} href={`/browse?dept=${course.deptId}&course=${course.courseId}`} className="group">
                     <Card className="p-4 text-center hover:scale-105 transition-transform">
                       <p className={`${labelStyles.lg} text-text-primary mb-2`}>
                         {course.deptCode} {course.courseNumber}

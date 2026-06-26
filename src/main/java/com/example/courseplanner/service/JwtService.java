@@ -6,6 +6,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import com.example.courseplanner.exception.ForbiddenException;
+
 import java.util.Map;
 
 /**
@@ -215,7 +217,7 @@ public class JwtService {
 
     /**
      * Optional: Get role from JWT.
-     * 
+     *
      * @param authHeader Authorization header
      * @return User's role (e.g., "authenticated")
      */
@@ -223,5 +225,21 @@ public class JwtService {
         Map<String, Object> userData = getUserData(authHeader);
         Object role = userData.get("role");
         return role != null ? role.toString() : null;
+    }
+
+    @SuppressWarnings("unchecked")
+    public void verifyAdmin(String authHeader) {
+        Map<String, Object> userData = getUserData(authHeader);
+
+        Object appMetaObj = userData.get("app_metadata");
+        if (!(appMetaObj instanceof Map)) {
+            throw new ForbiddenException("Access denied: not an admin");
+        }
+
+        Map<String, Object> appMetadata = (Map<String, Object>) appMetaObj;
+        Object role = appMetadata.get("role");
+        if (role == null || !"admin".equals(role.toString())) {
+            throw new ForbiddenException("Access denied: not an admin");
+        }
     }
 }

@@ -70,7 +70,7 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   // Define protected routes (require authentication)
-  const protectedRoutes = ["/dashboard"];
+  const protectedRoutes = ["/dashboard", "/admin"];
   const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route));
 
   /**
@@ -88,6 +88,18 @@ export async function proxy(request: NextRequest) {
     redirectUrl.searchParams.set("redirectTo", pathname);
 
     return NextResponse.redirect(redirectUrl);
+  }
+
+  /**
+   * ADMIN ROLE CHECK
+   *
+   * If user is logged in but not an admin, redirect to /admin/unauthorized.
+   * The unauthorized page itself is excluded to avoid a redirect loop.
+   */
+  if (pathname.startsWith("/admin") && pathname !== "/admin/unauthorized" && user) {
+    if (user.app_metadata?.role !== "admin") {
+      return NextResponse.redirect(new URL("/admin/unauthorized", request.url));
+    }
   }
 
   /**

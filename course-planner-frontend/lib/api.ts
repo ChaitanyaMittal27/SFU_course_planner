@@ -9,6 +9,16 @@ import {
   EnrollmentDataPoint,
   TermInfo,
   UserPreference,
+  ServiceHealthCheck,
+  AdminTerm,
+  UpdateTermsRequest,
+  AdminUsersResponse,
+  AdminUserDetailResponse,
+  AdminUser,
+  AdminUserBookmark,
+  AdminBookmarksResponse,
+  AdminSupportResponse,
+  AdminContactSubmission,
 } from "@/lib/types";
 import { supabase } from "@/lib/supabase/client";
 
@@ -255,6 +265,46 @@ export const api = {
         emailNotificationsEnabled: true,
       }),
     }),
+
+  // -------------------------
+  // Admin (Authenticated — JWT + admin role required)
+  // -------------------------
+
+  getHealthStatus: () => fetchAuthAPI<ServiceHealthCheck[]>("/api/admin/health"),
+
+  getServiceHealth: (service: string) =>
+    fetchAuthAPI<ServiceHealthCheck[]>(`/api/admin/health?service=${service}`),
+
+  getAdminTerms: () => fetchAuthAPI<AdminTerm[]>("/api/admin/terms"),
+
+  updateTerms: (data: UpdateTermsRequest) =>
+    fetchAuthAPI<AdminTerm[]>("/api/admin/terms", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }),
+
+  getAdminUsers: () => fetchAuthAPI<AdminUsersResponse>("/api/admin/users"),
+
+  getAdminUser: (id: string) => fetchAuthAPI<AdminUserDetailResponse>(`/api/admin/users/${id}`),
+
+  getAdminBookmarks: () => fetchAuthAPI<AdminBookmarksResponse>("/api/admin/bookmarks"),
+
+  getAdminSupport: (filter?: string) =>
+    fetchAuthAPI<AdminSupportResponse>(`/api/admin/support/submissions${filter ? `?filter=${filter}` : ""}`),
+
+  markSubmissionRead: (id: string) =>
+    fetchAuthAPI<AdminContactSubmission>(`/api/admin/support/submissions/${id}/read`, { method: "PATCH" }),
+
+  archiveSubmission: (id: string) =>
+    fetchAuthAPI<AdminContactSubmission>(`/api/admin/support/submissions/${id}/archive`, { method: "PATCH" }),
+
+  replyToSubmission: (id: string, message: string) =>
+    fetchAuthAPI<AdminContactSubmission>(`/api/admin/support/submissions/${id}/reply`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message }),
+    }),
 };
 
 // Export types
@@ -269,4 +319,14 @@ export type {
   EnrollmentDataPoint,
   TermInfo,
   UserPreference,
+  ServiceHealthCheck,
+  AdminTerm,
+  UpdateTermsRequest,
+  AdminUsersResponse,
+  AdminUserDetailResponse,
+  AdminUser,
+  AdminUserBookmark,
+  AdminBookmarksResponse,
+  AdminSupportResponse,
+  AdminContactSubmission,
 };

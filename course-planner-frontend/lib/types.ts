@@ -138,3 +138,133 @@ export interface UserPreference {
   emailNotificationsEnabled: boolean;
   userEmail: string | null;
 }
+
+// ----------------------------
+// Admin
+// ----------------------------
+export interface ServiceHealthCheck {
+  service: string;
+  status: "up" | "down";
+  latencyMs: number;
+  url: string;
+}
+
+export interface AdminTerm {
+  termId: number;
+  year: number;
+  term: string;
+  isCurrent: boolean;
+  isEnrolling: boolean;
+  updatedAt: string | null;
+}
+
+export interface UpdateTermsRequest {
+  currentYear: number;
+  currentTerm: string;
+  enrollingYear: number;
+  enrollingTerm: string;
+}
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  createdAt: string;
+  lastSignInAt: string | null;
+  provider: string;
+  displayName: string | null;
+  emailVerified: boolean;
+  isAnonymous: boolean;
+  emailNotificationsEnabled: boolean;
+  preferredEmail: string | null;
+  lastNotifiedAt: string | null;
+  bookmarkCount: number;
+}
+
+export interface AdminUserStats {
+  totalUsers: number;
+  newThisMonth: number;
+  optedInNotifications: number;
+  activeInLast30Days: number;
+  providerGoogle: number;
+  providerEmail: number;
+}
+
+export interface AdminUsersResponse {
+  stats: AdminUserStats;
+  users: AdminUser[];
+}
+
+export interface AdminUserBookmark {
+  bookmarkId: number;
+  deptCode: string;
+  courseNumber: string;
+  title: string;
+  section: string;
+  semesterCode: number;
+}
+
+export interface AdminUserDetailResponse {
+  user: AdminUser;
+  bookmarks: AdminUserBookmark[];
+}
+
+export interface AdminTopCourse {
+  deptCode: string;
+  courseNumber: string;
+  title: string;
+  departmentName: string;
+  bookmarkCount: number;
+}
+
+export interface AdminDeptRanking {
+  deptCode: string;
+  departmentName: string;
+  bookmarkCount: number;
+  percentage: number;
+}
+
+export interface AdminBookmarkMonth {
+  month: string;
+  count: number;
+}
+
+export interface AdminBookmarkStats {
+  totalBookmarks: number;
+  avgPerUser: number;
+  topDepartment: string;
+  topDepartmentName: string;
+  uniqueCourses: number;
+}
+
+export interface AdminBookmarksResponse {
+  stats: AdminBookmarkStats;
+  topCourses: AdminTopCourse[];
+  departmentRankings: AdminDeptRanking[];
+  monthlyGrowth: AdminBookmarkMonth[];
+}
+
+export interface AdminContactSubmission {
+  id: string;
+  name: string;
+  email: string;
+  reason: string | null;
+  message: string;
+  isRead: boolean;
+  isArchived: boolean;
+  isReplied: boolean;
+  replyMessage: string | null;
+  replySentTo: string | null;
+  repliedAt: string | null;
+  submittedAt: string;
+}
+
+export interface AdminSupportStats {
+  totalSubmissions: number;
+  unreadCount: number;
+  archivedCount: number;
+}
+
+export interface AdminSupportResponse {
+  stats: AdminSupportStats;
+  submissions: AdminContactSubmission[];
+}
