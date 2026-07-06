@@ -198,14 +198,14 @@ export default function LandingPage() {
             </div>
 
             <h1 className={`${displayStyles.landing} text-text-primary mb-5`}>
-              Plan your degree
+              Plan smart.
               <br />
-              with <span className="text-primary">confidence</span>.
+              <span className="text-primary">Enroll with confidence.</span>
             </h1>
 
             <p className={`${bodyStyles.lg} text-text-muted mb-8 max-w-[440px]`}>
-              Browse every SFU course, watch sections fill in real time, and compare offerings side-by-side — all in one
-              fast, focused workspace.
+              Bookmark the sections you want. Every morning we send you a digest showing current seat counts — so you
+              can act the moment space opens up.
             </p>
 
             {/* CTAs */}
