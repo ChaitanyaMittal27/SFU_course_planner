@@ -5,6 +5,7 @@ import Navigation from "@/components/Navigation";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import Footer from "@/components/Footer";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { Analytics } from "@vercel/analytics/react";
 
 export const metadata: Metadata = {
   title: "SFU Course Planner — Plan Properly. Regret Less.",
@@ -50,6 +51,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Footer />
           </NuqsAdapter>
         </AuthProvider>
+        <Analytics />
       </body>
     </html>
   );
