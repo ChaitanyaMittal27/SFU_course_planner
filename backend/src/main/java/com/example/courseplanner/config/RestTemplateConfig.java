@@ -22,4 +22,12 @@ public class RestTemplateConfig {
         requestFactory.setReadTimeout(5000);
         return new RestTemplate(requestFactory);
     }
+
+    @Bean("rateMyProfessorsRestTemplate")
+    public RestTemplate rateMyProfessorsRestTemplate() {
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(5000);
+        requestFactory.setReadTimeout(5000);
+        return new RestTemplate(requestFactory);
+    }
 }
