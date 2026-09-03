@@ -15,6 +15,11 @@ build/
 out/
 !**/src/main/**/out/
 !**/src/test/**/out/
+# Preserve the initialization output directory's own ignore rule while
+# excluding generated collection artifacts beneath it.
+!init_db/
+!init_db/out/
+!init_db/out/.gitignore
 
 ### Eclipse ###
 .apt_generated

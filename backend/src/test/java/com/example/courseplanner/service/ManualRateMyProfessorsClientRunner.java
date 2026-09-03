@@ -12,6 +12,14 @@ import java.util.Scanner;
 /**
  * Interactive developer utility for manually checking the RMP client against
  * the live provider. It lives in test sources and is not an application endpoint.
+ * 
+ * Intended flow:
+ * 1. Search schools
+ * 2. Search teachers at an RMP school
+ * 3. Fetch teacher profile by RMP ID
+ * 4. Exit
+ * 
+ * ./gradlew --no-daemon rmpManual
  */
 public class ManualRateMyProfessorsClientRunner {
 
@@ -81,6 +89,7 @@ public class ManualRateMyProfessorsClientRunner {
                     valueOrDash(teacher.avgDifficulty()),
                     valueOrDash(teacher.numRatings()),
                     valueOrDash(teacher.wouldTakeAgainPercent()));
+            System.out.printf("   Profile: https://www.ratemyprofessors.com/professor/%s%n", valueOrDash(teacher.legacyId()));
         }
     }
 

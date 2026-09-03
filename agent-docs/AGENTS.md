@@ -53,12 +53,12 @@
 
 ## Data scripts and maintenance
 
-- Python population scripts under `backend/src/main/java/com/example/courseplanner/scripts/` are operational database tooling, not Spring application code. They currently contain their own database-connection placeholders and are intended to be idempotent; inspect the targeted script and schema before running one.
+- Python population scripts under `init_db/scripts/` are operational database tooling, not Spring application code. They currently contain their own database-connection placeholders and are intended to be idempotent; inspect the targeted script and schema before running one.
 - Avoid manual production-data edits when an appropriate population script can be corrected or rerun.
 
 ## Documentation hygiene and validation
 
-- Treat implementation, `README.md`, and this guidance as the current references. Parts of `scripts_README.md` contain historical material (for example a nonexistent `populate_courses_deep_first.py`); verify any claim from them against code before acting on it.
+- Treat implementation, `README.md`, and this guidance as the current references. Parts of `init_db/legacy/scripts_README.md` contain historical material (for example a nonexistent `populate_courses_deep_first.py`); verify any claim from them against code before acting on it.
 - Backend behavior is covered by JUnit 5/Mockito/MockMvc tests under `backend/src/test/java`. Add or update focused tests with every backend feature or bug fix; mock external boundaries rather than calling live Supabase, CourseSys, or Resend. Run `./gradlew test` before handoff and `./gradlew bootJar` when production packaging is affected. The HTML report is `backend/build/reports/tests/test/index.html`.
 - The local Supabase stack remains the test boundary for migrations, RLS, constraints, and native SQL; mocked Java tests do not establish database compatibility. At minimum, run frontend lint for frontend changes and the relevant Gradle task for backend changes; the backend requires Java 17+ even if the host default JVM is older.
 - `.github/workflows/ci.yml` runs `Frontend` (lint, tests, production build) and `Backend` (tests, JAR build) on `dev`/`main` pushes and PRs. `main` requires a PR plus both checks, while direct pushes to `dev` are intentionally allowed. Keep these check names stable unless branch protection is updated deliberately.
