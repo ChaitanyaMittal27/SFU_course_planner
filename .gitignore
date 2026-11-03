@@ -53,6 +53,7 @@ test_public/
 # env
 .env
 backend/.env.local
+backend/.env.prod
 frontend/.env.local
 
 
@@ -71,3 +72,7 @@ local_docs/
 
 test-docs/backend/
 test-docs/frontend/
+
+# RMP planning recordings (local reference only) and Python caches
+/test/rmp/legacy/
+__pycache__/

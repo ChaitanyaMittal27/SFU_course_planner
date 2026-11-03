@@ -18,6 +18,10 @@ public class Department {
     
     @Column(nullable = false)
     private String name;
+
+    /** Department label as Rate My Professors writes it (e.g. "Computer Science"); may be null. */
+    @Column(name = "rmp_name")
+    private String rmpName;
     
     @OneToMany(mappedBy = "department", fetch = FetchType.LAZY)
     // "One department has many courses"
@@ -41,6 +45,9 @@ public class Department {
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
     
+    public String getRmpName() { return rmpName; }
+    public void setRmpName(String rmpName) { this.rmpName = rmpName; }
+
     public List<Course> getCourses() { return courses; }
     public void setCourses(List<Course> courses) { this.courses = courses; }
-}
+}
