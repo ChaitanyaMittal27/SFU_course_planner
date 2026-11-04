@@ -1,6 +1,6 @@
 # Rate My Professors (RMP) integration
 
-Backend plus the professor cards in the UI. An admin view for reviewing reports comes later.
+Backend, the professor cards in the UI, and an admin page for reviewing wrong-match reports.
 
 ## How it works
 
@@ -69,6 +69,33 @@ hits the unique constraint, and the controller then updates the row the first on
 - **Tests:** `lib/instructors.test.ts`, `hooks/useRmpLookups.test.tsx`,
   `components/course/InstructorRatings.test.tsx`, plus RMP cases in `lib/api.test.ts`.
 
+## Admin review
+
+`/admin/rmp` ("RMP Reports" in the admin sidebar; also a card on the admin overview) lists every
+lookup with open reports, one row per lookup, most reported first. A report is open while
+`rmp_mismatch_reports.resolved_at` is null.
+
+Clicking a row shows its actions. Each one resolves **all** open reports of that lookup, and the
+row leaves the list:
+
+| Action | Endpoint (`PATCH`, admin only) | Effect on `rmp_lookup` |
+| --- | --- | --- |
+| Open link | none | Opens the current profile; "No link" for a no-match |
+| No match | `/api/admin/rmp/reports/{lookupId}/no-match` | `markNoMatch` (searched again after 7 days, like any no-match) |
+| Match is correct | `/api/admin/rmp/reports/{lookupId}/dismiss` | None |
+| Set professor (paste a `ratemyprofessors.com/professor/<id>` link) | `/api/admin/rmp/reports/{lookupId}/professor {legacyId}` | `markMatched` with `match_score` null |
+
+- The list is `GET /api/admin/rmp/reports` (`AdminRmpReportDTO`). It shows the RMP ID, not the
+  professor's name, because names are not stored and fetching them would cost one RMP request per row.
+- Set professor: the frontend checks the link format (`parseRmpProfessorUrl` in `lib/instructors.ts`)
+  before calling the backend. The backend fetches the profile again and returns 404 if RMP has no
+  such professor, 400 if the professor is not at an active `rmp_schools` listing, and 503 if RMP
+  is down. The page shows a specific message for each, using `ApiError.status`.
+- Code: `controller/AdminRmpController`, `RmpMismatchReportRepository.findOpenReportSummaries` /
+  `resolveOpenReports`; `frontend/app/admin/rmp/page.tsx`. Schema:
+  `supabase/migrations/20261104120000_rmp_report_review.sql`.
+- Resolved reports are kept but not shown anywhere.
+
 ## Tuning without code
 
 - **Per-school result count:** `update rmp_schools set search_limit = ... where legacy_id = ...`
@@ -76,10 +103,12 @@ hits the unique constraint, and the controller then updates the row the first on
   probable duplicate.
 - **Department labels:** `departments.rmp_name`. New departments get a value from
   `public.rmp_department_name()` via an insert trigger.
-- **Fix a wrong match by hand:** point the `rmp_lookup` row at the right professor by setting
-  `rmp_teacher_id` / `rmp_legacy_id`. Matched rows are never re-scored, so the fix sticks.
-  Setting `no_match = true` (both IDs null) also works, **but is searched again after 7 days** and
-  may re-match. A manual-override flag is planned with the admin review flow.
+- **Fix a wrong match:** use the admin RMP Reports page (see "Admin review"). Without a report,
+  point the `rmp_lookup` row at the right professor by setting `rmp_teacher_id` /
+  `rmp_legacy_id` (RMP's GraphQL ID is base64 of `Teacher-<legacy id>`). Matched rows are never
+  re-scored, so the fix sticks. A no-match, including one set by an admin, **is searched again
+  after 7 days** and may re-match; if it re-matches the wrong professor, it comes back to the
+  admin page only when someone reports it again.
 
 ## Known limits
 
@@ -177,9 +206,9 @@ POST /api/rmp/reports {lookupId}
         ↓
 rmp_mismatch_reports row: lookup, the RMP ID shown at the time, timestamp
         ↓
-Admin reviews reports (admin view, later)
+Admin opens /admin/rmp (see "Admin review")
         ↓
-Admin corrects the rmp_lookup row (see "Fix a wrong match by hand")
+Match is correct / No match / Set professor → reports resolved (resolved_at)
 ```
 Anyone can report, and there is no deduplication. Users also get the RMP profile link and the
 search link, so they can check for themselves.
@@ -192,7 +221,7 @@ search link, so they can check for themselves.
 4. Deploy the backend.
 5. Smoke-test production: one lookup (`MATCHED` or `NO_MATCH`), then repeat it (faster).
 6. Watch the logs for `RMP unavailable` warnings (outages or API changes on RMP's side).
-7. Review `rmp_mismatch_reports` periodically until the admin view exists.
+7. Check the admin RMP Reports page (`/admin/rmp`) for open reports now and then.
 
 No initializer or backfill runs in production, and nothing RMP-related runs at deployment or
 startup.

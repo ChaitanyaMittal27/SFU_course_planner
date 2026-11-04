@@ -306,3 +306,19 @@ export interface AdminSupportResponse {
   stats: AdminSupportStats;
   submissions: AdminContactSubmission[];
 }
+
+// GET /api/admin/rmp/reports: one lookup with open wrong-match reports
+export interface AdminRmpReport {
+  lookupId: number;
+  rawName: string;
+  displayName: string;
+  deptCode: string;
+  status: "MATCHED" | "NO_MATCH";
+  rmpLegacyId: number | null;
+  profileUrl: string | null;
+  // null for a no-match or a professor set by an admin
+  matchScore: number | null;
+  openReports: number;
+  firstReportedAt: string;
+  lastReportedAt: string;
+}

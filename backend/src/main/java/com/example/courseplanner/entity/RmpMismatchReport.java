@@ -11,7 +11,8 @@ import java.time.Instant;
 
 /**
  * A user's report that an {@link RmpLookup} shows the wrong professor. Anyone can report;
- * reports are reviewed manually. Deleted automatically with their lookup.
+ * admins review open reports ({@code resolvedAt == null}) on the admin RMP Reports page.
+ * Deleted automatically with their lookup.
  */
 @Entity
 @Table(name = "rmp_mismatch_reports")
@@ -31,6 +32,10 @@ public class RmpMismatchReport {
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
+    /** When an admin resolved the report; null while open. */
+    @Column(name = "resolved_at")
+    private Instant resolvedAt;
 
     // ----------------------------
     // Constructors
@@ -57,4 +62,7 @@ public class RmpMismatchReport {
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+
+    public Instant getResolvedAt() { return resolvedAt; }
+    public void setResolvedAt(Instant resolvedAt) { this.resolvedAt = resolvedAt; }
 }

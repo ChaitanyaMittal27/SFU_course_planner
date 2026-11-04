@@ -109,4 +109,43 @@ describe("API client", () => {
 
     await expect(api.reportRmpMismatch(404)).rejects.toThrow("API Error: 404 Not Found");
   });
+
+  it("calls the admin RMP review endpoints with the session token", async () => {
+    const { api } = await import("@/lib/api");
+    const auth = { Authorization: "Bearer access-token" };
+
+    fetchMock.mockResolvedValueOnce(response([{ lookupId: 7 }]));
+    await expect(api.getAdminRmpReports()).resolves.toEqual([{ lookupId: 7 }]);
+    expect(fetchMock).toHaveBeenLastCalledWith("https://api.test/api/admin/rmp/reports", { headers: auth });
+
+    fetchMock.mockResolvedValueOnce(response(null, 204, "No Content"));
+    await expect(api.dismissRmpReports(7)).resolves.toBeUndefined();
+    expect(fetchMock).toHaveBeenLastCalledWith("https://api.test/api/admin/rmp/reports/7/dismiss", { method: "PATCH", headers: auth });
+
+    fetchMock.mockResolvedValueOnce(response(null, 204, "No Content"));
+    await expect(api.setRmpNoMatch(7)).resolves.toBeUndefined();
+    expect(fetchMock).toHaveBeenLastCalledWith("https://api.test/api/admin/rmp/reports/7/no-match", { method: "PATCH", headers: auth });
+
+    fetchMock.mockResolvedValueOnce(response(null, 204, "No Content"));
+    await expect(api.setRmpProfessor(7, 3030010)).resolves.toBeUndefined();
+    expect(fetchMock).toHaveBeenLastCalledWith("https://api.test/api/admin/rmp/reports/7/professor", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...auth },
+      body: JSON.stringify({ legacyId: 3030010 }),
+    });
+  });
+
+  it("exposes the HTTP status of failed authenticated calls, with the same message", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const { api, ApiError } = await import("@/lib/api");
+
+    fetchMock.mockResolvedValueOnce(response({}, 404, "Not Found"));
+    const notFound = await api.setRmpProfessor(7, 1).catch((error: unknown) => error);
+    expect(notFound).toBeInstanceOf(ApiError);
+    expect(notFound).toMatchObject({ status: 404, message: "API Error: 404 Not Found" });
+
+    fetchMock.mockResolvedValueOnce(response({}, 401, "Unauthorized"));
+    const expired = await api.getAdminRmpReports().catch((error: unknown) => error);
+    expect(expired).toMatchObject({ status: 401, message: "Session expired - please log in again" });
+  });
 });

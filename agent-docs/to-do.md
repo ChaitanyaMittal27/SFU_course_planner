@@ -2,7 +2,7 @@
 
 This is a product-hardening backlog derived from the repository audit. It is ordered by expected risk reduction and enabling value; it is not a release plan.
 
-0. RMP follow-ups (backend and professor cards done, see `agent-docs/rmp.md`): admin view to review `rmp_mismatch_reports` and correct `rmp_lookup` rows (add a manual-override flag so an admin-set no-match is not re-searched after 7 days); update `test/rmp/manual.py` wording to the live-fetch approach; review `departments.rmp_name` labels against real RMP results.
+0. RMP follow-ups (backend, professor cards and admin review done, see `agent-docs/rmp.md`): update `test/rmp/manual.py` wording to the live-fetch approach; review `departments.rmp_name` labels against real RMP results.
 1. Fix backend CORS for Vercel previews: `allowedOrigins("https://*.vercel.app")` is literal, so preview origins currently receive 403. Use an intentional Spring origin-pattern strategy without widening production access unnecessarily.
 2. Normalize missing/invalid bearer-auth responses to 401. Required `Authorization` headers currently fail in Spring MVC with 400 before `JwtService`/the global handler can apply the documented authentication contract.
 3. Add a small browser-level end-to-end suite for critical user flows: auth, canonical routes, bookmarks, and dashboard states. The Vitest unit/component suite already covers these flows with mocked boundaries.

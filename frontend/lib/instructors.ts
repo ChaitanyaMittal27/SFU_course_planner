@@ -54,3 +54,18 @@ export function groupSectionsByInstructor(sections: CourseOffering[]): Instructo
   }
   return [...byName.values()];
 }
+
+// Largest ID the backend accepts (Java int).
+const MAX_RMP_ID = 2_147_483_647;
+const RMP_PROFESSOR_URL = /^(?:https?:\/\/)?(?:www\.)?ratemyprofessors\.com\/professor\/(\d+)\/?(?:[?#].*)?$/i;
+
+/**
+ * The professor ID from a Rate My Professors profile link, or null if the text is not one.
+ * "https://www.ratemyprofessors.com/professor/3030010" → 3030010
+ */
+export function parseRmpProfessorUrl(text: string): number | null {
+  const match = RMP_PROFESSOR_URL.exec(text.trim());
+  if (!match) return null;
+  const id = Number(match[1]);
+  return id > 0 && id <= MAX_RMP_ID ? id : null;
+}

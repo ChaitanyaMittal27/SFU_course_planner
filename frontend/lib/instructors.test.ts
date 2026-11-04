@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { groupSectionsByInstructor, instructorDisplayName, splitInstructors } from "@/lib/instructors";
+import { groupSectionsByInstructor, instructorDisplayName, parseRmpProfessorUrl, splitInstructors } from "@/lib/instructors";
 import type { CourseOffering } from "@/lib/types";
 
 function section(label: string, instructors: string): CourseOffering {
@@ -36,5 +36,31 @@ describe("instructor helpers", () => {
       { name: "Fraser, Brian", sections: ["D100", "D200", "D300"] },
       { name: "Doe, John", sections: ["D300"] },
     ]);
+  });
+});
+
+describe("parseRmpProfessorUrl", () => {
+  it("reads the professor ID from profile links", () => {
+    expect(parseRmpProfessorUrl("https://www.ratemyprofessors.com/professor/3030010")).toBe(3030010);
+    expect(parseRmpProfessorUrl("  http://ratemyprofessors.com/professor/3030010/  ")).toBe(3030010);
+    expect(parseRmpProfessorUrl("www.ratemyprofessors.com/professor/42?tab=ratings")).toBe(42);
+    expect(parseRmpProfessorUrl("ratemyprofessors.com/professor/42#reviews")).toBe(42);
+    expect(parseRmpProfessorUrl("HTTPS://WWW.RateMyProfessors.com/professor/7")).toBe(7);
+  });
+
+  it("rejects anything that is not a professor profile link", () => {
+    for (const text of [
+      "",
+      "3030010",
+      "https://www.ratemyprofessors.com/search/professors/1482?q=Claudia",
+      "https://www.ratemyprofessors.com/professor/",
+      "https://www.ratemyprofessors.com/professor/abc",
+      "https://www.ratemyprofessors.com/professor/0",
+      "https://www.ratemyprofessors.com/professor/99999999999",
+      "https://evil.example/ratemyprofessors.com/professor/3030010",
+      "https://ratemyprofessors.com.evil.example/professor/3030010",
+    ]) {
+      expect(parseRmpProfessorUrl(text)).toBeNull();
+    }
   });
 });

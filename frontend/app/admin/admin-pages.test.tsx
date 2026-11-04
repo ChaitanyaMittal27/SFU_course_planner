@@ -10,6 +10,7 @@ const apiMocks = vi.hoisted(() => ({
   getAdminUsers: vi.fn(),
   getAdminBookmarks: vi.fn(),
   getAdminSupport: vi.fn(),
+  getAdminRmpReports: vi.fn(),
 }));
 
 vi.mock("@/lib/api", () => ({ api: apiMocks }));
@@ -54,6 +55,7 @@ beforeEach(() => {
     topCourses: [], departmentRankings: [], monthlyGrowth: [],
   });
   apiMocks.getAdminSupport.mockResolvedValue({ stats: { totalSubmissions: 0, unreadCount: 0, archivedCount: 0 }, submissions: [] });
+  apiMocks.getAdminRmpReports.mockResolvedValue([{ lookupId: 7, openReports: 2 }]);
 });
 
 describe("admin pages", () => {
@@ -64,6 +66,8 @@ describe("admin pages", () => {
     expect(screen.getByText("2 registered")).toBeInTheDocument();
     expect(screen.getByText("1 services up")).toBeInTheDocument();
     expect(screen.getByText("All caught up")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "RMP Reports" })).toBeInTheDocument();
+    expect(screen.getByText("1 to review")).toBeInTheDocument();
     expect(apiMocks.getAdminBookmarks).toHaveBeenCalledOnce();
   });
 

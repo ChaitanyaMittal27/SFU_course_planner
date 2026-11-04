@@ -124,13 +124,9 @@ describe("login page", () => {
       options: { redirectTo: "http://localhost:3000/auth/callback?redirectTo=%2Fdashboard%3Fwelcome%3Dtrue" },
     }));
 
+    // Microsoft sign-in was removed; Google is the only OAuth provider.
+    expect(screen.queryByRole("button", { name: "Sign in with Microsoft" })).not.toBeInTheDocument();
     view.unmount();
-    render(<LoginPage />);
-    await user.click(screen.getByRole("button", { name: "Sign in with Microsoft" }));
-    await waitFor(() => expect(mocks.signInWithOAuth).toHaveBeenCalledWith({
-      provider: "azure",
-      options: { redirectTo: "http://localhost:3000/auth/callback?redirectTo=%2Fdashboard%3Fwelcome%3Dtrue", scopes: "email" },
-    }));
   });
 
   it("sends password reset requests to the existing reset route", async () => {

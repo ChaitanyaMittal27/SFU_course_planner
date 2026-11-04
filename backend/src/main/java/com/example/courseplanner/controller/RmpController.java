@@ -283,7 +283,8 @@ public class RmpController {
             profileUrl(lookup.getRmpLegacyId()), lookup.getMatchScore());
     }
 
-    private static String profileUrl(Integer legacyId) {
+    /** ratemyprofessors.com profile link for an RMP numeric ID; null for null. Shared with the admin review. */
+    static String profileUrl(Integer legacyId) {
         return legacyId == null ? null : PROFILE_URL + legacyId;
     }
 

@@ -48,4 +48,4 @@ The offerings-list endpoint works backward from the enrolling term (or current t
 
 The frontend middleware gives an early UI redirect for non-admin users, but each `/api/admin/**` controller independently calls `JwtService.verifyAdmin`. Admin user reports use SQL over Supabase’s `auth.users` plus public preferences/bookmarks; this coupling is not expressible as ordinary JPA entity relations.
 
-Admin support actions mutate `contact_submissions`; replying also invokes Resend. Term updates clear every current/enrolling flag and then set exactly one of each inside a transaction. Admin health checks intentionally exercise the database and third-party reachability.
+Admin support actions mutate `contact_submissions`; replying also invokes Resend. Term updates clear every current/enrolling flag and then set exactly one of each inside a transaction. Admin health checks intentionally exercise the database and third-party reachability. Admin RMP review resolves `rmp_mismatch_reports` and can change the reported `rmp_lookup` row; setting a professor fetches the profile from Rate My Professors first (see `rmp.md`).
