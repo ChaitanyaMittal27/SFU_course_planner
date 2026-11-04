@@ -82,6 +82,13 @@ describe("login page", () => {
     expect(mocks.replace).not.toHaveBeenCalled();
   });
 
+  it("shows a generic callback error without exposing provider details", async () => {
+    mocks.search = new URLSearchParams("error=oauth_callback_failed");
+    render(<LoginPage />);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("We couldn't complete sign in. Please try again.");
+  });
+
   it("validates sign-up locally before contacting Supabase", async () => {
     const user = userEvent.setup();
     render(<LoginPage />);
@@ -117,13 +124,9 @@ describe("login page", () => {
       options: { redirectTo: "http://localhost:3000/auth/callback?redirectTo=%2Fdashboard%3Fwelcome%3Dtrue" },
     }));
 
+    // Microsoft sign-in was removed; Google is the only OAuth provider.
+    expect(screen.queryByRole("button", { name: "Sign in with Microsoft" })).not.toBeInTheDocument();
     view.unmount();
-    render(<LoginPage />);
-    await user.click(screen.getByRole("button", { name: "Sign in with Microsoft" }));
-    await waitFor(() => expect(mocks.signInWithOAuth).toHaveBeenCalledWith({
-      provider: "azure",
-      options: { redirectTo: "http://localhost:3000/auth/callback?redirectTo=%2Fdashboard%3Fwelcome%3Dtrue", scopes: "email" },
-    }));
   });
 
   it("sends password reset requests to the existing reset route", async () => {

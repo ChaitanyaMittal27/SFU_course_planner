@@ -2,13 +2,14 @@ import {
   Activity,
   Calendar,
   Eye,
+  Flag,
   MessageSquare,
   Users,
   type LucideIcon,
 } from "lucide-react";
 
 export type AdminNavigationItem = {
-  id: "overview" | "health" | "support" | "terms" | "users" | "bookmarks";
+  id: "overview" | "health" | "support" | "terms" | "users" | "bookmarks" | "rmp";
   label: string;
   href: string;
   icon: LucideIcon;
@@ -51,5 +52,12 @@ export const adminNavigationItems = [
     href: "/admin/bookmarks",
     icon: Eye,
     description: "Inspect bookmarked offerings, popular courses, and department rankings.",
+  },
+  {
+    id: "rmp",
+    label: "RMP Reports",
+    href: "/admin/rmp",
+    icon: Flag,
+    description: "Review wrong Rate My Professors matches reported from professor cards.",
   },
 ] as const satisfies readonly AdminNavigationItem[];

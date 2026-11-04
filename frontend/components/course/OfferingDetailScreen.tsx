@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import GradeHistogram from "@/components/analytics/GradeHistogram";
 import BookmarkButton from "@/components/course/BookmarkButton";
+import InstructorRatings from "@/components/course/InstructorRatings";
 import BackButton from "@/components/layout/BackButton";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -142,6 +143,12 @@ export default function OfferingDetailScreen({ detail, backHref }: OfferingDetai
             </div>
           )}
         </div>
+
+        {detail.sections.length > 0 && (
+          <div className="mt-8">
+            <InstructorRatings sections={detail.sections} deptCode={detail.deptCode} />
+          </div>
+        )}
 
         {detail.gradeDistribution && (
           <div className="mt-8">

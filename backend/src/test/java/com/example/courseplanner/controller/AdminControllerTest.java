@@ -34,9 +34,10 @@ class AdminControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.authenticated").value(true))
                 .andExpect(jsonPath("$.role").value("admin"))
-                .andExpect(jsonPath("$.availablePaths.length()").value(5))
+                .andExpect(jsonPath("$.availablePaths.length()").value(6))
                 .andExpect(jsonPath("$.availablePaths[0]").value("/api/admin/health"))
-                .andExpect(jsonPath("$.availablePaths[4]").value("/api/admin/bookmarks"));
+                .andExpect(jsonPath("$.availablePaths[4]").value("/api/admin/bookmarks"))
+                .andExpect(jsonPath("$.availablePaths[5]").value("/api/admin/rmp"));
 
         verify(jwtService).verifyAdmin(AUTHORIZATION);
     }

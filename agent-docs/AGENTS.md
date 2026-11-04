@@ -16,6 +16,7 @@
 - Protected endpoints receive a Supabase access token in `Authorization: Bearer ...`. Use `JwtService` to verify it against Supabase and derive the user ID; do not parse JWTs locally or trust client-supplied user IDs. Admin routes require `app_metadata.role == "admin"` via `verifyAdmin`.
 - Keep authorization checks server-side on every mutation. Bookmarks are scoped to the authenticated UUID and their DB uniqueness is `(dept_id, user_id, course_id, semester_code, section)`.
 - Terms drive the current/enrolling semester and CourseSys history. Use `SemesterUtil` rather than duplicating SFU semester-code arithmetic (spring/summer/fall digits 1/4/7).
+- Rate My Professors: public `GET /api/rmp?name=&deptCode=` and `POST /api/rmp/reports`. Only the name+department → RMP professor identification is stored (`rmp_lookup`); ratings are fetched live by RMP ID. RMP follows the usual layout: entities `RmpSchool`/`RmpLookup`/`RmpMismatchReport`, Spring Data repositories, flow in `RmpController`, scoring in `RmpMatcher`. Any RMP failure must store nothing and return `UNAVAILABLE`; use the client's strict methods for matching. See `agent-docs/rmp.md`.
 - The scheduled digest runs at 00:05 `America/Vancouver`. It fetches external CourseSys data and sends Resend email, so treat scheduler changes as production-affecting.
 - `EmailService` delegates provider calls through the injected `EmailTransport`; `ResendEmailTransport` is the production adapter. Preserve this boundary so email behavior can be tested without sending mail.
 - Admin health checks are authenticated reachability checks for the database and external services; keep their outbound requests bounded with explicit timeouts. They are not delivery verification for Resend.
@@ -53,12 +54,12 @@
 
 ## Data scripts and maintenance
 
-- Python population scripts under `backend/src/main/java/com/example/courseplanner/scripts/` are operational database tooling, not Spring application code. They currently contain their own database-connection placeholders and are intended to be idempotent; inspect the targeted script and schema before running one.
+- Python population scripts under `init_db/scripts/` are operational database tooling, not Spring application code. They currently contain their own database-connection placeholders and are intended to be idempotent; inspect the targeted script and schema before running one.
 - Avoid manual production-data edits when an appropriate population script can be corrected or rerun.
 
 ## Documentation hygiene and validation
 
-- Treat implementation, `README.md`, and this guidance as the current references. Parts of `scripts_README.md` contain historical material (for example a nonexistent `populate_courses_deep_first.py`); verify any claim from them against code before acting on it.
+- Treat implementation, `README.md`, and this guidance as the current references. Parts of `init_db/legacy/scripts_README.md` contain historical material (for example a nonexistent `populate_courses_deep_first.py`); verify any claim from them against code before acting on it.
 - Backend behavior is covered by JUnit 5/Mockito/MockMvc tests under `backend/src/test/java`. Add or update focused tests with every backend feature or bug fix; mock external boundaries rather than calling live Supabase, CourseSys, or Resend. Run `./gradlew test` before handoff and `./gradlew bootJar` when production packaging is affected. The HTML report is `backend/build/reports/tests/test/index.html`.
 - The local Supabase stack remains the test boundary for migrations, RLS, constraints, and native SQL; mocked Java tests do not establish database compatibility. At minimum, run frontend lint for frontend changes and the relevant Gradle task for backend changes; the backend requires Java 17+ even if the host default JVM is older.
 - `.github/workflows/ci.yml` runs `Frontend` (lint, tests, production build) and `Backend` (tests, JAR build) on `dev`/`main` pushes and PRs. `main` requires a PR plus both checks, while direct pushes to `dev` are intentionally allowed. Keep these check names stable unless branch protection is updated deliberately.

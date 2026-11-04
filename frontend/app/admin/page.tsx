@@ -35,6 +35,7 @@ type UsersData = {
 
 type BookmarksData = { meta: string };
 type SupportData = { meta: string; badge?: StatusBadge; unreadCount: number };
+type RmpData = { meta: string; badge?: StatusBadge };
 
 type DashboardData = {
   health: HealthData | null;
@@ -42,13 +43,14 @@ type DashboardData = {
   users: UsersData | null;
   bookmarks: BookmarksData | null;
   support: SupportData | null;
+  rmp: RmpData | null;
 };
 
 type DashboardDataKey = keyof DashboardData;
 type DashboardFailures = Record<DashboardDataKey, boolean>;
 
-const emptyData: DashboardData = { health: null, terms: null, users: null, bookmarks: null, support: null };
-const emptyFailures: DashboardFailures = { health: false, terms: false, users: false, bookmarks: false, support: false };
+const emptyData: DashboardData = { health: null, terms: null, users: null, bookmarks: null, support: null, rmp: null };
+const emptyFailures: DashboardFailures = { health: false, terms: false, users: false, bookmarks: false, support: false, rmp: false };
 
 const dashboardPresentation = {
   health: { iconClass: "border-success/20 bg-success/10 text-success", defaultMeta: "Checking status" },
@@ -56,6 +58,7 @@ const dashboardPresentation = {
   terms: { iconClass: "border-accent/20 bg-accent/10 text-accent", defaultMeta: "Loading terms" },
   users: { iconClass: "border-accent/20 bg-accent/10 text-accent", defaultMeta: "Loading users" },
   bookmarks: { iconClass: "border-accent/20 bg-accent/10 text-accent", defaultMeta: "Loading bookmarks" },
+  rmp: { iconClass: "border-accent/20 bg-accent/10 text-accent", defaultMeta: "Loading reports" },
 } as const;
 
 function capitalize(value: string) {
@@ -150,6 +153,15 @@ async function loadSupport(): Promise<SupportData> {
   };
 }
 
+async function loadRmp(): Promise<RmpData> {
+  const reports = await api.getAdminRmpReports();
+  const count = reports.length;
+  return {
+    meta: count > 0 ? `${count} to review` : "No open reports",
+    badge: count > 0 ? { label: String(count), className: "bg-warning/15 text-warning" } : undefined,
+  };
+}
+
 async function loadBookmarks(): Promise<BookmarksData> {
   const { stats } = await api.getAdminBookmarks();
   return { meta: `${stats.totalBookmarks.toLocaleString()} tracked` };
@@ -161,6 +173,7 @@ const dashboardLoaders: { [Key in DashboardDataKey]: () => Promise<DashboardData
   users: loadUsers,
   bookmarks: loadBookmarks,
   support: loadSupport,
+  rmp: loadRmp,
 };
 
 function valueFrom<T>(result: PromiseSettledResult<T>): T | null {
@@ -178,12 +191,13 @@ export default function AdminDashboardPage() {
   const [retrying, setRetrying] = useState<Partial<DashboardFailures>>({});
 
   const loadDashboard = useCallback(async () => {
-    const [health, terms, users, bookmarks, support] = await Promise.allSettled([
+    const [health, terms, users, bookmarks, support, rmp] = await Promise.allSettled([
       loadHealth(),
       loadTerms(),
       loadUsers(),
       loadBookmarks(),
       loadSupport(),
+      loadRmp(),
     ]);
 
     setData({
@@ -192,6 +206,7 @@ export default function AdminDashboardPage() {
       users: valueFrom(users),
       bookmarks: valueFrom(bookmarks),
       support: valueFrom(support),
+      rmp: valueFrom(rmp),
     });
     setFailures({
       health: health.status === "rejected",
@@ -199,6 +214,7 @@ export default function AdminDashboardPage() {
       users: users.status === "rejected",
       bookmarks: bookmarks.status === "rejected",
       support: support.status === "rejected",
+      rmp: rmp.status === "rejected",
     });
   }, []);
 
