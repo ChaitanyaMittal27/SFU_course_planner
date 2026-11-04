@@ -20,6 +20,8 @@ import {
   AdminBookmarksResponse,
   AdminSupportResponse,
   AdminContactSubmission,
+  RmpLookup,
+  RmpReport,
 } from "@/lib/types";
 import { supabase } from "@/lib/supabase/client";
 
@@ -49,6 +51,27 @@ async function fetchAPI<T>(endpoint: string): Promise<T> {
     return await response.json();
   } catch (error) {
     console.error(`Failed to fetch ${endpoint}:`, error);
+    throw error;
+  }
+}
+
+// ----------------------------
+// Generic POST wrapper (public endpoints, JSON body)
+// ----------------------------
+async function postAPI<T>(endpoint: string, body: unknown): Promise<T> {
+  const url = `${API_BASE_URL}${endpoint}`;
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.status} ${response.statusText}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error(`Failed to post ${endpoint}:`, error);
     throw error;
   }
 }
@@ -122,6 +145,17 @@ export const api = {
   // GET /api/departments/{deptId}/courses/{courseId}/offerings/{semesterCode}
   getOfferingDetail: (deptId: number, courseId: number, semesterCode: number) =>
     fetchAPI<OfferingDetail>(`/api/departments/${deptId}/courses/${courseId}/offerings/${semesterCode}`),
+
+  // -------------------------
+  // Rate My Professors (Public)
+  // -------------------------
+
+  // GET /api/rmp?name={one CourseSys instructor name}&deptCode={}
+  getRmp: (name: string, deptCode: string) =>
+    fetchAPI<RmpLookup>(`/api/rmp?name=${encodeURIComponent(name)}&deptCode=${encodeURIComponent(deptCode)}`),
+
+  // POST /api/rmp/reports — anyone may report that a lookup result looks wrong
+  reportRmpMismatch: (lookupId: number) => postAPI<RmpReport>("/api/rmp/reports", { lookupId }),
 
   // -------------------------
   // About (Public)
@@ -331,4 +365,6 @@ export type {
   AdminBookmarksResponse,
   AdminSupportResponse,
   AdminContactSubmission,
+  RmpLookup,
+  RmpReport,
 };

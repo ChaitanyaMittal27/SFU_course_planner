@@ -1,6 +1,6 @@
 # Rate My Professors (RMP) integration
 
-Backend-only so far; the professor stats card and an admin review flow for reports come later.
+Backend plus the professor cards in the UI. An admin view for reviewing reports comes later.
 
 ## How it works
 
@@ -14,7 +14,8 @@ Backend-only so far; the professor stats card and an admin review flow for repor
    - **No-match stored, checked under 7 days ago** → `NO_MATCH`, without calling RMP.
    - **Nothing stored, or the no-match is older** → identification (below).
 3. **Identification:** every active `rmp_schools` row is searched in parallel, for each name
-   variant (full name; without "(alias)"; first given name + surname), taking `search_limit`
+   variant (full name; without "(alias)"; first given name + surname; for a multi-word surname,
+   first given name + each surname word, skipping particles like "de"/"van"), taking `search_limit`
    results per school. Results from other schools are ignored. Each candidate scores
    `0.8 × name similarity + 0.2 × department similarity` (normalized Levenshtein; department
    compared with `departments.rmp_name`). The best score wins; **below 0.75 it's a no-match**.
@@ -41,9 +42,32 @@ RMP ID being shown at the time. There is no deduplication. Returns 201, or 404 f
 | RMP GraphQL, including the parallel all-schools search | `service/RateMyProfessorsClient` (strict methods for matching) |
 | RMP API shapes (not tables) | `model/rmp/RmpTeacherSearchResult`, `RmpTeacherProfile`, `RmpSchoolSearchResult` |
 | Search threads, clock | `config/RmpConfig` (5 threads) |
+| Instructor section (UI) | `frontend/components/course/InstructorRatings.tsx`, `ProfessorCard.tsx` |
+| Lookup cache and request limit (UI) | `frontend/hooks/useRmpLookups.ts` |
+| Splitting and grouping CourseSys names (UI) | `frontend/lib/instructors.ts` |
+| API calls and types (UI) | `api.getRmp`, `api.reportRmpMismatch` in `frontend/lib/api.ts`; `RmpLookup` etc. in `lib/types.ts` |
 
 Two first-time lookups for the same name + department at the same moment: the second insert
 hits the unique constraint, and the controller then updates the row the first one created.
+
+## Frontend
+
+- **Where:** an "Instructors" section on the offering detail page (between Sections and Grade
+  Distribution) and on the compare page (under the comparison table). Not in the offerings table.
+- **One card per instructor:** `groupSectionsByInstructor` splits co-taught sections on `;`,
+  skips TBA/Staff, and lists each instructor's section codes as chips. Names are sent to the API
+  exactly as CourseSys has them; display order is "Given Surname".
+- **Card contents:** rating, difficulty, would-take-again (rounded %), number of ratings ("—" when
+  null), and the RMP profile link. `NO_MATCH` shows "Not found" plus the RMP search link.
+  `UNAVAILABLE` or a failed request shows a Retry button. No low-sample warnings.
+- **Loading:** automatic on page load, at most 3 requests at once (`MAX_CONCURRENT_RMP_REQUESTS`),
+  with a skeleton per card. Results are cached in memory per tab, keyed by department + name, and
+  in-flight requests are shared. `UNAVAILABLE` and errors are not cached, so Retry asks again.
+- **Report:** shown for `MATCHED` and `NO_MATCH` (any result with a `lookupId`). Clicking opens the
+  RMP search in a new tab and posts the report; the button then reads "Reported". Not persisted:
+  a reload shows the button again.
+- **Tests:** `lib/instructors.test.ts`, `hooks/useRmpLookups.test.tsx`,
+  `components/course/InstructorRatings.test.tsx`, plus RMP cases in `lib/api.test.ts`.
 
 ## Tuning without code
 
@@ -147,7 +171,7 @@ that profile; it is then identified again.
 
 ### 6. Wrong-match reports
 ```
-User clicks "report wrong match" (UI, later)
+User clicks "Report wrong match" on a professor card
         ↓
 POST /api/rmp/reports {lookupId}
         ↓

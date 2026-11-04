@@ -43,3 +43,6 @@ COPY --from=build --chown=node:node /app/next.config.ts ./next.config.ts
 USER node
 EXPOSE 3000
 CMD ["npm", "run", "start"]
+
+# production stage (for later)
+FROM runtime AS prod

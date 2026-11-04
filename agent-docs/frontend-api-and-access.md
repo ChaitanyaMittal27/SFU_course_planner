@@ -8,7 +8,7 @@ The Next.js application uses the App Router. The root layout wraps every page in
 
 ## API contract boundary
 
-`frontend/lib/api.ts` is the ordinary frontend-to-backend boundary and `lib/types.ts` is its companion type contract. Add or change a regular API operation in both places, then update the Spring DTO/controller mapping in the same change. `fetchAuthAPI` obtains the current access token on each call, adds `Authorization: Bearer <token>`, and handles 204 responses for deletes.
+`frontend/lib/api.ts` is the ordinary frontend-to-backend boundary and `lib/types.ts` is its companion type contract. Add or change a regular API operation in both places, then update the Spring DTO/controller mapping in the same change. `fetchAuthAPI` obtains the current access token on each call, adds `Authorization: Bearer <token>`, and handles 204 responses for deletes. `postAPI` is the public (no token) POST counterpart of `fetchAPI`, used by RMP reports.
 
 The public contact form in `app/about/page.tsx` is the intentional direct-fetch exception. Do not use it as a new general pattern.
 
@@ -41,6 +41,7 @@ Security consequences:
 | Terms | `/api/terms/enrolling`, `/api/admin/terms` | public selection logic and admin term manager; affects live-history start point |
 | Admin | `/api/admin/...` | admin pages call `api.*`; user analytics depend on Supabase Auth table access |
 | Contact/support | `/api/contact`, `/api/admin/support/...` | public form creates a persisted support record; admin reply changes its state and attempts email |
+| Rate My Professors | `/api/rmp`, `/api/rmp/reports` | instructor cards on offering detail and compare pages; public, uses `postAPI` for reports; see `agent-docs/rmp.md` |
 
 For API additions, preserve the controller’s error semantics (not found, conflict, forbidden, no-content) because `fetchAPI`/`fetchAuthAPI` expose non-OK responses only as generic errors. If client-specific recovery is needed, design it consciously rather than expecting structured error handling already present in the common wrapper.
 

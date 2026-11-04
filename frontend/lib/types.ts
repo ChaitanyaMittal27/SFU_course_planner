@@ -84,6 +84,38 @@ export interface OfferingDetail {
 }
 
 // ----------------------------
+// Rate My Professors (public)
+// ----------------------------
+export type RmpStatus = "MATCHED" | "NO_MATCH" | "UNAVAILABLE";
+
+// Live RMP ratings for a matched professor. Null numbers mean RMP has no data.
+export interface RmpTeacher {
+  firstName: string;
+  lastName: string;
+  department: string | null; // as RMP lists it, e.g. "Computer Science"
+  avgRating: number | null; // 0–5
+  avgDifficulty: number | null; // 0–5
+  numRatings: number | null;
+  wouldTakeAgainPercent: number | null; // 0–100, unrounded
+  profileUrl: string | null;
+  matchScore: number | null; // 0–1
+}
+
+// GET /api/rmp?name=&deptCode=
+export interface RmpLookup {
+  status: RmpStatus;
+  lookupId: number | null; // null only when UNAVAILABLE before anything was stored
+  searchName: string; // "Margaret Hall"
+  searchUrl: string; // RMP search for the name at SFU
+  teacher: RmpTeacher | null; // present only when MATCHED
+}
+
+// POST /api/rmp/reports
+export interface RmpReport {
+  reportId: number;
+}
+
+// ----------------------------
 // About
 // ----------------------------
 export interface AboutInfo {

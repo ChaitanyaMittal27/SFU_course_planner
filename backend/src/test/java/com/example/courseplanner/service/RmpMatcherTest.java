@@ -103,6 +103,26 @@ class RmpMatcherTest {
     }
 
     @Test
+    void nameVariantsTryEachPartOfATwoPartSurname() {
+        assertEquals(List.of("claudia gomez borquez", "claudia gomez", "claudia borquez"),
+                RmpMatcher.nameVariants("Gomez Borquez, Claudia"));
+        assertTrue(RmpMatcher.nameVariants("Smith-Jones, Anna").containsAll(List.of("anna smith", "anna jones")));
+        // Particles are never a surname on their own.
+        assertEquals(List.of("ana maria de silva", "ana de silva", "ana silva"),
+                RmpMatcher.nameVariants("de Silva, Ana Maria"));
+        assertFalse(RmpMatcher.nameVariants("van der Berg, Jan").contains("jan van"));
+        assertFalse(RmpMatcher.nameVariants("van der Berg, Jan").contains("jan der"));
+    }
+
+    @Test
+    void twoPartSurnameMatchesTheShorterRmpName() {
+        // RMP lists "Claudia Gomez"; CourseSys has "Gomez Borquez, Claudia". Full name alone scores ≈ 0.62.
+        var match = matcher.selectBest(List.of(teacher("a", "Claudia", "Gomez", "Business")),
+                "Gomez Borquez, Claudia", "Business").orElseThrow();
+        assertEquals(1.0, match.score(), 1e-9);
+    }
+
+    @Test
     void nameVariantsRejectHalfNames() {
         assertThrows(IllegalArgumentException.class, () -> RmpMatcher.nameVariants("Hall,"));
         assertThrows(IllegalArgumentException.class, () -> RmpMatcher.nameVariants(", Margaret"));

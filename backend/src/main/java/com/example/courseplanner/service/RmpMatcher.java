@@ -28,6 +28,10 @@ public class RmpMatcher {
     /** CourseSys values that are not a person. */
     private static final Set<String> PLACEHOLDERS = Set.of("staff", "tba", "tbd", "to be announced");
 
+    /** Surname words that are never a surname on their own ("de Silva" never becomes "Ana De"). */
+    private static final Set<String> SURNAME_PARTICLES =
+            Set.of("van", "von", "der", "den", "del", "della", "dos", "das", "les", "bin", "ibn");
+
     public record Match(RmpTeacherSearchResult teacher, double score) {}
 
     /**
@@ -88,9 +92,11 @@ public class RmpMatcher {
 
     /**
      * Search/scoring variants of a CourseSys "Surname, Given names" value:
-     * the full name, the name without "(alias)", and first given name + full surname.
-     * "Ganzon, Sarah Christina" → ["sarah christina ganzon", "sarah ganzon"].
-     * Compound surnames are kept whole because the comma marks where the surname ends.
+     * the full name, the name without "(alias)", first given name + full surname, and, for a
+     * multi-word surname, first given name + each surname word (particles like "de"/"van" skipped).
+     * "Ganzon, Sarah Christina" → ["sarah christina ganzon", "sarah ganzon"];
+     * "Gomez Borquez, Claudia" → ["claudia gomez borquez", "claudia gomez", "claudia borquez"].
+     * Each variant is also an RMP search, so a two-word surname costs two more searches per school.
      *
      * @throws IllegalArgumentException if the name has no searchable text or an empty side of the comma
      */
@@ -104,9 +110,19 @@ public class RmpMatcher {
             if (surname.isEmpty() || given.isEmpty()) {
                 throw new IllegalArgumentException("Instructor name needs a surname and a given name");
             }
+            String firstGiven = given.split("\\s+")[0];
             names.add(lower(parts[1] + " " + parts[0]));
             names.add(lower(given + " " + surname));
-            names.add(lower(given.split("\\s+")[0] + " " + surname));
+            names.add(lower(firstGiven + " " + surname));
+            // RMP often lists only one part of a two-part surname ("Gomez Borquez" → "Claudia Gomez").
+            String[] surnameParts = surname.split("[\\s-]+");
+            if (surnameParts.length > 1) {
+                for (String part : surnameParts) {
+                    if (part.length() > 2 && !SURNAME_PARTICLES.contains(part.toLowerCase(Locale.ROOT))) {
+                        names.add(lower(firstGiven + " " + part));
+                    }
+                }
+            }
         } else {
             names.add(lower(decoded));
             names.add(lower(decoded.replaceAll("\\([^)]*\\)", " ")));

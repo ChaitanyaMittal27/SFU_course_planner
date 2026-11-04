@@ -81,4 +81,32 @@ describe("API client", () => {
     fetchMock.mockResolvedValueOnce(response({}, 500, "Server Error"));
     await expect(api.getDepartments()).rejects.toThrow("API Error: 500 Server Error");
   });
+  it("looks up RMP ratings with an encoded instructor name and department", async () => {
+    fetchMock.mockResolvedValueOnce(response({ status: "NO_MATCH", lookupId: 2 }));
+    const { api } = await import("@/lib/api");
+
+    await expect(api.getRmp("O'Doherty, Tamara", "crim")).resolves.toEqual({ status: "NO_MATCH", lookupId: 2 });
+    expect(fetchMock).toHaveBeenCalledWith("https://api.test/api/rmp?name=O'Doherty%2C%20Tamara&deptCode=crim");
+  });
+
+  it("reports an RMP match without requiring a session", async () => {
+    supabaseMocks.getSession.mockResolvedValue({ data: { session: null } });
+    fetchMock.mockResolvedValueOnce(response({ reportId: 9 }, 201, "Created"));
+    const { api } = await import("@/lib/api");
+
+    await expect(api.reportRmpMismatch(7)).resolves.toEqual({ reportId: 9 });
+    expect(fetchMock).toHaveBeenCalledWith("https://api.test/api/rmp/reports", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lookupId: 7 }),
+    });
+  });
+
+  it("surfaces a failed RMP report as an error", async () => {
+    fetchMock.mockResolvedValueOnce(response({}, 404, "Not Found"));
+    const { api } = await import("@/lib/api");
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await expect(api.reportRmpMismatch(404)).rejects.toThrow("API Error: 404 Not Found");
+  });
 });

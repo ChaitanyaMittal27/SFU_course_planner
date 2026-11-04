@@ -6,6 +6,7 @@ import { bodyStyles, headerStyles, labelStyles } from "@/app/fonts";
 import ErrorMessage from "@/components/feedback/ErrorMessage";
 import LoadingSpinner from "@/components/feedback/LoadingSpinner";
 import TaskEmptyState from "@/components/feedback/TaskEmptyState";
+import InstructorRatings from "@/components/course/InstructorRatings";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { api, type CourseOffering } from "@/lib/api";
@@ -193,6 +194,14 @@ export default function SectionComparisonResults({
                 </TableBody>
               </Table>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {comparisonSections.length >= 2 && (
+        <Card className="mt-6 p-5 sm:p-6">
+          <CardContent className="p-0">
+            <InstructorRatings sections={comparisonSections} deptCode={course.deptCode} />
           </CardContent>
         </Card>
       )}
