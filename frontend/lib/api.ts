@@ -20,6 +20,9 @@ import {
   AdminBookmarksResponse,
   AdminSupportResponse,
   AdminContactSubmission,
+  AdminRmpReport,
+  RmpLookup,
+  RmpReport,
 } from "@/lib/types";
 import { supabase } from "@/lib/supabase/client";
 
@@ -54,6 +57,42 @@ async function fetchAPI<T>(endpoint: string): Promise<T> {
 }
 
 // ----------------------------
+// Generic POST wrapper (public endpoints, JSON body)
+// ----------------------------
+async function postAPI<T>(endpoint: string, body: unknown): Promise<T> {
+  const url = `${API_BASE_URL}${endpoint}`;
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.status} ${response.statusText}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error(`Failed to post ${endpoint}:`, error);
+    throw error;
+  }
+}
+
+// ----------------------------
+// Error with the HTTP status, thrown by fetchAuthAPI for non-OK responses.
+// The message is unchanged ("API Error: 404 Not Found"), so callers that only show the
+// message keep working; callers that need to react to a specific status read `status`.
+// ----------------------------
+export class ApiError extends Error {
+  readonly status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
+// ----------------------------
 // Generic fetch wrapper (authenticated endpoints)
 // fetchAuthAPI automatically:
 //    a) Gets token: const token = await getAuthToken();
@@ -80,9 +119,9 @@ async function fetchAuthAPI<T>(endpoint: string, options: RequestInit = {}): Pro
 
     if (!response.ok) {
       if (response.status === 401) {
-        throw new Error("Session expired - please log in again");
+        throw new ApiError(401, "Session expired - please log in again");
       }
-      throw new Error(`API Error: ${response.status} ${response.statusText}`);
+      throw new ApiError(response.status, `API Error: ${response.status} ${response.statusText}`);
     }
 
     // Handle 204 No Content (DELETE responses)
@@ -122,6 +161,17 @@ export const api = {
   // GET /api/departments/{deptId}/courses/{courseId}/offerings/{semesterCode}
   getOfferingDetail: (deptId: number, courseId: number, semesterCode: number) =>
     fetchAPI<OfferingDetail>(`/api/departments/${deptId}/courses/${courseId}/offerings/${semesterCode}`),
+
+  // -------------------------
+  // Rate My Professors (Public)
+  // -------------------------
+
+  // GET /api/rmp?name={one CourseSys instructor name}&deptCode={}
+  getRmp: (name: string, deptCode: string) =>
+    fetchAPI<RmpLookup>(`/api/rmp?name=${encodeURIComponent(name)}&deptCode=${encodeURIComponent(deptCode)}`),
+
+  // POST /api/rmp/reports — anyone may report that a lookup result looks wrong
+  reportRmpMismatch: (lookupId: number) => postAPI<RmpReport>("/api/rmp/reports", { lookupId }),
 
   // -------------------------
   // About (Public)
@@ -306,6 +356,23 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message }),
     }),
+
+  getAdminRmpReports: () => fetchAuthAPI<AdminRmpReport[]>("/api/admin/rmp/reports"),
+
+  // "Match is correct": resolves the lookup's reports and changes nothing else
+  dismissRmpReports: (lookupId: number) =>
+    fetchAuthAPI<void>(`/api/admin/rmp/reports/${lookupId}/dismiss`, { method: "PATCH" }),
+
+  setRmpNoMatch: (lookupId: number) =>
+    fetchAuthAPI<void>(`/api/admin/rmp/reports/${lookupId}/no-match`, { method: "PATCH" }),
+
+  // legacyId is the number in ratemyprofessors.com/professor/{id}
+  setRmpProfessor: (lookupId: number, legacyId: number) =>
+    fetchAuthAPI<void>(`/api/admin/rmp/reports/${lookupId}/professor`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ legacyId }),
+    }),
 };
 
 // Export types
@@ -331,4 +398,7 @@ export type {
   AdminBookmarksResponse,
   AdminSupportResponse,
   AdminContactSubmission,
+  AdminRmpReport,
+  RmpLookup,
+  RmpReport,
 };

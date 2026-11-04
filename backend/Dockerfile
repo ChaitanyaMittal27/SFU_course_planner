@@ -32,3 +32,6 @@ ENV SERVER_PORT=5000
 COPY --from=builder /workspace/build/libs/*.jar app.jar
 EXPOSE 5000
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+
+# production stage (for later)
+FROM runtime AS prod

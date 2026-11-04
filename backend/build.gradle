@@ -37,6 +37,14 @@ tasks.named('bootJar') {
     enabled = true
 }
 
+tasks.register('rmpManual', JavaExec) {
+    group = 'verification'
+    description = 'Run the interactive Rate My Professors client check.'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.example.courseplanner.service.ManualRateMyProfessorsClientRunner'
+    standardInput = System.in
+}
+
 // Make sure main class is specified
 bootJar {
     mainClass = 'com.example.courseplanner.Application'

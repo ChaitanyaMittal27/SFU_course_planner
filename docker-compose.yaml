@@ -1,3 +1,4 @@
+# this dockercompose is for dev only. (all tragets dev)
 services:
   backend:
     build:

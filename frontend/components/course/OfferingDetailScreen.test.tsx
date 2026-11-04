@@ -6,6 +6,11 @@ const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 vi.mock("@/components/course/BookmarkButton", () => ({ default: () => <button>Bookmark</button> }));
 vi.mock("@/components/analytics/GradeHistogram", () => ({ default: () => <div>Grade chart</div> }));
+vi.mock("@/components/course/InstructorRatings", () => ({
+  default: ({ sections, deptCode }: { sections: unknown[]; deptCode: string }) => (
+    <div>Instructor ratings for {sections.length} sections in {deptCode}</div>
+  ),
+}));
 
 import OfferingDetailScreen from "@/components/course/OfferingDetailScreen";
 
@@ -21,6 +26,7 @@ describe("OfferingDetailScreen", () => {
     render(<OfferingDetailScreen detail={detail} backHref="/browse/cmpt/225" />);
     expect(screen.getByText("Data Structures")).toBeInTheDocument();
     expect(screen.getByText("Grade chart")).toBeInTheDocument();
+    expect(screen.getByText("Instructor ratings for 1 sections in CMPT")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Open outline" })).toHaveAttribute("href", "https://www.sfu.ca/outlines.html?2026/summer/cmpt/225/d100");
 
     await user.click(screen.getByRole("button", { name: "Back to offerings" }));
@@ -31,5 +37,6 @@ describe("OfferingDetailScreen", () => {
     render(<OfferingDetailScreen detail={{ ...detail, sections: [], gradeDistribution: null }} backHref="/browse/cmpt/225" />);
     expect(screen.getByText("No section data found.")).toBeInTheDocument();
     expect(screen.queryByText("Grade chart")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Instructor ratings/)).not.toBeInTheDocument();
   });
 });
