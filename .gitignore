@@ -69,10 +69,6 @@ local_docs/
 
 # Local test reports are generated artifacts, not source files.
 /test-logs/
-
 test-docs/backend/
 test-docs/frontend/
-
-# RMP planning recordings (local reference only) and Python caches
-/test/rmp/legacy/
 __pycache__/
