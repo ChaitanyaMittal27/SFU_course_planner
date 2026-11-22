@@ -55,12 +55,12 @@ export default function Navigation() {
   };
 
   return (
-    <nav className="sticky top-0 z-30 bg-nav-bg border-t-2 border-t-nav-border-top shadow-[0_1px_0_var(--border)]">
+    <nav className="sticky top-0 z-30 bg-nav-bg border-b border-nav-border">
       <div className="max-w-[1180px] mx-auto px-4 sm:px-7 h-[var(--app-nav-height)] flex items-center justify-between gap-6">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5 shrink-0">
-          <div className="w-[30px] h-[30px] rounded-[7px] bg-primary-foreground flex items-center justify-center">
-            <span className="font-display font-bold text-[13px] text-nav-bg tracking-tight">
+          <div className="w-[30px] h-[30px] rounded-[7px] bg-primary flex items-center justify-center">
+            <span className="font-display font-bold text-[13px] text-primary-foreground tracking-tight">
               SFU
             </span>
           </div>
@@ -83,7 +83,7 @@ export default function Navigation() {
               <Icon className="w-4 h-4" />
               <span>{name}</span>
               {isActive(href) && (
-                <span className="absolute left-3 right-3 bottom-0 h-0.5 rounded-sm bg-nav-text" />
+                <span className="absolute left-3 right-3 bottom-0 h-0.5 rounded-sm bg-nav-active" />
               )}
             </Link>
           ))}
@@ -147,7 +147,7 @@ export default function Navigation() {
                 className="flex items-center gap-1.5 text-nav-text hover:text-nav-muted transition-colors"
                 aria-label="Profile menu"
               >
-                <div className="w-8 h-8 bg-primary-foreground text-nav-bg rounded-full flex items-center justify-center font-semibold text-sm shrink-0">
+                <div className="w-8 h-8 bg-surface-raised text-text-primary rounded-full flex items-center justify-center font-semibold text-sm shrink-0">
                   {getUserInitials()}
                 </div>
                 <ChevronDown className="w-4 h-4" />
@@ -249,7 +249,7 @@ export default function Navigation() {
                   <Link
                     href="/login?tab=signup"
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`${labelStyles.lg} px-3 py-2 bg-primary-foreground text-nav-bg rounded flex items-center justify-center font-medium`}
+                    className={`${labelStyles.lg} px-3 py-2 bg-primary text-primary-foreground rounded flex items-center justify-center font-medium`}
                   >
                     Sign up
                   </Link>
@@ -281,7 +281,7 @@ export default function Navigation() {
                       setMobileMenuOpen(false);
                       handleSignOut();
                     }}
-                    className={`${labelStyles.lg} w-full px-3 py-2 text-destructive hover:bg-nav-text/10 flex items-center gap-2 rounded`}
+                    className={`${labelStyles.lg} w-full px-3 py-2 text-destructive-text hover:bg-nav-text/10 flex items-center gap-2 rounded`}
                   >
                     <LogOut className="w-5 h-5" />
                     Sign Out

@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { inter, geist } from "@/app/fonts";
+import { geist, geistMono } from "@/app/fonts";
 import "./globals.css";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Analytics } from "@vercel/analytics/react";
 import AppShell from "@/components/layout/AppShell";
+import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
   title: "SFU Course Planner — Plan Properly. Regret Less.",
@@ -22,22 +23,25 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning className={`scroll-smooth ${inter.variable} ${geist.variable}`}>
+    <html lang="en" suppressHydrationWarning className={`${geist.variable} ${geistMono.variable}`}>
       <head>
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              try {
-                const theme = localStorage.getItem('theme') || 'dark';
-                document.documentElement.classList.add(theme);
-                if (theme === 'dark') {
-                  document.documentElement.classList.remove('light');
-                } else {
-                  document.documentElement.classList.remove('dark');
-                }
-              } catch (e) {
-                document.documentElement.classList.add('dark');
-              }
+              (function () {
+                var root = document.documentElement;
+                var theme = 'dark';
+                try {
+                  var stored = localStorage.getItem('theme');
+                  if (stored === 'light' || stored === 'dark') {
+                    theme = stored;
+                  } else if (window.matchMedia) {
+                    theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                  }
+                } catch (e) {}
+                root.classList.add(theme);
+                root.classList.remove(theme === 'dark' ? 'light' : 'dark');
+              })();
             `,
           }}
         />
@@ -48,6 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <AppShell>{children}</AppShell>
           </NuqsAdapter>
         </AuthProvider>
+        <Toaster />
         <Analytics />
       </body>
     </html>

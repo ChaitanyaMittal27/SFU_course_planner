@@ -2,7 +2,8 @@
 
 This is a product-hardening backlog derived from the repository audit. It is ordered by expected risk reduction and enabling value; it is not a release plan.
 
-0. RMP follow-ups (backend, professor cards and admin review done, see `agent-docs/rmp.md`): update `test/rmp/manual.py` wording to the live-fetch approach; review `departments.rmp_name` labels against real RMP results.
+0. RMP health card in admin.
+0.5. current test coverage + add more.
 1. Fix backend CORS for Vercel previews: `allowedOrigins("https://*.vercel.app")` is literal, so preview origins currently receive 403. Use an intentional Spring origin-pattern strategy without widening production access unnecessarily.
 2. Normalize missing/invalid bearer-auth responses to 401. Required `Authorization` headers currently fail in Spring MVC with 400 before `JwtService`/the global handler can apply the documented authentication contract.
 3. Add a small browser-level end-to-end suite for critical user flows: auth, canonical routes, bookmarks, and dashboard states. The Vitest unit/component suite already covers these flows with mocked boundaries.
@@ -15,6 +16,8 @@ This is a product-hardening backlog derived from the repository audit. It is ord
 13. Standardize Python ingestion-script configuration, credential handling, execution instructions, and data-safety expectations.
 14. Improve observability for CourseSys and email: structured failures, latency visibility, and meaningful health checks.
 15. Add the Spring Boot validation provider before relying on Jakarta Bean Validation annotations; the current application starts with a missing-provider warning.
+16. ~~Fix the flaky frontend build (Next 16.3.x Turbopack `next/font/google` Inter resolve failure, vercel/next.js#97344).~~ Done: Inter was removed; the UI now uses Geist and Geist Mono only (UI refresh Batch 0). Three consecutive clean `next build` runs passed.
+17. Full course search: add GET /api/courses (all courses with dept code, number, title) so the browse search can match titles and fuzzy queries across every department. Frontend search is limited to course-code matching until then. Ship in the same backend release as the RMP health check.
 
 Backend Java unit/MVC coverage and frontend Vitest unit/component coverage are complete for the current implementation. The next test layers are browser-level E2E and local Supabase database behavior; neither is replaced by mocked unit/component suites.
 

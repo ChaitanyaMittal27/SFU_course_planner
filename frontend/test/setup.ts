@@ -3,8 +3,8 @@ import { cleanup } from "@testing-library/react";
 import { afterEach, vi } from "vitest";
 
 vi.mock("next/font/google", () => ({
-  Inter: () => ({ variable: "--font-inter" }),
   Geist: () => ({ variable: "--font-geist" }),
+  Geist_Mono: () => ({ variable: "--font-geist-mono" }),
 }));
 
 afterEach(() => {

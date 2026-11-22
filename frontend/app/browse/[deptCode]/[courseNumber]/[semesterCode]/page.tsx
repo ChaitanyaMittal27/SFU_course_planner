@@ -46,13 +46,13 @@ export default function CanonicalOfferingDetailPage() {
   }, [resolvedCourse, routeKey, semesterCode]);
 
   if (route.status === "invalid" || semesterCode === null) {
-    return <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10"><ErrorMessage message="This offering link is invalid." /></main>;
+    return <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10"><ErrorMessage message="This offering link is invalid." /></div>;
   }
   if (route.status === "notFound") {
-    return <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10"><ErrorMessage message="This offering could not be found." /></main>;
+    return <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10"><ErrorMessage message="This offering could not be found." /></div>;
   }
   if (route.status === "error" || error) {
-    return <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10"><ErrorMessage message={error ?? "Failed to resolve this offering link."} /></main>;
+    return <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10"><ErrorMessage message={error ?? "Failed to resolve this offering link."} /></div>;
   }
   if (route.status !== "resolved" || !detail || detail.routeKey !== routeKey) return <LoadingSpinner />;
 

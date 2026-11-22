@@ -1,8 +1,8 @@
 "use client";
 
 import type { CourseOffering, TermInfo } from "@/lib/types";
-import LoadBar from "@/components/dashboard/LoadBar";
-import StatusBadge from "@/components/dashboard/StatusBadge";
+import LoadBar from "@/components/enrollment/LoadBar";
+import StatusBadge from "@/components/enrollment/StatusBadge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { bodyStyles } from "@/app/fonts";
 

@@ -12,18 +12,26 @@ function applyTheme(theme: Theme) {
   root.classList.toggle("light", theme === "light");
 }
 
+const DARK_QUERY = "(prefers-color-scheme: dark)";
+
 function subscribeToTheme(listener: () => void) {
+  const media = window.matchMedia?.(DARK_QUERY);
   window.addEventListener("storage", listener);
   window.addEventListener(THEME_EVENT, listener);
+  media?.addEventListener?.("change", listener);
 
   return () => {
     window.removeEventListener("storage", listener);
     window.removeEventListener(THEME_EVENT, listener);
+    media?.removeEventListener?.("change", listener);
   };
 }
 
+// An explicit saved choice wins; otherwise follow the OS preference.
 function getThemeSnapshot(): Theme {
-  return localStorage.getItem("theme") === "light" ? "light" : "dark";
+  const stored = localStorage.getItem("theme");
+  if (stored === "light" || stored === "dark") return stored;
+  return window.matchMedia?.(DARK_QUERY).matches ? "dark" : "light";
 }
 
 function getServerThemeSnapshot(): Theme {

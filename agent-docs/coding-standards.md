@@ -27,4 +27,10 @@ These are project conventions that prevent regressions across the Spring API, Ne
 
 - Keep API access in `lib/api.ts`, route construction in `lib/course-routes.ts`, and auth ownership split between `proxy.ts` (guard/refresh) and `AuthContext` (UI state).
 - Reuse semantic UI tokens from `app/globals.css`, typography from `app/fonts.ts`, and components from the responsibility-based `components/` folders. Do not introduce page-local color or typography systems.
+- Typography: Geist is the single UI font and Geist Mono is for data. `app/fonts.ts` is the only type scale; use `numericStyles` (Geist Mono, tabular figures) for seat counts, percentages, ratings, and grades.
+- Colour: text must meet WCAG AA (4.5:1) on `background` and `surface` in both themes. Use the text-safe tokens for coloured text (`text-accent-text`, `text-success-text`, `text-warning-text`, `text-destructive-text`) and the `*-tint` tokens for badge/alert backgrounds; the plain `success`/`warning`/`destructive`/`accent` tokens are fills (bars, dots, solid buttons).
+- Radius: use `rounded-sm`, `rounded-md`, or `rounded-lg` from the `--radius` scale (plus `rounded-full` for pills/avatars). Do not use arbitrary `rounded-[Npx]` values.
+- Layout: wrap pages in `PageContainer` (the single `max-w-page` / 1180px width, renders a `<div>` inside AppShell's `<main>`) and start each page with `PageHeader` (its one `<h1>`, optional description and actions).
+- Motion: keep it subtle and make sure it respects `prefers-reduced-motion` (a global rule in `globals.css` disables animations/transitions; JS-driven motion such as `useScrollReveal` must check the media query itself).
+- Seat-load status (Open / Almost full / Full) comes only from `lib/enrollment-status.ts`, whose thresholds match the backend email digest.
 - Add or update colocated Vitest/React Testing Library tests for changed frontend behavior. Mock Supabase, navigation, and API boundaries; cover the successful flow plus relevant loading, error, empty, authorization, or canonical-route behavior. Run `npm run test`, `npm run lint`, and `npm run build` before handoff.

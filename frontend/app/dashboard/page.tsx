@@ -10,8 +10,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import LoadingSpinner from "@/components/feedback/LoadingSpinner";
 import ErrorMessage from "@/components/feedback/ErrorMessage";
 import ProfileAvatar from "@/components/dashboard/ProfileAvatar";
-import LoadBar from "@/components/dashboard/LoadBar";
-import StatusBadge from "@/components/dashboard/StatusBadge";
+import LoadBar from "@/components/enrollment/LoadBar";
+import StatusBadge from "@/components/enrollment/StatusBadge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,9 +26,6 @@ const formatTerm = (term: string, year: number) =>
 
 const toTitleCase = (str: string) =>
   str.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
-
-const getStatusFromLoad = (loadPercent: number): string =>
-  loadPercent >= 95 ? "Almost full" : loadPercent >= 80 ? "Filling" : "Open";
 
 function DashboardPageContent() {
   const router = useRouter();
@@ -452,7 +449,7 @@ function DashboardPageContent() {
                                             {courseInfo.deptCode} {courseInfo.courseNumber}
                                           </span>
                                           {offering && (
-                                            <StatusBadge status={getStatusFromLoad(offering.loadPercent)} />
+                                            <StatusBadge loadPercent={offering.loadPercent} />
                                           )}
                                         </div>
                                         <div className={`${bodyStyles.sm} text-text-muted truncate max-w-xs mt-0.5`}>

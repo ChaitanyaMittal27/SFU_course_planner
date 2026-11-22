@@ -1,51 +1,44 @@
-import { Inter, Geist } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 
-export const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-});
-
+// One UI font (Geist) plus Geist Mono for tabular data.
 export const geist = Geist({
   variable: "--font-geist",
   subsets: ["latin"],
   display: "swap",
 });
 
+export const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+  display: "swap",
+});
+
 // ============================================
 // FONT STYLE CONSTANTS
-// All typography in the app uses these.
+// This file is the only type scale in the app.
 // Never hardcode font sizes inline in JSX.
 // ============================================
 
-// Display — hero text, splash screen, big numbers
+// Display — page titles and large headings
 export const displayStyles = {
-  lg: "font-display text-[2.5rem] font-semibold leading-[1.1]",
-  md: "font-display text-[2rem] font-semibold leading-[1.1]",
-  sm: "text-[1.5rem] font-semibold leading-[1.2]",
+  sm: "text-[1.5rem] font-semibold leading-[1.2] tracking-tight",
 
-  // Responsive variants
-  lgResponsive: "font-display text-[1.75rem] md:text-[2.5rem] font-semibold leading-[1.1]",
-  mdResponsive: "font-display text-[1.5rem] md:text-[2rem] font-semibold leading-[1.1]",
+  // Responsive page title
+  mdResponsive: "text-[1.5rem] md:text-[2rem] font-semibold leading-[1.1] tracking-tight",
 
-  // Hero — splash screen / fullscreen takeover only
-  hero: "font-display text-[3.75rem] md:text-[4.5rem] font-bold leading-[1.1] tracking-tight",
+  // Hero — splash screen only (removed with the splash)
+  hero: "text-[3.75rem] md:text-[4.5rem] font-bold leading-[1.1] tracking-tight",
 
   // Landing — main landing page heading
-  landing: "font-display text-[2rem] md:text-[3.25rem] font-semibold leading-[1.04] tracking-tight",
+  landing: "text-[2rem] md:text-[3.25rem] font-semibold leading-[1.04] tracking-tight",
 };
 
-// Headers — page titles, section headings, card titles
+// Headers — section headings, card titles
 export const headerStyles = {
   lg: "text-[1.25rem] font-semibold leading-[1.3]",
   md: "text-[1.125rem] font-semibold leading-[1.3]",
   sm: "text-[1rem] font-semibold leading-[1.4]",
   xs: "text-[0.875rem] font-semibold leading-[1.4]",
-
-  // Responsive variants
-  lgResponsive: "text-[1.125rem] md:text-[1.25rem] font-semibold leading-[1.3]",
-  mdResponsive: "text-[1rem] md:text-[1.125rem] font-semibold leading-[1.3]",
 };
 
 // Body — paragraph text, descriptions, content
@@ -62,9 +55,16 @@ export const labelStyles = {
   sm: "text-[0.6875rem] font-medium leading-[1.2]",
 };
 
-// Buttons — CTA text, nav links, interactive elements
+// Buttons — nav links and other interactive text
 export const buttonStyles = {
-  lg: "text-[1rem] font-medium leading-[1.2]",
   md: "text-[0.875rem] font-medium leading-[1.2]",
-  sm: "text-[0.75rem] font-medium leading-[1.2]",
+};
+
+// Numeric — seat counts, percentages, ratings, grades.
+// Geist Mono with tabular figures so columns of numbers align.
+export const numericStyles = {
+  base: "font-mono tabular-nums",
+  lg: "font-mono tabular-nums text-[1.25rem] font-medium leading-[1.2]",
+  md: "font-mono tabular-nums text-[0.875rem] leading-[1.4]",
+  sm: "font-mono tabular-nums text-[0.75rem] leading-[1.4]",
 };
