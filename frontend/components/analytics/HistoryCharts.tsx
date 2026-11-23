@@ -17,7 +17,6 @@ const toneFill: Record<EnrollmentTone, string> = {
 };
 
 const chartClass = "aspect-auto h-60 w-full sm:h-80";
-const axisTick = { fontSize: 11 };
 
 function useChartRows(points: EnrollmentDataPoint[]) {
   // Below sm there is room for short labels only ("F26").
@@ -29,7 +28,7 @@ function ValueRow({ label, value, color }: { label: string; value: string; color
   return (
     <div className="flex w-full items-center justify-between gap-4">
       <span className="flex items-center gap-1.5 text-text-muted">
-        <span aria-hidden="true" className="size-2 rounded-xs" style={{ background: color }} />
+        <span aria-hidden="true" className="size-2 rounded-sm" style={{ background: color }} />
         {label}
       </span>
       <span className={numericStyles.base}>{value}</span>
@@ -45,8 +44,8 @@ export function LoadChart({ points }: { points: EnrollmentDataPoint[] }) {
     <ChartContainer config={loadConfig} className={chartClass}>
       <BarChart data={rows} margin={{ top: 18, right: 8, left: 0, bottom: 0 }}>
         <CartesianGrid vertical={false} />
-        <XAxis dataKey="label" tickLine={false} axisLine={false} tick={axisTick} minTickGap={6} />
-        <YAxis domain={[0, 110]} ticks={[0, 25, 50, 75, 100]} allowDataOverflow tickFormatter={(v: number) => `${v}%`} width={40} tickLine={false} axisLine={false} tick={axisTick} />
+        <XAxis dataKey="label" tickLine={false} axisLine={false} minTickGap={6} />
+        <YAxis domain={[0, 110]} ticks={[0, 25, 50, 75, 100]} allowDataOverflow tickFormatter={(v: number) => `${v}%`} width={40} tickLine={false} axisLine={false} />
         <ChartTooltip
           cursor={false}
           content={
@@ -62,7 +61,7 @@ export function LoadChart({ points }: { points: EnrollmentDataPoint[] }) {
           y={100}
           stroke="var(--text-muted)"
           strokeDasharray="4 4"
-          label={{ value: "100% full", position: "insideTopRight", fill: "var(--text-muted)", fontSize: 11 }}
+          label={{ value: "100% full", position: "insideTopRight", fill: "var(--text-muted)" }}
         />
         <Bar dataKey="loadPercent" radius={[3, 3, 0, 0]} maxBarSize={36}>
           {rows.map((row) => (
@@ -85,8 +84,8 @@ export function EnrollmentChart({ points }: { points: EnrollmentDataPoint[] }) {
     <ChartContainer config={enrollmentConfig} className={chartClass}>
       <BarChart data={rows} margin={{ top: 18, right: 8, left: 0, bottom: 0 }} barGap={2}>
         <CartesianGrid vertical={false} />
-        <XAxis dataKey="label" tickLine={false} axisLine={false} tick={axisTick} minTickGap={6} />
-        <YAxis allowDecimals={false} width={40} tickLine={false} axisLine={false} tick={axisTick} />
+        <XAxis dataKey="label" tickLine={false} axisLine={false} minTickGap={6} />
+        <YAxis allowDecimals={false} width={40} tickLine={false} axisLine={false} />
         <ChartTooltip
           cursor={false}
           content={
@@ -107,7 +106,7 @@ export function EnrollmentChart({ points }: { points: EnrollmentDataPoint[] }) {
 }
 
 function Swatch({ className }: { className?: string }) {
-  return <span aria-hidden="true" className={cn("inline-block size-2.5 rounded-xs", className)} />;
+  return <span aria-hidden="true" className={cn("inline-block size-2.5 rounded-sm", className)} />;
 }
 
 /** Legends for the chart card header. */

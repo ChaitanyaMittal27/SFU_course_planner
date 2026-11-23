@@ -17,11 +17,6 @@ interface ProfessorCardProps {
   state: RmpLookupState;
   onRetry: () => void;
   onReport: (lookupId: number) => Promise<unknown>;
-  /**
-   * "card": a standalone bordered card (grids, e.g. Compare sections).
-   * "row": a borderless row inside an Instructors card, rating on the left.
-   */
-  layout?: "card" | "row";
 }
 
 type ReportState = "idle" | "reporting" | "reported" | "failed";
@@ -34,10 +29,10 @@ function formatPercent(value: number | null) {
   return value === null ? "—" : `${Math.round(value)}%`;
 }
 
-function OverallRating({ value, loading, stacked }: { value: number | null; loading: boolean; stacked: boolean }) {
+function OverallRating({ value, loading }: { value: number | null; loading: boolean }) {
   if (loading) return <Skeleton aria-hidden="true" className="h-9 w-16" />;
   return (
-    <p className={cn("flex gap-1.5", stacked ? "flex-col gap-1" : "items-baseline")}>
+    <p className="flex flex-col gap-1">
       <span className={cn(numericStyles.display, value === null ? "text-text-subtle" : "text-text-primary")}>
         {value === null ? "—" : value.toFixed(1)}
       </span>
@@ -53,11 +48,11 @@ function RatingDetails({ teacher }: { teacher: RmpTeacher }) {
     { label: "Number of ratings", value: teacher.numRatings === null ? "—" : String(teacher.numRatings) },
   ];
   return (
-    <dl className="grid grid-cols-3 gap-3">
+    <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
       {details.map(({ label, value }) => (
         <div key={label} className="flex flex-col-reverse gap-0.5">
           <dt className={cn(bodyStyles.sm, "text-text-subtle")}>{label}</dt>
-          <dd className={cn(numericStyles.md, "text-text-primary")}>{value}</dd>
+          <dd className={cn(numericStyles.md, "whitespace-nowrap text-text-primary")}>{value}</dd>
         </div>
       ))}
     </dl>
@@ -98,7 +93,8 @@ const reportLabels: Record<ReportState, string> = {
   failed: "Couldn't report, try again",
 };
 
-export default function ProfessorCard({ name, sections, state, onRetry, onReport, layout = "card" }: ProfessorCardProps) {
+/** One professor as a borderless row inside the Instructors card, rating on the left. */
+export default function ProfessorCard({ name, sections, state, onRetry, onReport }: ProfessorCardProps) {
   const [report, setReport] = useState<ReportState>("idle");
   const lookup = state.status === "loaded" ? state.lookup : null;
   const displayName = lookup?.searchName || name;
@@ -106,7 +102,6 @@ export default function ProfessorCard({ name, sections, state, onRetry, onReport
   const failed = state.status === "error" || lookup?.status === "UNAVAILABLE";
   const teacher = lookup?.status === "MATCHED" ? lookup.teacher : null;
   const canReport = lookup !== null && lookup.status !== "UNAVAILABLE" && lookup.lookupId !== null;
-  const isRow = layout === "row";
 
   const handleReport = async () => {
     if (!lookup || lookup.lookupId === null) return;
@@ -174,30 +169,14 @@ export default function ProfessorCard({ name, sections, state, onRetry, onReport
     </>
   );
 
-  // The big rating shows for matches and while loading; a row always shows it ("—" without a match).
-  const showOverall = isRow || loading || teacher !== null;
-
+  // The overall rating always shows ("—" without a match).
   return (
-    <article
-      aria-busy={loading}
-      aria-label={displayName}
-      className={isRow ? "grid grid-cols-[5.5rem_minmax(0,1fr)] gap-x-4 py-4" : "rounded-lg border border-border bg-surface p-4"}
-    >
-      {isRow ? (
-        <>
-          <OverallRating value={teacher?.avgRating ?? null} loading={loading} stacked />
-          <div className="space-y-3">
-            {identity}
-            {body}
-          </div>
-        </>
-      ) : (
-        <div className="space-y-4">
-          {identity}
-          {showOverall && <OverallRating value={teacher?.avgRating ?? null} loading={loading} stacked={false} />}
-          {body}
-        </div>
-      )}
+    <article aria-busy={loading} aria-label={displayName} className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-x-4 py-4">
+      <OverallRating value={teacher?.avgRating ?? null} loading={loading} />
+      <div className="space-y-3">
+        {identity}
+        {body}
+      </div>
     </article>
   );
 }

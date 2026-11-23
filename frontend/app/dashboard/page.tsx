@@ -12,8 +12,7 @@ import SummaryRow from "@/components/course/SummaryRow";
 import LoadBar from "@/components/enrollment/LoadBar";
 import StatusBadge from "@/components/enrollment/StatusBadge";
 import ErrorMessage from "@/components/feedback/ErrorMessage";
-import LoadingSpinner from "@/components/feedback/LoadingSpinner";
-import { TableRowsSkeleton } from "@/components/feedback/Skeletons";
+import { TableRowsSkeleton, PageSkeleton } from "@/components/feedback/Skeletons";
 import TaskEmptyState from "@/components/feedback/TaskEmptyState";
 import PageContainer from "@/components/layout/PageContainer";
 import PageHeader from "@/components/layout/PageHeader";
@@ -167,21 +166,27 @@ function DashboardPageContent() {
 
         const uniqueDeptIds = [...new Set(bookmarkData.map((b) => b.deptId))];
         const coursesMap = new Map<number, Course>();
+        let courseDetailsFailed = false;
 
         await Promise.all(
           uniqueDeptIds.map(async (deptId) => {
             try {
               const deptCourses = await api.getCourses(deptId);
               deptCourses.forEach((course) => coursesMap.set(course.courseId, course));
-            } catch (err) {
-              console.error(`Failed to load courses for dept ${deptId}:`, err);
+            } catch {
+              // Bookmarks still render (without course titles); say so and offer a retry.
+              courseDetailsFailed = true;
             }
           }),
         );
 
-        if (isActive) setCourses(coursesMap);
+        if (isActive) {
+          setCourses(coursesMap);
+          if (courseDetailsFailed) {
+            toast.error("Couldn't load some course details.", { action: { label: "Try again", onClick: retry } });
+          }
+        }
       } catch (err: unknown) {
-        console.error("Failed to load bookmarks:", err);
         if (isActive) setError(errorText(err, "Failed to load bookmarks"));
       } finally {
         if (isActive) setDataLoading(false);
@@ -193,7 +198,7 @@ function DashboardPageContent() {
     return () => {
       isActive = false;
     };
-  }, [isAuthenticated, requestVersion, user?.id]);
+  }, [isAuthenticated, requestVersion, retry, user?.id]);
 
   const handleDelete = async (bookmark: Bookmark, label: string) => {
     try {
@@ -293,7 +298,7 @@ function DashboardPageContent() {
   const averageLoad =
     offerings.length > 0 ? Math.round(offerings.reduce((sum, o) => sum + o.loadPercent, 0) / offerings.length) : 0;
 
-  if (authLoading) return <LoadingSpinner size="lg" />;
+  if (authLoading) return <PageSkeleton label="Loading your dashboard" />;
 
   if (!isAuthenticated || !user) {
     return (
@@ -348,25 +353,25 @@ function DashboardPageContent() {
               description="Browse courses to track enrollment and updates"
               action={
                 <Link href="/browse" className={buttonVariants()}>
-                  Browse Courses
+                  Browse courses
                 </Link>
               }
             />
           )}
           {!dataLoading && !error && bookmarks.length > 0 && (
-            <Table>
-              <TableHeader>
+            <Table className="block sm:table">
+              <TableHeader className="sr-only sm:not-sr-only sm:table-header-group">
                 <TableRow className={cardTable.headRow}>
                   <TableHead className={cardTable.head}>Course</TableHead>
                   <TableHead className={cardTable.head}>Section / Term</TableHead>
-                  <TableHead className={cn(cardTable.head, "hidden sm:table-cell")}>Enrolled / cap</TableHead>
+                  <TableHead className={cardTable.head}>Enrolled / cap</TableHead>
                   <TableHead className={cardTable.head}>Load</TableHead>
                   <TableHead className={cardTable.head}>
                     <span className="sr-only">Actions</span>
                   </TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
+              <TableBody className="block sm:table-row-group">
                 {bookmarks.map((bookmark) => {
                   const courseInfo = getCourseInfo(bookmark);
                   const offering = getOffering(bookmark);
@@ -374,8 +379,8 @@ function DashboardPageContent() {
                   const label = courseInfo ? `${courseInfo.deptCode} ${courseInfo.courseNumber} ${section}` : section;
 
                   return (
-                    <TableRow key={bookmark.bookmarkId} className={cn(cardTable.row, "group relative")}>
-                      <TableCell className={cardTable.cell}>
+                    <TableRow key={bookmark.bookmarkId} className={cn(cardTable.row, "group relative grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 px-4 py-3 sm:table-row sm:p-0 [&>td]:px-0 [&>td]:py-1 sm:[&>td]:px-5 sm:[&>td]:py-3")}>
+                      <TableCell className={cn(cardTable.cell, "min-w-0")}>
                         {courseInfo ? (
                           <>
                             <Link
@@ -388,7 +393,7 @@ function DashboardPageContent() {
                             >
                               {courseInfo.deptCode} {courseInfo.courseNumber}
                             </Link>
-                            <div className={cn(bodyStyles.sm, "mt-0.5 max-w-xs truncate text-text-muted")}>{toTitleCase(courseInfo.title)}</div>
+                            <div className={cn(bodyStyles.sm, "mt-0.5 max-w-xs whitespace-normal text-text-muted sm:truncate")}>{toTitleCase(courseInfo.title)}</div>
                           </>
                         ) : (
                           <Link href={bookmarkHref(bookmark)} className={cn(bodyStyles.md, "text-text-subtle after:absolute after:inset-0")}>
@@ -396,14 +401,15 @@ function DashboardPageContent() {
                           </Link>
                         )}
                       </TableCell>
-                      <TableCell className={cardTable.cell}>
+                      <TableCell className={cn(cardTable.cell, "row-start-2")}>
                         <div className={cn(numericStyles.md, "text-text-primary")}>{section}</div>
                         <div className={cn(bodyStyles.sm, "mt-0.5 text-text-muted")}>{offering ? formatTerm(offering.term, offering.year) : "—"}</div>
                       </TableCell>
-                      <TableCell className={cn(cardTable.cell, numericStyles.md, "hidden text-text-primary sm:table-cell")}>
+                      <TableCell className={cn(cardTable.cell, numericStyles.md, "row-start-3 text-text-primary")}>
+                        <span className={cn(bodyStyles.sm, "mr-2 text-text-muted sm:hidden")}>Enrolled / cap</span>
                         {offering ? `${offering.enrolled} / ${offering.capacity}` : "—"}
                       </TableCell>
-                      <TableCell className={cardTable.cell}>
+                      <TableCell className={cn(cardTable.cell, "col-span-2 row-start-4")}>
                         {offering ? (
                           <div className="flex flex-wrap items-center gap-2">
                             <LoadBar percent={offering.loadPercent} />
@@ -413,7 +419,7 @@ function DashboardPageContent() {
                           <span className={cn(bodyStyles.md, "text-text-subtle")}>—</span>
                         )}
                       </TableCell>
-                      <TableCell className={cn(cardTable.cell, "w-12")}>
+                      <TableCell className={cn(cardTable.cell, "col-start-2 row-start-1 w-8 sm:w-12")}>
                         <Button
                           variant="ghost"
                           size="icon-sm"
@@ -563,7 +569,7 @@ function DashboardPageContent() {
 
 export default function DashboardPage() {
   return (
-    <Suspense fallback={<LoadingSpinner />}>
+    <Suspense fallback={<PageSkeleton />}>
       <DashboardPageContent />
     </Suspense>
   );

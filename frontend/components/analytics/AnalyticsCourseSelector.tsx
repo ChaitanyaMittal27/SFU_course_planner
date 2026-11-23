@@ -45,7 +45,7 @@ export default function AnalyticsCourseSelector({
             <NativeSelectOption value="">Select a department</NativeSelectOption>
             {departments.map((department) => (
               <NativeSelectOption key={department.deptId} value={department.deptId}>
-                {department.deptCode} · {department.name}
+                {department.name}
               </NativeSelectOption>
             ))}
           </NativeSelect>

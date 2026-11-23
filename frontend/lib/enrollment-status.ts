@@ -27,7 +27,3 @@ export function getEnrollmentStatus(loadPercent: number): EnrollmentStatus {
   if (loadPercent >= ALMOST_FULL_THRESHOLD) return "almost-full";
   return "open";
 }
-
-export function getEnrollmentStatusLabel(loadPercent: number): string {
-  return ENROLLMENT_STATUS_LABELS[getEnrollmentStatus(loadPercent)];
-}

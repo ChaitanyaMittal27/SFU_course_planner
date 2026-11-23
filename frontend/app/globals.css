@@ -18,11 +18,8 @@
 
   /* Brand */
   --color-primary: var(--primary);
-  --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
   --color-accent: var(--accent);
-  --color-accent-hover: var(--accent-hover);
-  --color-accent-foreground: var(--accent-foreground);
 
   /* Text */
   --color-text-primary: var(--text-primary);
@@ -38,11 +35,8 @@
 
   /* Semantic — fills (bars, dots, solid buttons) */
   --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
-  --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
-  --color-warning-foreground: var(--warning-foreground);
 
   /* Semantic — text (passes 4.5:1 on background, surface and own tint) */
   --color-success-text: var(--success-text);
@@ -84,9 +78,6 @@
   /* Charts */
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
 
   /* Navigation — neutral bar, red only for the active item */
   --color-nav-bg: var(--nav-bg);
@@ -94,16 +85,6 @@
   --color-nav-muted: var(--nav-muted);
   --color-nav-border: var(--nav-border);
   --color-nav-active: var(--nav-active);
-
-  /* Sidebar (shadcn requirement) */
-  --color-sidebar: var(--surface);
-  --color-sidebar-foreground: var(--text-primary);
-  --color-sidebar-primary: var(--primary);
-  --color-sidebar-primary-foreground: var(--primary-foreground);
-  --color-sidebar-accent: var(--surface-raised);
-  --color-sidebar-accent-foreground: var(--text-primary);
-  --color-sidebar-border: var(--border);
-  --color-sidebar-ring: var(--primary);
 
   /* Radius */
   --radius-sm: calc(var(--radius) - 4px);
@@ -156,11 +137,8 @@
 
   /* Brand — SFU red + peach-orange */
   --primary: #c23032;
-  --primary-hover: #a82729;
   --primary-foreground: #ffffff;
   --accent: #e8824a;
-  --accent-hover: #d06b36;
-  --accent-foreground: #ffffff;
   --accent-text: #b42628;
 
   /* Text */
@@ -174,11 +152,8 @@
 
   /* Semantic */
   --destructive: #c23032;
-  --destructive-foreground: #ffffff;
   --success: #16a34a;
-  --success-foreground: #ffffff;
   --warning: #d97706;
-  --warning-foreground: #ffffff;
   --success-text: #15803d;
   --warning-text: #b45309;
   --destructive-text: #b42628;
@@ -188,14 +163,11 @@
   --overlay: rgb(17 17 17 / 0.3);
 
   /* Landing hero dot grid */
-  --hero-dot: rgb(0 0 0 / 0.07);
+  --hero-dot: rgb(0 0 0 / 0.16);
 
   /* Charts */
   --chart-1: var(--primary);
   --chart-2: var(--accent);
-  --chart-3: #2563eb;
-  --chart-4: #7c3aed;
-  --chart-5: #059669;
 
   /* Navigation */
   --nav-bg: var(--background);
@@ -204,17 +176,8 @@
   --nav-border: var(--border);
   --nav-active: var(--primary);
 
-  /* shadcn tokens — point to our surface hierarchy */
-  --card: var(--surface);
-  --card-foreground: var(--text-primary);
-  --popover: var(--surface);
-  --popover-foreground: var(--text-primary);
+  /* shadcn token still read directly (button.tsx secondary hover) */
   --secondary: var(--surface-raised);
-  --secondary-foreground: var(--text-primary);
-  --muted: var(--surface);
-  --muted-foreground: var(--text-muted);
-  --input: var(--border);
-  --ring: var(--primary);
 }
 
 /* ============================================
@@ -229,11 +192,8 @@
 
   /* Brand — red pops on dark, hover goes lighter */
   --primary: #c23032;
-  --primary-hover: #d94042;
   --primary-foreground: #ffffff;
   --accent: #e8824a;
-  --accent-hover: #f09060;
-  --accent-foreground: #ffffff;
   --accent-text: #ff7b72;
 
   /* Text */
@@ -247,11 +207,8 @@
 
   /* Semantic */
   --destructive: #c23032;
-  --destructive-foreground: #ffffff;
   --success: #22c55e;
-  --success-foreground: #ffffff;
   --warning: #f59e0b;
-  --warning-foreground: #ffffff;
   --success-text: #3fb950;
   --warning-text: #d29922;
   --destructive-text: #ff6b63;
@@ -261,14 +218,11 @@
   --overlay: rgb(1 4 9 / 0.6);
 
   /* Landing hero dot grid */
-  --hero-dot: rgb(255 255 255 / 0.06);
+  --hero-dot: rgb(255 255 255 / 0.18);
 
   /* Charts */
   --chart-1: var(--primary);
   --chart-2: var(--accent);
-  --chart-3: #60a5fa;
-  --chart-4: #a78bfa;
-  --chart-5: #34d399;
 
   /* Navigation */
   --nav-bg: var(--background);
@@ -277,17 +231,8 @@
   --nav-border: var(--border);
   --nav-active: var(--primary);
 
-  /* shadcn tokens — point to our surface hierarchy */
-  --card: var(--surface);
-  --card-foreground: var(--text-primary);
-  --popover: var(--surface-raised);
-  --popover-foreground: var(--text-primary);
+  /* shadcn token still read directly (button.tsx secondary hover) */
   --secondary: var(--surface-raised);
-  --secondary-foreground: var(--text-primary);
-  --muted: var(--surface);
-  --muted-foreground: var(--text-muted);
-  --input: var(--border);
-  --ring: var(--primary);
 }
 
 /* ============================================
@@ -337,43 +282,6 @@
    Disabled globally under prefers-reduced-motion (see MOTION).
    ============================================ */
 @layer utilities {
-  @keyframes fade-in {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
-  @keyframes slide-up {
-    from {
-      opacity: 0;
-      transform: translateY(12px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-  @keyframes slide-down {
-    from {
-      opacity: 0;
-      transform: translateY(-8px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-  @keyframes pulse-soft {
-    0%,
-    100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.6;
-    }
-  }
   /* Short entrance: starts partly visible so content never reads as missing. */
   @keyframes rise-in {
     from {
@@ -386,69 +294,18 @@
     }
   }
 
-  .animate-fade-in {
-    animation: fade-in 0.2s ease-out;
-  }
-  .animate-slide-up {
-    animation: slide-up 0.25s ease-out;
-  }
-  .animate-slide-down {
-    animation: slide-down 0.2s ease-out;
-  }
-  .animate-pulse-soft {
-    animation: pulse-soft 2s ease-in-out infinite;
-  }
   /* Landing hero entrance (~0.45s). Pair with [animation-delay:80ms] for a follower. */
   .animate-rise-in {
     animation: rise-in 0.45s cubic-bezier(0.22, 0.61, 0.36, 1) both;
   }
 
-  .stagger-children > *:nth-child(1) {
-    animation: slide-up 0.3s ease-out 0.05s both;
-  }
-  .stagger-children > *:nth-child(2) {
-    animation: slide-up 0.3s ease-out 0.1s both;
-  }
-  .stagger-children > *:nth-child(3) {
-    animation: slide-up 0.3s ease-out 0.15s both;
-  }
-  .stagger-children > *:nth-child(4) {
-    animation: slide-up 0.3s ease-out 0.2s both;
-  }
-  .stagger-children > *:nth-child(5) {
-    animation: slide-up 0.3s ease-out 0.25s both;
-  }
-
-  @keyframes reveal-up {
-    from {
-      opacity: 0;
-      transform: translateY(40px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  .animate-reveal-up {
-    animation: reveal-up 0.6s cubic-bezier(0.22, 0.61, 0.36, 1) both;
-  }
-
-  /* Landing hero backdrop: 1px dots every 24px, visible only around the email.
-     Stacked (mobile): the email is the lower part of the hero, so the mask sits low.
-     Two columns (lg+): the mask is centred behind the email and reaches 0 by ~50% width,
-     before the text column. */
+  /* Anchor the dots to the email so their visible halo follows it at every width. */
   .hero-dots {
     background-image: radial-gradient(circle, var(--hero-dot) 1px, transparent 1.5px);
     background-size: 24px 24px;
-    --hero-dots-mask: radial-gradient(ellipse 80% 34% at 50% 76%, #000 35%, transparent 100%);
+    --hero-dots-mask: radial-gradient(ellipse 50% 50% at 50% 50%, #000 65%, transparent 100%);
     -webkit-mask-image: var(--hero-dots-mask);
     mask-image: var(--hero-dots-mask);
-  }
-  @media (width >= 64rem) {
-    .hero-dots {
-      --hero-dots-mask: radial-gradient(ellipse 30% 62% at 77% 50%, #000 40%, transparent 100%);
-    }
   }
 }
 

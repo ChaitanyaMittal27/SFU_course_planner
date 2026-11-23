@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowLeft, Menu } from "lucide-react";
+import { ArrowLeft, LogOut, Menu, Moon, Sun } from "lucide-react";
 import { bodyStyles, labelStyles, numericStyles } from "@/app/fonts";
+import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -16,7 +17,7 @@ import { cn } from "@/lib/utils";
 type Counts = Partial<Record<"support" | "rmp", number>>;
 
 function isActive(pathname: string, href: string) {
-  return href === "/admin" ? pathname === href : pathname.startsWith(href);
+  return href === "/admin" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 }
 
 /** Unread support messages and open RMP reports, for the sidebar badges. Failures show no badge. */
@@ -92,21 +93,52 @@ function AdminNavigationLinks({ counts, onNavigate }: { counts: Counts; onNaviga
 }
 
 function AdminFooter({ onNavigate }: { onNavigate?: () => void }) {
-  const { user } = useAuth();
-  const initial = (user?.email?.trim()[0] || "A").toUpperCase();
+  const { user, signOut } = useAuth();
+  const { theme, toggleTheme, mounted } = useTheme();
+  const name = user?.user_metadata?.full_name || user?.user_metadata?.name;
+  const initial = (name ? name.split(/\s+/).map((part: string) => part[0]).slice(0, 2).join("") : user?.email?.trim()[0] || "A").toUpperCase();
   return (
     <div className="space-y-3">
       <div className="flex min-w-0 items-center gap-2">
         <Avatar size="sm">
           <AvatarFallback className={cn(labelStyles.sm, "bg-surface-raised text-text-primary")}>{initial}</AvatarFallback>
         </Avatar>
-        <span className={cn(bodyStyles.sm, "truncate text-text-primary")}>{user?.email || "Administrator"}</span>
+        <div className="min-w-0 flex-1">
+          {name && <p className={cn(labelStyles.md, "truncate text-text-primary")}>{name}</p>}
+          <p className={cn(bodyStyles.sm, "truncate text-text-muted")}>{user?.email || "Administrator"}</p>
+        </div>
+        {mounted && (
+          <Button variant="ghost" size="icon" className="shrink-0 text-text-muted" onClick={toggleTheme} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} theme`}>
+            {theme === "light" ? <Moon /> : <Sun />}
+          </Button>
+        )}
       </div>
       <Link href="/" onClick={onNavigate} className={cn(labelStyles.md, "flex items-center gap-2 text-text-muted hover:text-text-primary")}>
         <ArrowLeft aria-hidden="true" className="size-3.5" />
         Back to site
       </Link>
+      <Button variant="ghost" className="h-auto justify-start p-0 text-accent-text hover:text-accent-text" onClick={() => { onNavigate?.(); void signOut(); }}>
+        <LogOut aria-hidden="true" className="size-3.5" />
+        Sign out
+      </Button>
     </div>
+  );
+}
+
+/** Shared by the desktop sidebar and mobile sheet. */
+function AdminSidebarContents({ counts, mobile = false, onNavigate }: { counts: Counts; mobile?: boolean; onNavigate?: () => void }) {
+  return (
+    <>
+      <div className={cn("border-b border-border p-4", mobile && "pr-12")}>
+        <AdminBrand />
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto p-3">
+        <AdminNavigationLinks counts={counts} onNavigate={onNavigate} />
+      </div>
+      <div className="border-t border-border p-4">
+        <AdminFooter onNavigate={onNavigate} />
+      </div>
+    </>
   );
 }
 
@@ -119,35 +151,25 @@ export default function AdminSidebar() {
 
   return (
     <>
-      <aside className="fixed bottom-0 left-0 top-[var(--app-nav-height)] z-20 hidden w-60 flex-col border-r border-border bg-surface lg:flex">
-        <div className="border-b border-border p-4">
-          <AdminBrand />
-        </div>
-        <div className="flex-1 overflow-y-auto p-3">
-          <AdminNavigationLinks counts={counts} />
-        </div>
-        <div className="border-t border-border p-4">
-          <AdminFooter />
-        </div>
+      <aside className="sticky top-0 hidden h-dvh w-62 shrink-0 flex-col border-r border-border bg-surface lg:flex">
+        <AdminSidebarContents counts={counts} />
       </aside>
 
-      <header className="sticky top-[var(--app-nav-height)] z-20 flex h-[var(--admin-mobile-header-height)] items-center justify-between border-b border-border bg-surface px-4 lg:hidden">
-        <AdminBrand />
+      <header className="sticky top-0 z-20 flex h-[var(--admin-mobile-header-height)] items-center justify-between border-b border-border bg-surface px-4 lg:hidden">
+        <Link href="/admin" className="flex min-w-0 items-center gap-2.5 rounded-md focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+          <span aria-hidden="true" className={cn(labelStyles.sm, "flex size-8 shrink-0 items-center justify-center rounded-md bg-primary font-bold text-primary-foreground")}>SFU</span>
+          <span>
+            <span className={cn(labelStyles.sm, "block uppercase tracking-widest text-text-subtle")}>Administration</span>
+            <span className={cn(labelStyles.lg, "block text-text-primary")}>{adminNavigationItems.find(({ href }) => isActive(pathname, href))?.label ?? "Overview"}</span>
+          </span>
+        </Link>
         <Sheet open={mobileOpen} onOpenChange={(open) => setMenuPath(open ? pathname : null)}>
-          <SheetTrigger render={<Button variant="ghost" size="icon" aria-label="Open admin navigation" />}>
+          <SheetTrigger render={<Button variant="outline" size="icon" aria-label="Open admin menu" />}>
             <Menu />
           </SheetTrigger>
-          <SheetContent side="left" className="w-72 gap-0 bg-surface p-0">
-            <div className="border-b border-border p-4">
-              <SheetTitle className="sr-only">Admin navigation</SheetTitle>
-              <AdminBrand />
-            </div>
-            <div className="flex-1 overflow-y-auto p-3">
-              <AdminNavigationLinks counts={counts} onNavigate={() => setMenuPath(null)} />
-            </div>
-            <div className="border-t border-border p-4">
-              <AdminFooter onNavigate={() => setMenuPath(null)} />
-            </div>
+          <SheetContent side="right" className="w-75 max-w-[calc(100%-1rem)] gap-0 bg-surface p-0 data-[side=right]:w-75">
+            <SheetTitle className="sr-only">Admin navigation</SheetTitle>
+            <AdminSidebarContents counts={counts} mobile onNavigate={() => setMenuPath(null)} />
           </SheetContent>
         </Sheet>
       </header>

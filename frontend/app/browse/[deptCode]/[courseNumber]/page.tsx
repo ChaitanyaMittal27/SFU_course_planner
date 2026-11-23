@@ -19,7 +19,7 @@ export default function BrowseCoursePage() {
       <CourseBreadcrumb items={[{ label: "Browse", href: "/browse" }, { label: code }]} />
       {route.status === "invalid" && <ErrorMessage title="Invalid course link" message="This course link is invalid." />}
       {route.status === "notFound" && <ErrorMessage title="Course not found" message="This course could not be found." />}
-      {route.status === "error" && <ErrorMessage message="Failed to resolve this course link." />}
+      {route.status === "error" && <ErrorMessage message="Failed to resolve this course link." onRetry={route.retry} />}
       {route.status === "loading" && <TextBlockSkeleton heading lines={2} label="Loading course" />}
       {route.status === "resolved" && (
         <CourseOfferingsPanel reference={route.course} department={route.course.department} course={route.course.course} />

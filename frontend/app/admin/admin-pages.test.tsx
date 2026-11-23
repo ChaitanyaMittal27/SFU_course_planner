@@ -17,9 +17,9 @@ vi.mock("@/lib/api", () => ({ api: apiMocks }));
 vi.mock("next/link", () => ({
   default: ({ href, children, ...props }: React.ComponentProps<"a">) => <a href={href} {...props}>{children}</a>,
 }));
-vi.mock("@/hooks/useScrollReveal", () => ({ useScrollReveal: () => vi.fn() }));
 vi.mock("recharts", () => ({
   CartesianGrid: () => null,
+  Legend: () => null,
   Line: () => null,
   LineChart: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -66,7 +66,7 @@ describe("admin pages", () => {
     expect(screen.getByText("2 registered")).toBeInTheDocument();
     expect(screen.getByText("1 services up")).toBeInTheDocument();
     expect(screen.getByText("All caught up")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "RMP Reports" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "RMP reports" })).toBeInTheDocument();
     expect(screen.getByText("1 to review")).toBeInTheDocument();
     expect(apiMocks.getAdminBookmarks).toHaveBeenCalledOnce();
 
@@ -76,7 +76,7 @@ describe("admin pages", () => {
     expect(within(kpis).getByText("API status").nextElementSibling?.firstElementChild).toHaveClass("text-success-text");
     expect(screen.getByRole("heading", { level: 2, name: "Sections" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Health" })).toHaveAttribute("href", "/admin/health");
-    expect(screen.getByRole("link", { name: "RMP Reports" })).toHaveAttribute("href", "/admin/rmp");
+    expect(screen.getByRole("link", { name: "RMP reports" })).toHaveAttribute("href", "/admin/rmp");
   });
 
   it("renders health checks and rechecks an individual service", async () => {

@@ -106,7 +106,7 @@ describe("Browse page", () => {
     render(<BrowsePage />);
     expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't load departments");
 
-    await user.click(screen.getByRole("button", { name: "Try Again" }));
+    await user.click(screen.getByRole("button", { name: "Try again" }));
     await waitFor(() => expect(mocks.getDepartments).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
     expect(screen.getByLabelText("Department")).toBeEnabled();
@@ -120,7 +120,7 @@ describe("Browse page", () => {
     await user.selectOptions(screen.getByLabelText("Department"), "14");
     expect(await screen.findByRole("alert")).toHaveTextContent("Courses for CMPT didn't load.");
 
-    await user.click(screen.getByRole("button", { name: "Try Again" }));
+    await user.click(screen.getByRole("button", { name: "Try again" }));
     await waitFor(() => expect(mocks.getCourses).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(screen.getByLabelText("Course")).toBeEnabled());
   });
@@ -151,7 +151,7 @@ describe("Browse routes", () => {
     render(<CanonicalOfferingDetailPage />);
     expect(await screen.findByRole("alert")).toHaveTextContent("Failed to load offering details.");
 
-    await user.click(screen.getByRole("button", { name: "Try Again" }));
+    await user.click(screen.getByRole("button", { name: "Try again" }));
     expect(await screen.findByText("Detail back to /browse/cmpt/225")).toBeInTheDocument();
     expect(mocks.getOfferingDetail).toHaveBeenCalledTimes(2);
   });

@@ -74,6 +74,19 @@ describe("BookmarkButton", () => {
     expect(mocks.getBookmarks).toHaveBeenCalledTimes(1);
   });
 
+  it("tells the user when their bookmarks fail to load and retries on request", async () => {
+    mocks.auth.user = { id: "user-1" };
+    mocks.getBookmarks.mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce([{ bookmarkId: 4, createdAt: "", ...d200 }]);
+    render(<Page />);
+
+    await waitFor(() => expect(mocks.toastError).toHaveBeenCalledWith("Couldn't load your bookmarks.", expect.anything()));
+    const [, options] = mocks.toastError.mock.calls[0];
+    expect(options.action.label).toBe("Try again");
+    options.action.onClick();
+    expect(await screen.findByRole("button", { name: "Bookmarked" })).toBeInTheDocument();
+    expect(mocks.getBookmarks).toHaveBeenCalledTimes(2);
+  });
+
   it("bookmarks a section with internal IDs and confirms with a toast", async () => {
     const user = userEvent.setup();
     const changed = vi.fn();

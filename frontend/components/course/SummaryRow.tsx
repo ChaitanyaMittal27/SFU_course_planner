@@ -15,7 +15,7 @@ interface SummaryRowProps {
   className?: string;
 }
 
-const divided = "border-l border-border pl-6 first:border-l-0 first:pl-0";
+const divided = "lg:border-l lg:border-border lg:pl-6 lg:first:border-l-0 lg:first:pl-0";
 
 /** Key figures for a course or offering, on the page background, split by thin vertical dividers. */
 export default function SummaryRow({ items, children, className }: SummaryRowProps) {
@@ -25,7 +25,7 @@ export default function SummaryRow({ items, children, className }: SummaryRowPro
   return (
     <div className={cn("mb-8 flex flex-wrap items-end gap-x-6 gap-y-4", className)}>
       {shown.length > 0 && (
-        <dl className="contents">
+        <dl className="flex min-w-0 flex-wrap gap-x-6 gap-y-4">
           {shown.map((item) => (
             <div key={item.label} className={cn(divided, "flex flex-col-reverse gap-1")}>
               <dt className={cn(bodyStyles.sm, "text-text-subtle")}>{item.label}</dt>
@@ -34,7 +34,7 @@ export default function SummaryRow({ items, children, className }: SummaryRowPro
           ))}
         </dl>
       )}
-      {children && <div className={cn(divided, "flex flex-wrap items-center gap-2 self-center")}>{children}</div>}
+      {children && <div className="flex flex-wrap items-center gap-2 self-center">{children}</div>}
     </div>
   );
 }

@@ -111,7 +111,7 @@ describe("graphs page", () => {
     expect(screen.getByRole("heading", { name: "Pick a course to see its history." })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Enrollment" })).toHaveAttribute("href", "/graph/enrollment");
     expect(mocks.resolveCourseIdentity).not.toHaveBeenCalled();
-    await screen.findByRole("option", { name: "CMPT · Computing Science" });
+    await screen.findByRole("option", { name: "Computing Science" });
   });
 
   it("reports bad routes and retries failed chart data", async () => {
@@ -125,7 +125,7 @@ describe("graphs page", () => {
     mocks.getEnrollmentHistory.mockRejectedValueOnce(new Error("offline"));
     render(<CanonicalAnalyticsPage kind="load" />);
     expect(await screen.findByRole("alert")).toHaveTextContent("The load data for CMPT 225 didn't load.");
-    await user.click(screen.getByRole("button", { name: "Try Again" }));
+    await user.click(screen.getByRole("button", { name: "Try again" }));
     expect(await screen.findByText("Load chart")).toBeInTheDocument();
   });
 });

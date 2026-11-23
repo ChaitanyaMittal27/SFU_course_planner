@@ -14,8 +14,8 @@ Card-based, calm, data-first design (see decisions.md). Each subtask is one Clau
 | 3 | Browse, course page, offering detail (+ card follow-up) | verified |
 | 4 | Compare and Graphs | verified |
 | 5 | About, auth, 404, dashboard, privacy/terms, admin | verified |
-| 6 | Cleanup: dead code + consistency audit | pending |
-| 7 | Hero dot background fix | pending |
-| 8 | Full mobile/responsive checkup | pending |
+| 6 | Cleanup: dead code + consistency audit | verified |
+| 7 | Hero dot background fix | verified |
+| 8 | Full mobile/responsive checkup + admin single-navigation follow-up | verified |
 | 9 | Release: merge dev → main, Vercel deploy | pending |
 Status: pending → implemented (coding agent) → verified (only via Doc instructions).

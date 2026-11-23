@@ -69,7 +69,6 @@ export const numericStyles = {
   display: "font-mono tabular-nums text-[2.25rem] font-semibold leading-none tracking-tight",
   // Headline figures, e.g. the landing-page stats (~30px)
   stat: "font-mono tabular-nums text-[1.875rem] font-semibold leading-none tracking-tight",
-  lg: "font-mono tabular-nums text-[1.25rem] font-medium leading-[1.2]",
   md: "font-mono tabular-nums text-[0.875rem] leading-[1.4]",
   sm: "font-mono tabular-nums text-[0.75rem] leading-[1.4]",
 };

@@ -57,7 +57,7 @@ export default function CanonicalOfferingDetailPage() {
     return <PageContainer><ErrorMessage title="Offering not found" message="This offering could not be found." /></PageContainer>;
   }
   if (route.status === "error") {
-    return <PageContainer><ErrorMessage message="Failed to resolve this offering link." /></PageContainer>;
+    return <PageContainer><ErrorMessage message="Failed to resolve this offering link." onRetry={route.retry} /></PageContainer>;
   }
   if (failedKey !== null && failedKey === attemptKey) {
     return (

@@ -10,10 +10,13 @@ type TaskEmptyStateProps = {
   description: string;
   /** Optional next step, e.g. a button or link. */
   action?: ReactNode;
+  /** 3 inside a card (under its h2); 2 when the empty state sits directly under the page h1. */
+  headingLevel?: 2 | 3;
   className?: string;
 };
 
-export default function TaskEmptyState({ icon: Icon, title, description, action, className }: TaskEmptyStateProps) {
+export default function TaskEmptyState({ icon: Icon, title, description, action, headingLevel = 3, className }: TaskEmptyStateProps) {
+  const Heading = headingLevel === 2 ? "h2" : "h3";
   return (
     <Empty className={cn("py-12", className)}>
       <EmptyHeader>
@@ -21,7 +24,7 @@ export default function TaskEmptyState({ icon: Icon, title, description, action,
           <Icon className="size-6 text-text-subtle" aria-hidden="true" />
         </EmptyMedia>
         <EmptyTitle>
-          <h3 className={cn(headerStyles.sm, "text-text-primary")}>{title}</h3>
+          <Heading className={cn(headerStyles.sm, "text-text-primary")}>{title}</Heading>
         </EmptyTitle>
         <EmptyDescription className={cn(bodyStyles.md, "text-text-muted")}>{description}</EmptyDescription>
       </EmptyHeader>

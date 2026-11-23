@@ -72,12 +72,12 @@ export default function OfferingDetailScreen({ detail, backHref }: OfferingDetai
           {sectionCount === 0 ? (
             <p className={cn(bodyStyles.md, "text-text-muted")}>No section data found.</p>
           ) : (
-            <Table>
-              <TableHeader>
+            <Table className="block lg:table">
+              <TableHeader className="sr-only lg:not-sr-only lg:table-header-group">
                 <TableRow className={cardTable.headRow}>
                   <TableHead className={cardTable.head}>Section</TableHead>
                   <TableHead className={cardTable.head}>Instructor</TableHead>
-                  <TableHead className={cn(cardTable.head, "hidden md:table-cell")}>Campus</TableHead>
+                  <TableHead className={cn(cardTable.head, "lg:table-cell")}>Campus</TableHead>
                   <TableHead className={cardTable.head}>Enrolled / cap</TableHead>
                   <TableHead className={cardTable.head}>Status</TableHead>
                   <TableHead className={cardTable.head}>Outline</TableHead>
@@ -86,18 +86,19 @@ export default function OfferingDetailScreen({ detail, backHref }: OfferingDetai
                   </TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
+              <TableBody className="block lg:table-row-group">
                 {detail.sections.map((section) => {
                   const short = sectionCode(section.section);
                   return (
-                    <TableRow key={section.section} className={cardTable.row}>
+                    <TableRow key={section.section} className={cn(cardTable.row, "grid grid-cols-2 items-center px-4 py-3 lg:table-row lg:p-0 [&>td]:px-0 [&>td]:py-1.5 lg:[&>td]:px-5 lg:[&>td]:py-3")}>
                       <TableCell className={cn(cardTable.cell, numericStyles.md, "font-medium text-text-primary")}>{short}</TableCell>
-                      <TableCell className={cn(cardTable.cell, bodyStyles.md)}>{section.instructors || "—"}</TableCell>
-                      <TableCell className={cn(cardTable.cell, bodyStyles.md, "hidden text-text-muted md:table-cell")}>{section.location || "—"}</TableCell>
+                      <TableCell className={cn(cardTable.cell, bodyStyles.md, "col-span-2 row-start-2 whitespace-normal lg:table-cell")}>{section.instructors || "—"}</TableCell>
+                      <TableCell className={cn(cardTable.cell, bodyStyles.md, "col-span-2 row-start-3 whitespace-normal text-text-muted lg:table-cell")}>{section.location || "—"}</TableCell>
                       <TableCell className={cn(cardTable.cell, numericStyles.md, "text-text-primary")}>
+                        <span className={cn(bodyStyles.sm, "block text-text-muted lg:hidden")}>Enrolled / cap</span>
                         {section.enrolled} / {section.capacity}
                       </TableCell>
-                      <TableCell className={cardTable.cell}>
+                      <TableCell className={cn(cardTable.cell, "text-right lg:text-left")}>
                         <StatusBadge loadPercent={section.loadPercent ?? 0} />
                       </TableCell>
                       <TableCell className={cardTable.cell}>
@@ -112,7 +113,7 @@ export default function OfferingDetailScreen({ detail, backHref }: OfferingDetai
                           <ExternalLink className="size-3.5" aria-hidden="true" />
                         </a>
                       </TableCell>
-                      <TableCell className={cn(cardTable.cell, "text-right")}>
+                      <TableCell className={cn(cardTable.cell, "col-start-2 row-start-1 text-right lg:table-cell")}>
                         <BookmarkButton
                           bookmarks={bookmarks}
                           label={`${code} ${short}`}
@@ -132,7 +133,7 @@ export default function OfferingDetailScreen({ detail, backHref }: OfferingDetai
 
         {(sectionCount > 0 || detail.gradeDistribution) && (
           <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
-            {sectionCount > 0 && <InstructorRatings sections={detail.sections} deptCode={detail.deptCode} variant="card" />}
+            {sectionCount > 0 && <InstructorRatings sections={detail.sections} deptCode={detail.deptCode} />}
             {detail.gradeDistribution && (
               <SectionCard
                 title="Grade distribution"

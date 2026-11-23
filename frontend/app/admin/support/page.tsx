@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { MessageSquare, Archive, Reply, Send, Check } from "lucide-react";
+import { toast } from "sonner";
 import { api, AdminSupportResponse, AdminContactSubmission } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -113,8 +114,8 @@ export default function AdminSupportPage() {
         return { ...prev, submissions: prev.submissions.map((s) => s.id === sub.id ? updated : s) };
       });
       setExpandedId(null);
-    } catch (err) {
-      console.error("Failed to archive:", err);
+    } catch {
+      toast.error(sub.isArchived ? "Couldn't unarchive this message." : "Couldn't archive this message.");
     }
   };
 
@@ -134,8 +135,8 @@ export default function AdminSupportPage() {
       } : prev);
       setReplyingTo(null);
       setReplyText("");
-    } catch (err) {
-      console.error("Failed to send reply:", err);
+    } catch {
+      toast.error("Couldn't send the reply. Your draft is still here.");
     } finally {
       setSendingReply(false);
     }
@@ -264,7 +265,7 @@ export default function AdminSupportPage() {
                 </Button>
                 <Button onClick={handleSendReply} disabled={sendingReply || !replyText.trim()} className="gap-1.5">
                   <Send aria-hidden="true" />
-                  {sendingReply ? "Sending…" : "Send Reply"}
+                  {sendingReply ? "Sending…" : "Send reply"}
                 </Button>
               </DialogFooter>
             </>

@@ -12,9 +12,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background lg:flex lg:items-start">
       <AdminSidebar />
-      <div className="min-w-0 lg:pl-60">{children}</div>
+      <div className="min-w-0 flex-1">{children}</div>
     </div>
   );
 }

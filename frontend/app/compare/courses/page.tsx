@@ -10,7 +10,7 @@ import SectionCard from "@/components/course/SectionCard";
 import LoadBar from "@/components/enrollment/LoadBar";
 import GradeHistogram from "@/components/analytics/GradeHistogram";
 import ErrorMessage from "@/components/feedback/ErrorMessage";
-import LoadingSpinner from "@/components/feedback/LoadingSpinner";
+import { PageSkeleton } from "@/components/feedback/Skeletons";
 import { TableRowsSkeleton } from "@/components/feedback/Skeletons";
 import TaskEmptyState from "@/components/feedback/TaskEmptyState";
 import PageContainer from "@/components/layout/PageContainer";
@@ -292,8 +292,9 @@ function CourseComparisonContent() {
       )}
       {selected.length === 0 && <div className="mb-8" />}
 
-      {selected.length < 2 && !linkError && (
+      {selected.length < 2 && !linkError && !departmentsFailed && !coursesFailed && (
         <TaskEmptyState
+          headingLevel={2}
           icon={ClipboardList}
           title="Add at least two courses to compare them."
           description="Pick a department and course above, then add it. You can compare up to three."
@@ -316,6 +317,7 @@ function CourseComparisonContent() {
             <ComparisonTable
               columns={result.columns.map((column) => ({
                 key: `${column.deptCode}-${column.courseNumber}`,
+                mobileLabel: formatCourseCode(column.deptCode, column.courseNumber),
                 header: (
                   <>
                     <Link
@@ -389,7 +391,7 @@ function comparisonRows({ columns, best: winners }: ReturnType<typeof buildCours
 
 export default function CourseComparison() {
   return (
-    <Suspense fallback={<LoadingSpinner />}>
+    <Suspense fallback={<PageSkeleton />}>
       <CourseComparisonContent />
     </Suspense>
   );

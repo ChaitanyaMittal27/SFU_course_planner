@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Separator } from "@/components/ui/separator";
 import ErrorMessage from "@/components/feedback/ErrorMessage";
-import LoadingSpinner from "@/components/feedback/LoadingSpinner";
+import { PageSkeleton } from "@/components/feedback/Skeletons";
 import PageContainer from "@/components/layout/PageContainer";
 import PageHeader from "@/components/layout/PageHeader";
 import CourseSearch from "@/components/course/CourseSearch";
@@ -133,7 +133,7 @@ function BrowsePageContent() {
 
 export default function BrowsePage() {
   return (
-    <Suspense fallback={<LoadingSpinner />}>
+    <Suspense fallback={<PageSkeleton />}>
       <BrowsePageContent />
     </Suspense>
   );

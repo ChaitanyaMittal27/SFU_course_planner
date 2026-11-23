@@ -1,3 +1,4 @@
+import PageContainer from "@/components/layout/PageContainer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -82,5 +83,22 @@ export function ChartAreaSkeleton({ label, className }: ChartAreaSkeletonProps) 
     <LoadingRegion label={label} className={className}>
       <Skeleton className="h-96 w-full" />
     </LoadingRegion>
+  );
+}
+
+interface PageSkeletonProps {
+  label?: string;
+}
+
+/** Whole-page placeholder (page header plus one card) for route-level waits, e.g. Suspense fallbacks. */
+export function PageSkeleton({ label }: PageSkeletonProps) {
+  return (
+    <PageContainer>
+      <LoadingRegion label={label}>
+        <Skeleton className="mb-3 h-8 w-60 max-w-full" />
+        <Skeleton className="mb-8 h-5 w-96 max-w-full" />
+        <Skeleton className="h-40 w-full rounded-lg" />
+      </LoadingRegion>
+    </PageContainer>
   );
 }

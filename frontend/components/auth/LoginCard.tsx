@@ -234,7 +234,7 @@ export default function LoginCard({ showMicrosoft }: LoginCardProps) {
               <Input id="signin-password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
             </Field>
             <Button type="submit" disabled={isLoading} className="h-10 w-full">
-              {isLoading ? "Signing in..." : "Sign In"}
+              {isLoading ? "Signing in..." : "Sign in"}
             </Button>
           </form>
         </TabsContent>
@@ -262,7 +262,7 @@ export default function LoginCard({ showMicrosoft }: LoginCardProps) {
               />
             </Field>
             <Button type="submit" disabled={isLoading} className="h-10 w-full">
-              {isLoading ? "Creating account..." : "Create Account"}
+              {isLoading ? "Creating account..." : "Create account"}
             </Button>
           </form>
         </TabsContent>
@@ -286,7 +286,7 @@ export default function LoginCard({ showMicrosoft }: LoginCardProps) {
                     Cancel
                   </Button>
                   <Button type="submit" disabled={forgotLoading}>
-                    {forgotLoading ? "Sending..." : "Send Reset Link"}
+                    {forgotLoading ? "Sending..." : "Send reset link"}
                   </Button>
                 </DialogFooter>
               </form>

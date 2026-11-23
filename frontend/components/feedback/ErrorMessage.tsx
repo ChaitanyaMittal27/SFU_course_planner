@@ -21,7 +21,7 @@ export default function ErrorMessage({ title = "Something went wrong", message, 
       {onRetry && (
         <div className="col-start-2 mt-3">
           <Button variant="outline" size="sm" onClick={onRetry}>
-            Try Again
+            Try again
           </Button>
         </div>
       )}

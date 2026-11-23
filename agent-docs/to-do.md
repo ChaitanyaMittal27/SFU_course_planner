@@ -7,6 +7,8 @@ Product-hardening backlog derived from the repository audit, ordered by expected
 - [17] GET /api/courses for full title/fuzzy search (backend): return all courses with dept code, number, title so browse search can match titles and fuzzy queries across every department; frontend search is code-only until then. Ship with the RMP health check.
 - [0.5] Test coverage tooling + gaps (after the UI refresh): measure current coverage, then add tests.
 - [UI] Load chart clips bars above 110% — accepted for now.
+- [UI/data] Department full names: local `/api/departments` supplies code-like `name` values (e.g. CMPT); search already renders `department.name`. Correct catalog data rather than inventing frontend name mappings.
+- [UI] Copy pass: headings/field labels still in Title Case (e.g. "Support Inbox", "RMP Reports", "Reset Your Password", "New Password", "Total Submissions"); subtask 6 changed only button/tab casing.
 - [1] Fix backend CORS for Vercel previews: `allowedOrigins("https://*.vercel.app")` is literal, so preview origins get 403; use an intentional Spring origin-pattern strategy without widening production access unnecessarily.
 - [2] Normalize missing/invalid bearer-auth responses to 401: required `Authorization` headers currently fail in Spring MVC with 400 before `JwtService`/the global handler can apply the documented auth contract.
 - [3] Add a small browser-level E2E suite for critical flows (auth, canonical routes, bookmarks, dashboard states); Vitest unit/component suite already covers these with mocked boundaries.

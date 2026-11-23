@@ -7,11 +7,12 @@ import { ArrowLeft } from "lucide-react";
 import { api, AdminUserDetailResponse } from "@/lib/api";
 import { bodyStyles, labelStyles, numericStyles } from "@/app/fonts";
 import { formatSemesterCode } from "@/lib/semester";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AdminPage, AdminPageHeader, AdminTable } from "@/components/admin/AdminPage";
 import AdminPageSkeleton from "@/components/admin/AdminPageSkeleton";
 import ErrorMessage from "@/components/feedback/ErrorMessage";
 import { Badge } from "@/components/ui/badge";
-import SectionCard, { cardPadding } from "@/components/course/SectionCard";
+import SectionCard, { cardPadding, cardTable } from "@/components/course/SectionCard";
 import { cn } from "@/lib/utils";
 
 function errorMessage(error: unknown, fallback: string) {
@@ -116,29 +117,29 @@ export default function AdminUserDetailPage() {
       </SectionCard>
 
       <AdminTable title="Saved offerings" note={`${bookmarks.length} saved`}>
-          <table className="w-full min-w-[620px] text-left">
-            <thead className="bg-surface-raised">
-              <tr className={`${labelStyles.sm} uppercase tracking-wider text-text-subtle`}>
-                <th className="px-4 py-3 font-medium">Course</th>
-                <th className="px-4 py-3 font-medium">Title</th>
-                <th className="px-4 py-3 font-medium">Term</th>
-                <th className="px-4 py-3 font-medium">Section</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table className="min-w-[620px]">
+            <TableHeader>
+              <TableRow className={cardTable.headRow}>
+                <TableHead className={cardTable.head}>Course</TableHead>
+                <TableHead className={cardTable.head}>Title</TableHead>
+                <TableHead className={cardTable.head}>Term</TableHead>
+                <TableHead className={cardTable.head}>Section</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {bookmarks.map((bookmark) => (
-                <tr key={bookmark.bookmarkId} className="border-t border-border">
-                  <td className={`${labelStyles.lg} whitespace-nowrap px-4 py-3 text-text-primary`}>{bookmark.deptCode} {bookmark.courseNumber}</td>
-                  <td className={`${bodyStyles.sm} max-w-80 truncate px-4 py-3 text-text-muted`}>{bookmark.title || "—"}</td>
-                  <td className={`${bodyStyles.sm} whitespace-nowrap px-4 py-3 text-text-muted`}>{formatSemesterCode(bookmark.semesterCode)}</td>
-                  <td className={`${numericStyles.sm} whitespace-nowrap px-4 py-3 text-text-primary`}>{bookmark.section}</td>
-                </tr>
+                <TableRow key={bookmark.bookmarkId} className={cardTable.row}>
+                  <TableCell className={cn(cardTable.cell, labelStyles.lg, "whitespace-nowrap text-text-primary")}>{bookmark.deptCode} {bookmark.courseNumber}</TableCell>
+                  <TableCell className={cn(cardTable.cell, bodyStyles.sm, "max-w-80 truncate text-text-muted")}>{bookmark.title || "—"}</TableCell>
+                  <TableCell className={cn(cardTable.cell, bodyStyles.sm, "whitespace-nowrap text-text-muted")}>{formatSemesterCode(bookmark.semesterCode)}</TableCell>
+                  <TableCell className={cn(cardTable.cell, numericStyles.sm, "whitespace-nowrap text-text-primary")}>{bookmark.section}</TableCell>
+                </TableRow>
               ))}
               {bookmarks.length === 0 && (
-                <tr><td colSpan={4} className={`${bodyStyles.md} px-4 py-10 text-center text-text-muted`}>This user has no saved offerings.</td></tr>
+                <TableRow className={cardTable.row}><TableCell colSpan={4} className={cn(cardTable.cell, bodyStyles.md, "py-10 text-center text-text-muted")}>This user has no saved offerings.</TableCell></TableRow>
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
       </AdminTable>
 
       <p className={cn(bodyStyles.sm, "mt-4 text-text-subtle")}>Bookmark data is read-only in the admin console.</p>

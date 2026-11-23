@@ -3,19 +3,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ChevronRight, RefreshCw } from "lucide-react";
-import {
-  CartesianGrid,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { api, AdminUsersResponse } from "@/lib/api";
 import { bodyStyles, labelStyles, numericStyles } from "@/app/fonts";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 import { AdminPage, AdminPageHeader, AdminStats, AdminTable } from "@/components/admin/AdminPage";
-import SectionCard from "@/components/course/SectionCard";
+import SectionCard, { cardTable } from "@/components/course/SectionCard";
 import AdminPageSkeleton from "@/components/admin/AdminPageSkeleton";
 import ErrorMessage from "@/components/feedback/ErrorMessage";
 import { Badge } from "@/components/ui/badge";
@@ -62,6 +57,9 @@ function buildSignupChart(createdAt: string[]) {
       signups,
     }));
 }
+
+// Same chart wrapper, tokens and tooltip as the Graphs pages.
+const chartConfig = { signups: { label: "Signups", color: "var(--chart-2)" } } satisfies ChartConfig;
 
 export default function AdminUsersPage() {
   const [data, setData] = useState<AdminUsersResponse | null>(null);
@@ -158,54 +156,52 @@ export default function AdminUsersPage() {
 
       <SectionCard title="New accounts over time" className="mb-6">
           {chartData.length > 1 ? (
-            <div className="h-56">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "var(--text-muted)" }} axisLine={{ stroke: "var(--border)" }} tickLine={false} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "var(--text-muted)" }} axisLine={{ stroke: "var(--border)" }} tickLine={false} />
-                  <Tooltip contentStyle={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", fontSize: 12 }} labelStyle={{ color: "var(--text-primary)", fontWeight: 600 }} />
-                  <Line type="monotone" dataKey="signups" stroke="var(--accent)" strokeWidth={2} dot={{ r: 3, fill: "var(--accent)" }} activeDot={{ r: 5 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+            <ChartContainer config={chartConfig} className="aspect-auto h-56 w-full">
+              <LineChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                <CartesianGrid vertical={false} />
+                <XAxis dataKey="month" tickLine={false} axisLine={false} minTickGap={6} />
+                <YAxis allowDecimals={false} width={40} tickLine={false} axisLine={false} />
+                <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                <Line type="monotone" dataKey="signups" stroke="var(--color-signups)" strokeWidth={2} dot={{ r: 3, fill: "var(--color-signups)" }} activeDot={{ r: 5 }} />
+              </LineChart>
+            </ChartContainer>
           ) : (
             <p className={`${bodyStyles.md} py-12 text-center text-text-muted`}>Not enough signup history yet.</p>
           )}
       </SectionCard>
 
       <AdminTable title="Registered users" note={`${users.length} accounts`}>
-          <table className="w-full min-w-[760px] text-left">
-            <thead className="bg-surface-raised">
-              <tr className={`${labelStyles.sm} uppercase tracking-wider text-text-subtle`}>
-                <th className="px-4 py-3 font-medium">User</th>
-                <th className="px-4 py-3 font-medium">Provider</th>
-                <th className="px-4 py-3 font-medium">Joined</th>
-                <th className="px-4 py-3 font-medium">Last sign-in</th>
-                <th className="px-4 py-3 text-right font-medium">Bookmarks</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table className="min-w-[760px]">
+            <TableHeader>
+              <TableRow className={cardTable.headRow}>
+                <TableHead className={cardTable.head}>User</TableHead>
+                <TableHead className={cardTable.head}>Provider</TableHead>
+                <TableHead className={cardTable.head}>Joined</TableHead>
+                <TableHead className={cardTable.head}>Last sign-in</TableHead>
+                <TableHead className={cn(cardTable.head, "text-right")}>Bookmarks</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {users.map((user) => (
-                <tr key={user.id} className="border-t border-border hover:bg-surface-raised">
-                  <td className="px-4 py-3">
+                <TableRow key={user.id} className={cardTable.row}>
+                  <TableCell className={cardTable.cell}>
                     <Link href={`/admin/users/${user.id}`} className="group flex items-center gap-2 text-text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                       <span className={`${labelStyles.lg} max-w-64 truncate`}>{user.email}</span>
                       <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-text-subtle" />
                     </Link>
                     {user.displayName && <p className={`${bodyStyles.sm} mt-0.5 text-text-muted`}>{user.displayName}</p>}
-                  </td>
-                  <td className="px-4 py-3"><Badge variant="outline">{user.provider || "email"}</Badge></td>
-                  <td className={`${bodyStyles.sm} whitespace-nowrap px-4 py-3 text-text-muted`}>{formatDate(user.createdAt)}</td>
-                  <td className={`${bodyStyles.sm} whitespace-nowrap px-4 py-3 text-text-muted`}>{formatRelative(user.lastSignInAt)}</td>
-                  <td className={`${numericStyles.sm} px-4 py-3 text-right text-text-primary`}>{user.bookmarkCount}</td>
-                </tr>
+                  </TableCell>
+                  <TableCell className={cardTable.cell}><Badge variant="outline">{user.provider || "email"}</Badge></TableCell>
+                  <TableCell className={cn(cardTable.cell, bodyStyles.sm, "whitespace-nowrap text-text-muted")}>{formatDate(user.createdAt)}</TableCell>
+                  <TableCell className={cn(cardTable.cell, bodyStyles.sm, "whitespace-nowrap text-text-muted")}>{formatRelative(user.lastSignInAt)}</TableCell>
+                  <TableCell className={cn(cardTable.cell, numericStyles.sm, "text-right text-text-primary")}>{user.bookmarkCount}</TableCell>
+                </TableRow>
               ))}
               {users.length === 0 && (
-                <tr><td colSpan={5} className={`${bodyStyles.md} px-4 py-10 text-center text-text-muted`}>No registered users found.</td></tr>
+                <TableRow className={cardTable.row}><TableCell colSpan={5} className={cn(cardTable.cell, bodyStyles.md, "py-10 text-center text-text-muted")}>No registered users found.</TableCell></TableRow>
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
       </AdminTable>
     </AdminPage>
   );

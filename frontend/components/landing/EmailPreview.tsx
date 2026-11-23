@@ -20,15 +20,14 @@ const toneClass: Record<RowStatus, string> = {
   bad: "text-email-bad",
 };
 
-// Below sm, Term and Title collapse (the title moves under the section code) so the
-// table fits a 375px screen without scrolling.
-const cellPad = "px-2 py-2 sm:px-3";
-const wideOnly = "hidden sm:table-cell";
+// Use the preview's width: the two-column hero can be narrow even on desktop.
+const cellPad = "px-2 py-2 @min-[40rem]:px-3";
+const wideOnly = "hidden @min-[40rem]:table-cell";
 const headCell = cn(labelStyles.sm, cellPad, "text-left uppercase tracking-wide text-email-muted");
 
 export default function EmailPreview({ className }: { className?: string }) {
   return (
-    <div className={cn("min-w-0", className)}>
+    <div className={cn("@container min-w-0", className)}>
       <p className={cn(bodyStyles.sm, "mb-2 flex items-center justify-end gap-1.5 text-text-muted")}>
         <Clock aria-hidden="true" className="size-3.5" />
         Arrives every morning at 12:05 AM
@@ -93,12 +92,12 @@ export default function EmailPreview({ className }: { className?: string }) {
                       <tr key={row.section} className="border-b border-email-border align-top last:border-b-0">
                         <td className={cn(cellPad, wideOnly, "whitespace-nowrap text-email-muted")}>{row.term}</td>
                         <td className={cn(cellPad, "font-medium")}>
-                          <span className="whitespace-nowrap">{row.section}</span>
-                          <span className="block font-normal text-email-muted sm:hidden">{row.title}</span>
+                          <span>{row.section}</span>
+                          <span className="block font-normal text-email-muted @min-[40rem]:hidden">{row.title}</span>
                         </td>
                         <td className={cn(cellPad, wideOnly)}>{row.title}</td>
-                        <td className={cn(numericStyles.sm, cellPad, "sm:whitespace-nowrap")}>{row.enrolled}</td>
-                        <td className={cn(cellPad, "whitespace-nowrap font-semibold", toneClass[row.tone])}>{row.status}</td>
+                        <td className={cn(numericStyles.sm, cellPad, "@min-[40rem]:whitespace-nowrap")}>{row.enrolled}</td>
+                        <td className={cn(cellPad, "font-semibold", toneClass[row.tone])}>{row.status}</td>
                       </tr>
                     ))}
                   </tbody>

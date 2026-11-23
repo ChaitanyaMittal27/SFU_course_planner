@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
-import LoadingSpinner from "@/components/feedback/LoadingSpinner";
+import { TextBlockSkeleton } from "@/components/feedback/Skeletons";
 import { AuthCard } from "@/components/auth/LoginCard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { bodyStyles, displayStyles } from "@/app/fonts";
@@ -73,10 +74,7 @@ function ResetPasswordPageContent() {
     return (
       <AuthCard>
         <h1 className="sr-only">Reset your password</h1>
-        <LoadingSpinner size="sm" label="Validating reset link..." />
-        <p className={cn(bodyStyles.md, "text-center text-text-muted")} aria-hidden="true">
-          Validating reset link...
-        </p>
+        <TextBlockSkeleton heading lines={4} label="Validating reset link..." />
       </AuthCard>
     );
   }
@@ -89,7 +87,9 @@ function ResetPasswordPageContent() {
           <Alert variant="destructive" className="mb-6 text-left">
             <AlertDescription>{error || "This password reset link is invalid or has expired."}</AlertDescription>
           </Alert>
-          <Button onClick={() => router.replace("/login")}>Back to Login</Button>
+          <Link href="/login" replace className={buttonVariants()}>
+            Back to login
+          </Link>
         </div>
       </AuthCard>
     );
@@ -147,12 +147,12 @@ function ResetPasswordPageContent() {
           />
         </Field>
         <Button type="submit" disabled={isLoading} className="h-10 w-full">
-          {isLoading ? "Resetting Password..." : "Reset Password"}
+          {isLoading ? "Resetting password..." : "Reset password"}
         </Button>
         <div className="text-center">
-          <Button type="button" variant="link" onClick={() => router.replace("/login")} className="text-accent-text">
-            Back to Login
-          </Button>
+          <Link href="/login" replace className={cn(bodyStyles.md, "rounded-sm text-accent-text underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring")}>
+            Back to login
+          </Link>
         </div>
       </form>
     </AuthCard>
@@ -161,7 +161,13 @@ function ResetPasswordPageContent() {
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<LoadingSpinner />}>
+    <Suspense
+      fallback={
+        <AuthCard>
+          <TextBlockSkeleton heading lines={4} />
+        </AuthCard>
+      }
+    >
       <ResetPasswordPageContent />
     </Suspense>
   );

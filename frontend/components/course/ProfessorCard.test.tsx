@@ -44,9 +44,9 @@ describe("ProfessorCard", () => {
     expect(within(card).getByRole("link", { name: /View on RateMyProfessors/ })).toHaveAttribute("href", "https://www.ratemyprofessors.com/professor/1");
   });
 
-  it("as a row, puts the rating on the left and shows a dash without a match", () => {
+  it("puts the rating on the left and shows a dash without a match", () => {
     const { unmount } = render(
-      <ProfessorCard layout="row" name="Test Instructor" sections={["D100"]} state={{ status: "loaded", lookup: matched }} onRetry={vi.fn()} onReport={vi.fn()} />,
+      <ProfessorCard name="Test Instructor" sections={["D100"]} state={{ status: "loaded", lookup: matched }} onRetry={vi.fn()} onReport={vi.fn()} />,
     );
     const row = screen.getByRole("article", { name: "Test Instructor" });
     expect(row.className).not.toMatch(/\bborder\b|rounded/);
@@ -57,7 +57,7 @@ describe("ProfessorCard", () => {
     unmount();
 
     render(
-      <ProfessorCard layout="row" name="Test Instructor" sections={["D100"]} state={{ status: "loaded", lookup: noMatch }} onRetry={vi.fn()} onReport={vi.fn()} />,
+      <ProfessorCard name="Test Instructor" sections={["D100"]} state={{ status: "loaded", lookup: noMatch }} onRetry={vi.fn()} onReport={vi.fn()} />,
     );
     const noMatchRow = screen.getByRole("article", { name: "Test Instructor" });
     expect(noMatchRow.children[0]).toHaveTextContent("—/ 5 overall");

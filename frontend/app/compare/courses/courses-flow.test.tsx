@@ -75,6 +75,17 @@ beforeEach(() => {
 });
 
 describe("Compare courses", () => {
+  it("shows only the department error and restores guidance after retry", async () => {
+    const user = userEvent.setup();
+    mocks.getDepartments.mockRejectedValueOnce(new Error("offline"));
+    render(<CourseComparisonPage />);
+    expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't load departments");
+    expect(screen.queryByRole("heading", { name: "Add at least two courses to compare them." })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Try again" }));
+    await screen.findByRole("option", { name: "Computing Science" });
+    expect(screen.getByRole("heading", { name: "Add at least two courses to compare them." })).toBeInTheDocument();
+  });
+
   it("shows the Compare header and URL-driven tabs", async () => {
     render(<CourseComparisonPage />);
     expect(screen.getByRole("heading", { level: 1, name: "Compare" })).toBeInTheDocument();
@@ -152,7 +163,7 @@ describe("Compare courses", () => {
     render(<CourseComparisonPage />);
     expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't load the comparison");
 
-    await user.click(screen.getByRole("button", { name: "Try Again" }));
+    await user.click(screen.getByRole("button", { name: "Try again" }));
     expect(await screen.findByRole("heading", { level: 2, name: "Comparison" })).toBeInTheDocument();
   });
 

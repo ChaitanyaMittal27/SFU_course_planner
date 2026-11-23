@@ -46,6 +46,13 @@ beforeEach(() => {
 });
 
 describe("SectionComparisonResults", () => {
+  it("distinguishes a matched professor without ratings from no match", async () => {
+    mocks.getRmp.mockResolvedValue({ ...matched, teacher: { ...matched.teacher, avgRating: null, numRatings: 0 } });
+    renderResults(["D100", "D200"]);
+    expect((await screen.findAllByText("— / 5 · 0 ratings")).length).toBeGreaterThan(0);
+    expect(screen.queryByText("No match")).not.toBeInTheDocument();
+  });
+
   it("compares the selected sections in one card with an RMP row", async () => {
     renderResults(["D100", "D200"]);
     const card = (await screen.findByRole("heading", { level: 2, name: "CMPT 225 · Fall 2026" })).closest("section") as HTMLElement;
@@ -110,7 +117,7 @@ describe("SectionComparisonResults", () => {
     mocks.getOfferingDetail.mockRejectedValueOnce(new Error("offline"));
     renderResults(["D100", "D200"]);
     expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't load sections");
-    await user.click(screen.getByRole("button", { name: "Try Again" }));
+    await user.click(screen.getByRole("button", { name: "Try again" }));
     expect(await screen.findByRole("heading", { level: 2, name: "CMPT 225 · Fall 2026" })).toBeInTheDocument();
   });
 });

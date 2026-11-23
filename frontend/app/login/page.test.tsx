@@ -54,7 +54,7 @@ describe("login page", () => {
     render(<LoginPage />);
 
     await fillSignIn(user);
-    await user.click(screen.getByRole("button", { name: "Sign In" }));
+    await user.click(screen.getByRole("button", { name: "Sign in" }));
 
     await waitFor(() => expect(mocks.signInWithPassword).toHaveBeenCalledWith({ email: "student@example.com", password: "password123" }));
     expect(mocks.replace).toHaveBeenCalledWith("/browse/cmpt/225");
@@ -66,7 +66,7 @@ describe("login page", () => {
     render(<LoginPage />);
 
     await fillSignIn(user);
-    await user.click(screen.getByRole("button", { name: "Sign In" }));
+    await user.click(screen.getByRole("button", { name: "Sign in" }));
 
     await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/dashboard"));
   });
@@ -77,7 +77,7 @@ describe("login page", () => {
     render(<LoginPage />);
 
     await fillSignIn(user);
-    await user.click(screen.getByRole("button", { name: "Sign In" }));
+    await user.click(screen.getByRole("button", { name: "Sign in" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Invalid login credentials");
     expect(mocks.replace).not.toHaveBeenCalled();
@@ -97,7 +97,7 @@ describe("login page", () => {
     await user.type(screen.getByLabelText("Email"), "student@example.com");
     await user.type(screen.getByLabelText("Password"), "password123");
     await user.type(screen.getByLabelText("Confirm Password"), "different-password");
-    await user.click(screen.getByRole("button", { name: "Create Account" }));
+    await user.click(screen.getByRole("button", { name: "Create account" }));
 
     expect(screen.getByRole("alert")).toHaveTextContent("Passwords do not match");
     expect(mocks.signUp).not.toHaveBeenCalled();
@@ -112,7 +112,7 @@ describe("login page", () => {
     await user.type(screen.getByLabelText("Email"), "student@example.com");
     await user.type(screen.getByLabelText("Password"), "password123");
     await user.type(screen.getByLabelText("Confirm Password"), "password123");
-    await user.click(screen.getByRole("button", { name: "Create Account" }));
+    await user.click(screen.getByRole("button", { name: "Create account" }));
 
     await waitFor(() => expect(mocks.signUp).toHaveBeenCalledWith(expect.objectContaining({
       email: "student@example.com",
@@ -155,7 +155,7 @@ describe("login page", () => {
     render(<LoginPage />);
     await user.click(screen.getByRole("button", { name: "Forgot password?" }));
     await user.type(screen.getByLabelText("Email", { selector: "#forgot-password-email" }), "student@example.com");
-    await user.click(screen.getByRole("button", { name: "Send Reset Link" }));
+    await user.click(screen.getByRole("button", { name: "Send reset link" }));
 
     await waitFor(() => expect(mocks.resetPasswordForEmail).toHaveBeenCalledWith("student@example.com", {
       redirectTo: "http://localhost:3000/auth/reset-password",

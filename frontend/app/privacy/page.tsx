@@ -3,13 +3,11 @@
 /* Legal copy intentionally preserves its original punctuation and wording. */
 /* eslint-disable react/no-unescaped-entities */
 
-import LoadingSpinner from "@/components/feedback/LoadingSpinner";
 import PageContainer from "@/components/layout/PageContainer";
 import PageHeader from "@/components/layout/PageHeader";
-import { Suspense } from "react";
 import { headerStyles, bodyStyles } from "@/app/fonts";
 
-function PrivacyPageContent() {
+export default function PrivacyPage() {
   return (
     <PageContainer>
       <div className="max-w-[70ch]">
@@ -145,13 +143,5 @@ function PrivacyPageContent() {
         </div>
       </div>
     </PageContainer>
-  );
-}
-
-export default function PrivacyPage() {
-  return (
-    <Suspense fallback={<LoadingSpinner />}>
-      <PrivacyPageContent />
-    </Suspense>
   );
 }

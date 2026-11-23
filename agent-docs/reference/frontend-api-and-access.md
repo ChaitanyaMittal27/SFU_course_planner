@@ -2,7 +2,7 @@
 
 ## Frontend shape
 
-The Next.js application uses the App Router. The root layout wraps every page in `AuthProvider` and `NuqsAdapter` and always renders navigation and footer. Most feature pages are client components because they fetch interactively, read query state, or use Supabase browser auth. The `/admin` layout supplies the admin shell; `proxy.ts` applies route-level session refresh and redirects for `/dashboard` and `/admin`.
+The Next.js application uses the App Router. The root layout wraps every page in `AuthProvider` and `NuqsAdapter` and renders public navigation and footer outside `/admin` and `/admin/**`. Most feature pages are client components because they fetch interactively, read query state, or use Supabase browser auth. The `/admin` layout supplies the admin shell; `proxy.ts` applies route-level session refresh and redirects for `/dashboard` and `/admin`.
 
 `AuthContext` is the shared browser-auth state. It initializes from `supabase.auth.getSession()` and listens for auth changes; it is not the authorization authority. Login, OAuth callback, password reset, and profile changes call the Supabase browser client directly.
 

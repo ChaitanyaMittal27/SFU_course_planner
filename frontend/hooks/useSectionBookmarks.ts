@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { useRetryableRequest } from "@/hooks/useRetryableRequest";
 import { api } from "@/lib/api";
 import type { Bookmark } from "@/lib/types";
 
@@ -32,12 +34,13 @@ function sameSection(bookmark: Bookmark, key: SectionKey) {
 
 /**
  * The signed-in user's bookmarks, fetched once per page and shared by every
- * BookmarkButton on it. A failed fetch is treated as "no bookmarks" so the page still works.
+ * BookmarkButton on it. A failed fetch is treated as "no bookmarks" (with a toast offering a retry) so the page still works.
  */
 export function useSectionBookmarks(): SectionBookmarks {
   const { user, isLoading: authLoading } = useAuth();
   const userId = user?.id ?? null;
   const [loaded, setLoaded] = useState<{ userId: string; bookmarks: Bookmark[] } | null>(null);
+  const { requestVersion, retry } = useRetryableRequest();
 
   useEffect(() => {
     if (!userId) return;
@@ -47,14 +50,15 @@ export function useSectionBookmarks(): SectionBookmarks {
       .then((bookmarks) => {
         if (active) setLoaded({ userId, bookmarks });
       })
-      .catch((error: unknown) => {
-        console.error("Failed to load bookmarks:", error);
-        if (active) setLoaded({ userId, bookmarks: [] });
+      .catch(() => {
+        if (!active) return;
+        setLoaded({ userId, bookmarks: [] });
+        toast.error("Couldn't load your bookmarks.", { action: { label: "Try again", onClick: retry } });
       });
     return () => {
       active = false;
     };
-  }, [userId]);
+  }, [userId, requestVersion, retry]);
 
   const bookmarks = loaded && loaded.userId === userId ? loaded.bookmarks : null;
   const ready = !authLoading && (!userId || bookmarks !== null);

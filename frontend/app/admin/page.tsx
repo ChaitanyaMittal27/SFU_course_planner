@@ -234,6 +234,7 @@ export default function AdminDashboardPage() {
       <AdminPageHeader title="Admin overview" description="Operational control for SFU Course Planner. Select a section to manage the platform." />
 
       <AdminStats
+        className="[&>dl]:grid [&>dl]:w-full [&>dl]:grid-cols-2 [&>dl]:lg:grid-cols-4"
         items={kpis.map(({ label, value, tone, delta }) => ({
           label,
           tone,

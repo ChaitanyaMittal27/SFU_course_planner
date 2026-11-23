@@ -45,8 +45,6 @@ export default function Hero() {
 
   return (
     <section className="relative overflow-hidden">
-      {SHOW_HERO_GRID && <div aria-hidden="true" className="hero-dots pointer-events-none absolute inset-0" />}
-
       <div className="relative mx-auto grid max-w-page grid-cols-1 items-center gap-10 px-4 pt-12 pb-16 sm:px-7 sm:pt-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-14 lg:pt-20 lg:pb-20">
         <div className="animate-rise-in">
           {enrollingTerm && (
@@ -93,8 +91,9 @@ export default function Hero() {
           </p>
         </div>
 
-        <div className="animate-rise-in min-w-0 [animation-delay:80ms]">
-          <EmailPreview />
+        <div className="animate-rise-in relative min-w-0 [animation-delay:80ms]">
+          {SHOW_HERO_GRID && <div aria-hidden="true" className="hero-dots pointer-events-none absolute -inset-x-12 -inset-y-16" />}
+          <div className="relative"><EmailPreview /></div>
         </div>
       </div>
     </section>

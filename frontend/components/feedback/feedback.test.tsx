@@ -13,7 +13,7 @@ describe("shared feedback", () => {
     const retry = vi.fn();
     render(<ErrorMessage message="Unable to load courses." onRetry={retry} />);
     expect(screen.getByRole("alert")).toHaveTextContent("Unable to load courses.");
-    await user.click(screen.getByRole("button", { name: "Try Again" }));
+    await user.click(screen.getByRole("button", { name: "Try again" }));
     expect(retry).toHaveBeenCalledOnce();
   });
 
@@ -22,13 +22,13 @@ describe("shared feedback", () => {
     const retry = vi.fn();
     const { rerender } = render(<ErrorMessage message="Unable to load courses." />);
     expect(screen.getByRole("alert")).toHaveTextContent("Something went wrong");
-    expect(screen.queryByRole("button", { name: "Try Again" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Try again" })).not.toBeInTheDocument();
 
     rerender(<ErrorMessage title="Couldn't load offerings" message="CourseSys did not respond." onRetry={retry} />);
     const alert = screen.getByRole("alert");
     expect(alert).toHaveTextContent("Couldn't load offerings");
     expect(alert).not.toHaveTextContent("Something went wrong");
-    await user.click(screen.getByRole("button", { name: "Try Again" }));
+    await user.click(screen.getByRole("button", { name: "Try again" }));
     expect(retry).toHaveBeenCalledOnce();
   });
 

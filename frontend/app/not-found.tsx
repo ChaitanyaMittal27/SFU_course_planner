@@ -26,21 +26,21 @@ export default function NotFound() {
 
         {/* The joke: a course-listing row for this page. */}
         <div className="mt-6 overflow-x-auto rounded-md border border-border">
-          <table className="w-full min-w-[28rem]">
+          <table className="w-full">
             <caption className="sr-only">This page as a course offering</caption>
             <thead className="bg-surface-raised">
               <tr>
                 <th scope="col" className={headCell}>Section</th>
-                <th scope="col" className={headCell}>Title</th>
-                <th scope="col" className={headCell}>Seats</th>
+                <th scope="col" className={cn(headCell, "hidden sm:table-cell")}>Title</th>
+                <th scope="col" className={cn(headCell, "hidden sm:table-cell")}>Seats</th>
                 <th scope="col" className={headCell}>Status</th>
               </tr>
             </thead>
             <tbody>
               <tr className="border-t border-border">
                 <td className={cn(cell, numericStyles.sm, "font-semibold")}>PAGE 404</td>
-                <td className={cell}>Page Not Found</td>
-                <td className={cn(cell, numericStyles.sm)}>0 / 0</td>
+                <td className={cn(cell, "hidden sm:table-cell")}>Page Not Found</td>
+                <td className={cn(cell, numericStyles.sm, "hidden sm:table-cell")}>0 / 0</td>
                 <td className={cell}>
                   <StatusBadge status="Not offered" />
                 </td>

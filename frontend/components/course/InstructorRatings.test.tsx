@@ -96,11 +96,10 @@ describe("InstructorRatings", () => {
     await waitFor(() => expect(screen.getAllByText("Not found on RateMyProfessors.")).toHaveLength(2));
   });
 
-  it("renders the card variant as one Instructors card with a row per professor", async () => {
+  it("renders one Instructors card with a row per professor", async () => {
     mocks.getRmp.mockImplementation((name: string) => Promise.resolve(name === "Hall, Margaret" ? matched : noMatch));
     render(
       <InstructorRatings
-        variant="card"
         sections={[section("CRIM 101 D100", "Hall, Margaret"), section("CRIM 101 D200", "Yip, Karen")]}
         deptCode="als"
       />,

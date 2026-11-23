@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 export interface ComparisonColumn {
   key: string;
   header: ReactNode;
+  /** Plain label repeated beside mobile values, without duplicating header links. */
+  mobileLabel: string;
 }
 
 export interface ComparisonRowData {
@@ -22,8 +24,8 @@ export interface ComparisonRowData {
  */
 export default function ComparisonTable({ columns, rows, className }: { columns: ComparisonColumn[]; rows: ComparisonRowData[]; className?: string }) {
   return (
-    <Table className={cn("table-fixed min-w-[36rem]", className)}>
-      <TableHeader>
+    <Table className={cn("block sm:table sm:table-fixed", className)}>
+      <TableHeader className="sr-only focus-within:not-sr-only sm:not-sr-only sm:table-header-group">
         <TableRow className={cardTable.headRow}>
           <TableHead className={cn(cardTable.head, "w-40")}>
             <span className="sr-only">Measure</span>
@@ -35,14 +37,15 @@ export default function ComparisonTable({ columns, rows, className }: { columns:
           ))}
         </TableRow>
       </TableHeader>
-      <TableBody>
+      <TableBody className="block sm:table-row-group">
         {rows.map((row) => (
-          <TableRow key={row.label} className={cn(cardTable.row, "hover:bg-transparent")}>
-            <TableHead scope="row" className={cn(cardTable.cell, bodyStyles.sm, "h-auto align-top font-medium whitespace-normal text-text-muted")}>
+          <TableRow key={row.label} className={cn(cardTable.row, "grid hover:bg-transparent sm:table-row", columns.length === 2 ? "grid-cols-2" : "grid-cols-1")}>
+            <TableHead scope="row" className={cn(cardTable.cell, bodyStyles.sm, "col-span-full block h-auto bg-surface-raised pb-2 align-top font-medium whitespace-normal text-text-muted sm:table-cell sm:bg-transparent sm:pb-3")}>
               {row.label}
             </TableHead>
             {row.cells.map((cell, index) => (
-              <TableCell key={columns[index]?.key ?? index} className={cn(cardTable.cell, bodyStyles.md, "align-top whitespace-normal text-text-primary")}>
+              <TableCell key={columns[index]?.key ?? index} className={cn(cardTable.cell, bodyStyles.md, "block min-w-0 align-top whitespace-normal wrap-anywhere text-text-primary sm:table-cell")}>
+                <div aria-hidden="true" className={cn(bodyStyles.sm, "mb-2 font-medium text-text-muted sm:hidden")}>{columns[index]?.mobileLabel}</div>
                 {cell}
               </TableCell>
             ))}

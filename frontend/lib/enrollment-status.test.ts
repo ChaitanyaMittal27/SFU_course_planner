@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  ENROLLMENT_STATUS_LABELS,
   ENROLLMENT_STATUS_TONES,
   getEnrollmentStatus,
-  getEnrollmentStatusLabel,
 } from "@/lib/enrollment-status";
 
 describe("getEnrollmentStatus", () => {
@@ -22,9 +22,7 @@ describe("getEnrollmentStatus", () => {
   });
 
   it("labels and tones statuses to match the email digest", () => {
-    expect(getEnrollmentStatusLabel(89.9)).toBe("Open");
-    expect(getEnrollmentStatusLabel(90)).toBe("Almost full");
-    expect(getEnrollmentStatusLabel(100)).toBe("Full");
+    expect(ENROLLMENT_STATUS_LABELS).toEqual({ open: "Open", "almost-full": "Almost full", full: "Full" });
     expect(ENROLLMENT_STATUS_TONES).toEqual({ open: "success", "almost-full": "warning", full: "destructive" });
   });
 });

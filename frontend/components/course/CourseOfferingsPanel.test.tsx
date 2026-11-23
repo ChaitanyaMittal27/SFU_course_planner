@@ -111,7 +111,7 @@ describe("CourseOfferingsPanel", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Loading offerings");
     expect(await screen.findByRole("alert")).toHaveTextContent("Failed to load course offerings.");
 
-    await user.click(screen.getByRole("button", { name: "Try Again" }));
+    await user.click(screen.getByRole("button", { name: "Try again" }));
     await waitFor(() => expect(mocks.getOfferings).toHaveBeenCalledTimes(2));
     expect(await screen.findByRole("link", { name: "Summer 2026" })).toBeInTheDocument();
   });

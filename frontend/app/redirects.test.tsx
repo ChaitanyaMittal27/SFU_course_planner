@@ -1,15 +1,21 @@
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({
-  redirect: vi.fn(),
-  replace: vi.fn(),
-  search: new URLSearchParams(),
-  resolveCourseIds: vi.fn(),
-}));
+const mocks = vi.hoisted(() => {
+  const replace = vi.fn();
+  return {
+    redirect: vi.fn(),
+    replace,
+    search: new URLSearchParams(),
+    resolveCourseIds: vi.fn(),
+    // Stable like the real Next router, so effects depending on it do not re-run each render.
+    router: { replace, push: vi.fn() },
+  };
+});
 vi.mock("next/navigation", () => ({
   redirect: mocks.redirect,
-  useRouter: () => ({ replace: mocks.replace, push: vi.fn() }),
+  useRouter: () => mocks.router,
   useSearchParams: () => mocks.search,
 }));
 vi.mock("@/lib/course-resolver", () => ({ resolveCourseIds: mocks.resolveCourseIds }));
@@ -77,5 +83,17 @@ describe("query-parameter graph pages", () => {
     render(<LoadGraphPage />);
     expect(await screen.findByRole("alert")).toHaveTextContent("This analytics link is invalid.");
     expect(mocks.replace).not.toHaveBeenCalled();
+  });
+
+  it("offers a working retry when resolving the link fails", async () => {
+    const user = userEvent.setup();
+    mocks.search = new URLSearchParams("deptId=14&courseId=3998");
+    mocks.resolveCourseIds.mockRejectedValueOnce(new Error("offline"));
+    render(<LoadGraphPage />);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Failed to resolve this analytics link.");
+    await user.click(screen.getByRole("button", { name: "Try again" }));
+    await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith("/graph/load/cmpt/225"));
+    expect(mocks.resolveCourseIds).toHaveBeenCalledTimes(2);
   });
 });

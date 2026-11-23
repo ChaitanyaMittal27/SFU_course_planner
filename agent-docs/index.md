@@ -24,5 +24,7 @@
 
 ## Read only when asked
 - [changelog.md](changelog.md) — release history; touch only via Doc instructions.
+- [reference/ui-cleanup-2026-11.md](reference/ui-cleanup-2026-11.md) — subtask 6 dead-code delete list (with proof) and suspected-unused-but-kept items.
+- [reference/ui-responsive-2026-11.md](reference/ui-responsive-2026-11.md) — subtasks 6 verification and 7–8 implementation/check results.
 
 Reference docs describe verified behavior as of writing; source and DTOs remain the authority for exact shapes.

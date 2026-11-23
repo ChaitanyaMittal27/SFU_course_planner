@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
-import SectionCard from "@/components/course/SectionCard";
+import SectionCard, { cardTable } from "@/components/course/SectionCard";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 import { AdminPage, AdminPageHeader, AdminStats, AdminTable } from "@/components/admin/AdminPage";
 import AdminPageSkeleton from "@/components/admin/AdminPageSkeleton";
 import ErrorMessage from "@/components/feedback/ErrorMessage";
@@ -162,40 +164,40 @@ export default function AdminTermsPage() {
       />
 
       <AdminTable title="All terms" note={`${terms.length} configured`} className="mb-6">
-          <table className="w-full text-left">
-            <thead className="bg-surface-raised">
-              <tr>
-                <th className={`${labelStyles.sm} px-4 py-2.5 uppercase tracking-wider text-text-subtle`}>Term</th>
-                <th className={`${labelStyles.sm} px-4 py-2.5 text-center uppercase tracking-wider text-text-subtle`}>Enrolling</th>
-                <th className={`${labelStyles.sm} px-4 py-2.5 text-center uppercase tracking-wider text-text-subtle`}>Current</th>
-                <th className={`${labelStyles.sm} px-4 py-2.5 text-right uppercase tracking-wider text-text-subtle`}>Updated</th>
-              </tr>
-            </thead>
-            <tbody>
+          <Table className="">
+            <TableHeader>
+              <TableRow className={cardTable.headRow}>
+                <TableHead className={cardTable.head}>Term</TableHead>
+                <TableHead className={cn(cardTable.head, "text-center")}>Enrolling</TableHead>
+                <TableHead className={cn(cardTable.head, "text-center")}>Current</TableHead>
+                <TableHead className={cn(cardTable.head, "text-right")}>Updated</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {terms.map((term) => {
                 const code = semesterCode(term.year, term.term);
                 const isPast = currentCode !== null && code !== null && code < currentCode;
 
                 return (
-                  <tr key={term.termId} className="border-b border-border last:border-b-0 hover:bg-surface-raised">
-                    <td className="px-4 py-3">
+                  <TableRow key={term.termId} className={cardTable.row}>
+                    <TableCell className={cardTable.cell}>
                       <span className={`${labelStyles.lg} ${isPast ? "font-normal text-text-muted" : "font-medium text-text-primary"}`}>
                         {formatTerm(term.term)} {term.year}
                       </span>
-                    </td>
-                    <td className="px-4 py-3 text-center">{term.isEnrolling ? statusBadge("Enrolling") : <span className="text-text-subtle">—</span>}</td>
-                    <td className="px-4 py-3 text-center">{term.isCurrent ? statusBadge("Current") : <span className="text-text-subtle">—</span>}</td>
-                    <td className={`${numericStyles.sm} px-4 py-3 text-right text-text-subtle`}>{formatUpdatedAt(term.updatedAt)}</td>
-                  </tr>
+                    </TableCell>
+                    <TableCell className={cn(cardTable.cell, "text-center")}>{term.isEnrolling ? statusBadge("Enrolling") : <span className="text-text-subtle">—</span>}</TableCell>
+                    <TableCell className={cn(cardTable.cell, "text-center")}>{term.isCurrent ? statusBadge("Current") : <span className="text-text-subtle">—</span>}</TableCell>
+                    <TableCell className={cn(cardTable.cell, numericStyles.sm, "text-right text-text-subtle")}>{formatUpdatedAt(term.updatedAt)}</TableCell>
+                  </TableRow>
                 );
               })}
               {terms.length === 0 && (
-                <tr>
-                  <td colSpan={4} className={`${bodyStyles.md} px-4 py-8 text-center text-text-muted`}>No terms found.</td>
-                </tr>
+                <TableRow className={cardTable.row}>
+                  <TableCell colSpan={4} className={cn(cardTable.cell, bodyStyles.md, "py-8 text-center text-text-muted")}>No terms found.</TableCell>
+                </TableRow>
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
       </AdminTable>
 
       {formOpen && (

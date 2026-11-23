@@ -21,3 +21,8 @@ Seeded entries before 2026-11 are dated by the commit that first documented them
 2026-11-22 Microsoft sign-in kept but hidden behind `SHOW_MICROSOFT_LOGIN`: waiting on SFU Azure setup.
 2026-11-22 21st.dev: free components only; hero/nav ended up hand-built: no paid dependencies.
 2026-11-22 Full title search waits for backend `GET /api/courses` (to-do): frontend-only refresh can't add the endpoint.
+2026-11-23 Auth-card pages, the 404 and the landing hero keep their own h1 instead of PageHeader; failed course lookups are not cached so retries hit the API: no visual redesign in cleanup, and Try again must actually retry.
+2026-11-23 Mobile offering sections and dashboard bookmarks become stacked rows; comparisons group values under each measure with plain course/section labels: keep status and actions visible without sideways scrolling. Dense admin tables retain contained scrolling.
+2026-11-23 Hero dots follow the email preview; its table responds to container width: the two-column desktop preview is narrower than the viewport breakpoint suggests.
+
+2026-11-23 Admin uses its own navigation shell without public header/footer; desktop and mobile sheet share contents and existing auth/theme actions: one navigation per viewport, consistent controls.

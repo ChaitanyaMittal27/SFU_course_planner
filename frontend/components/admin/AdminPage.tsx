@@ -40,9 +40,10 @@ export function AdminPageHeader({ title, description, actions }: AdminPageHeader
 }
 
 /** KPI numbers as the plain summary row (no tiles). */
-export function AdminStats({ items }: { items: AdminStat[] }) {
+export function AdminStats({ items, className }: { items: AdminStat[]; className?: string }) {
   return (
     <SummaryRow
+      className={className}
       items={items.map((item) => ({
         label: item.label,
         value: <span className={cn(item.tone ?? "text-text-primary")}>{item.value}</span>,
@@ -59,11 +60,3 @@ export function AdminTable({ title, note, children, className }: AdminTableProps
     </SectionCard>
   );
 }
-
-/** Shared table cell classes for admin tables inside an AdminTable card. */
-export const adminTable = {
-  head: "bg-surface-raised",
-  th: "px-4 py-2.5 text-left font-medium text-text-muted sm:px-5",
-  row: "border-t border-border transition-colors hover:bg-surface-raised",
-  td: "px-4 py-3 sm:px-5",
-};

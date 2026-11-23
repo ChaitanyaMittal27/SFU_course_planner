@@ -68,8 +68,10 @@ describe("dashboard flow", () => {
     mocks.auth = { ...signedIn, signOut: vi.fn() };
     render(<DashboardPage />);
     expect(await screen.findByRole("heading", { name: "No watchers yet" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Browse Courses" })).toHaveAttribute("href", "/browse");
-    expect(screen.getByRole("link", { name: "Browse courses" })).toHaveAttribute("href", "/browse");
+    // Header action and empty-state action.
+    const browseLinks = screen.getAllByRole("link", { name: "Browse courses" });
+    expect(browseLinks).toHaveLength(2);
+    for (const link of browseLinks) expect(link).toHaveAttribute("href", "/browse");
   });
 
   it("summarises bookmarks and links each row to its canonical offering", async () => {
@@ -129,6 +131,21 @@ describe("dashboard flow", () => {
     await waitFor(() => expect(mocks.toastError).toHaveBeenCalledWith("Couldn't update your display name: name rejected"));
     expect(alert).not.toHaveBeenCalled();
     alert.mockRestore();
+  });
+
+  it("says so, with a working retry, when course details fail to load", async () => {
+    withBookmark();
+    mocks.getCourses.mockRejectedValueOnce(new Error("offline"));
+    render(<DashboardPage />);
+
+    await waitFor(() =>
+      expect(mocks.toastError).toHaveBeenCalledWith("Couldn't load some course details.", expect.objectContaining({ action: expect.any(Object) })),
+    );
+    const [, options] = mocks.toastError.mock.calls[0];
+    expect(options.action.label).toBe("Try again");
+    options.action.onClick();
+    expect(await screen.findByText("Data Structures")).toBeInTheDocument();
+    expect(mocks.getCourses).toHaveBeenCalledTimes(2);
   });
 
   it("toggles the labelled morning email switch and confirms with a toast", async () => {

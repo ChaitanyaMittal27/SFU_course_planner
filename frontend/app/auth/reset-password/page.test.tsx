@@ -48,7 +48,7 @@ describe("reset password page", () => {
     await screen.findByRole("heading", { name: "Reset Your Password" });
     await user.type(screen.getByPlaceholderText("At least 6 characters"), "password123");
     await user.type(screen.getByPlaceholderText("Re-enter your password"), "different-password");
-    await user.click(screen.getByRole("button", { name: "Reset Password" }));
+    await user.click(screen.getByRole("button", { name: "Reset password" }));
 
     expect(screen.getByRole("alert")).toHaveTextContent("Passwords do not match");
     expect(mocks.updateUser).not.toHaveBeenCalled();
@@ -60,7 +60,7 @@ describe("reset password page", () => {
     await screen.findByRole("heading", { name: "Reset Your Password" });
     await user.type(screen.getByPlaceholderText("At least 6 characters"), "password123");
     await user.type(screen.getByPlaceholderText("Re-enter your password"), "password123");
-    await user.click(screen.getByRole("button", { name: "Reset Password" }));
+    await user.click(screen.getByRole("button", { name: "Reset password" }));
 
     await waitFor(() => expect(mocks.updateUser).toHaveBeenCalledWith({ password: "password123" }));
     expect(await screen.findByRole("heading", { level: 1, name: "Password Reset Successful!" })).toBeInTheDocument();
@@ -73,7 +73,7 @@ describe("reset password page", () => {
     await screen.findByRole("heading", { name: "Reset Your Password" });
     await user.type(screen.getByPlaceholderText("At least 6 characters"), "password123");
     await user.type(screen.getByPlaceholderText("Re-enter your password"), "password123");
-    await user.click(screen.getByRole("button", { name: "Reset Password" }));
+    await user.click(screen.getByRole("button", { name: "Reset password" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Recovery session expired");
   });

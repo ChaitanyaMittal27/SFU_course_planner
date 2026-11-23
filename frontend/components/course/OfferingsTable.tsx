@@ -29,14 +29,14 @@ export default function OfferingsTable({ offerings, enrollingTerm, offeringHref 
   const isEnrolling = (o: CourseOffering) => enrollingTerm !== null && o.semesterCode === enrollingTerm.semesterCode;
 
   return (
-    <Table>
+    <Table className="[&_td]:px-2 [&_th]:px-2 sm:[&_td]:px-5 sm:[&_th]:px-5">
       <TableHeader>
         <TableRow className={cardTable.headRow}>
           <TableHead className={cardTable.head}>Term</TableHead>
           <TableHead className={cn(cardTable.head, "hidden sm:table-cell")}>Section</TableHead>
-          <TableHead className={cn(cardTable.head, "hidden md:table-cell")}>Instructor</TableHead>
-          <TableHead className={cn(cardTable.head, "hidden md:table-cell")}>Campus</TableHead>
-          <TableHead className={cardTable.head}>Enrolled / cap</TableHead>
+          <TableHead className={cn(cardTable.head, "hidden lg:table-cell")}>Instructor</TableHead>
+          <TableHead className={cn(cardTable.head, "hidden lg:table-cell")}>Campus</TableHead>
+          <TableHead className={cardTable.head}><span className="sm:hidden">Seats</span><span className="hidden sm:inline">Enrolled / cap</span></TableHead>
           <TableHead className={cardTable.head}>Load</TableHead>
           <TableHead className={cardTable.head}>
             <span className="sr-only">Open</span>
@@ -65,13 +65,13 @@ export default function OfferingsTable({ offerings, enrollingTerm, offeringHref 
               <span className={cn(bodyStyles.sm, "text-text-muted sm:hidden")}>{sectionCode(o.section)}</span>
             </TableCell>
             <TableCell className={cn(cardTable.cell, bodyStyles.md, "hidden text-text-muted sm:table-cell")}>{sectionCode(o.section)}</TableCell>
-            <TableCell className={cn(cardTable.cell, bodyStyles.md, "hidden md:table-cell")}>{o.instructors || "—"}</TableCell>
-            <TableCell className={cn(cardTable.cell, bodyStyles.md, "hidden text-text-muted md:table-cell")}>{o.location || "—"}</TableCell>
-            <TableCell className={cn(cardTable.cell, numericStyles.md, "text-text-primary")}>
+            <TableCell className={cn(cardTable.cell, bodyStyles.md, "hidden lg:table-cell")}>{o.instructors || "—"}</TableCell>
+            <TableCell className={cn(cardTable.cell, bodyStyles.md, "hidden text-text-muted lg:table-cell")}>{o.location || "—"}</TableCell>
+            <TableCell className={cn(cardTable.cell, numericStyles.md, "whitespace-normal text-text-primary")}>
               {o.enrolled} / {o.capacity}
             </TableCell>
             <TableCell className={cardTable.cell}>
-              <LoadBar percent={o.loadPercent ?? 0} tonedLabel />
+              <LoadBar percent={o.loadPercent ?? 0} tonedLabel className="flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-2" />
             </TableCell>
             <TableCell className={cn(cardTable.cell, "w-8 text-text-subtle")}>
               <ChevronRight aria-hidden="true" className="size-4" />

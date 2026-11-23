@@ -54,7 +54,9 @@ function RatingCell({ names, lookups }: { names: string[]; lookups: Record<strin
               <span className={numericStyles.md}>
                 {rating.toFixed(1)} <span className={cn(bodyStyles.sm, "text-text-muted")}>/ 5</span>
               </span>
-            ) : lookup?.status === "NO_MATCH" || (lookup?.status === "MATCHED" && rating === null) ? (
+            ) : lookup?.status === "MATCHED" ? (
+              <span className="text-text-subtle">— / 5 · {lookup.teacher?.numRatings ?? 0} ratings</span>
+            ) : lookup?.status === "NO_MATCH" ? (
               <span className="text-text-subtle">No match</span>
             ) : (
               <span className="text-text-subtle">Unavailable</span>
@@ -108,11 +110,12 @@ export default function SectionComparisonResults({ course, semesterCode, request
     return <ErrorMessage title="Couldn't load sections" message={`${code} sections for ${termLabel} didn't load. It may not be offered that term.`} onRetry={retry} />;
   }
   if (availableSections.length === 0) {
-    return <TaskEmptyState icon={ClipboardList} title={`No sections of ${code} in ${termLabel}.`} description="Pick another term to compare." />;
+    return <TaskEmptyState headingLevel={2} icon={ClipboardList} title={`No sections of ${code} in ${termLabel}.`} description="Pick another term to compare." />;
   }
   if (availableSections.length === 1) {
     return (
       <TaskEmptyState
+        headingLevel={2}
         icon={ClipboardList}
         title={`Only one section of ${code} in ${termLabel}. Pick another term to compare.`}
         description="There is nothing to compare it with in this term."
@@ -212,13 +215,14 @@ export default function SectionComparisonResults({ course, semesterCode, request
           <ComparisonTable
             columns={comparisonSections.map((section) => ({
               key: section.section,
+              mobileLabel: sectionCode(section.section),
               header: <span className={cn(numericStyles.md, "font-semibold")}>{sectionCode(section.section)}</span>,
             }))}
             rows={rows}
           />
         </SectionCard>
       ) : (
-        <TaskEmptyState icon={ClipboardList} title="Select at least two sections to compare." description={`Pick up to ${MAX_COMPARED_SECTIONS} sections above.`} />
+        <TaskEmptyState headingLevel={2} icon={ClipboardList} title="Select at least two sections to compare." description={`Pick up to ${MAX_COMPARED_SECTIONS} sections above.`} />
       )}
     </>
   );
