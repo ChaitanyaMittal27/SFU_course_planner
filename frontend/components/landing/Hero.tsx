@@ -14,10 +14,10 @@ import type { TermInfo } from "@/lib/types";
 const SHOW_HERO_GRID = true;
 
 // Headline numbers under the hero paragraph. Update as they grow.
-const HERO_STATS = [
+export const HERO_STATS = [
   { value: "70+", label: "SFU students" },
-  { value: "500+", label: "courses" },
-  { value: "50+", label: "emails every morning" },
+  { value: "3300+", label: "courses" },
+  { value: "100+", label: "emails every morning" },
 ];
 
 function formatTerm({ term, year }: TermInfo) {

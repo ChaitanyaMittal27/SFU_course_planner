@@ -1,4 +1,5 @@
 # Decisions — one line each: "YYYY-MM-DD <decision>: <why>"
+2026-11-23 Tests check structure and behaviour, not editable marketing copy (stats, headlines); read such values from their source constants.
 2026-11-23 Next.js upgraded to 16.4.6 before the UI release for security advisories; matching eslint-config-next, React 19.2.1 retained, shadcn CLI/CSS tooling moved to devDependencies.
 Seeded entries before 2026-11 are dated by the commit that first documented them.
 

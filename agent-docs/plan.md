@@ -3,7 +3,7 @@ Status: active
 ## Goal
 Finish the frontend UI refresh, clean it up, and release it to production.
 ## Scope
-In: frontend/ and agent-docs/.  Out: backend changes, new features, content rewrites.
+In: frontend/, README.md, and agent-docs/.  Out: backend changes, new features, content rewrites.
 ## Approach
 Card-based, calm, data-first design (see decisions.md). Each subtask is one Claude Code session; /clear between subtasks unless told otherwise.
 ## Subtasks
@@ -18,4 +18,5 @@ Card-based, calm, data-first design (see decisions.md). Each subtask is one Clau
 | 7 | Hero dot background fix | verified |
 | 8 | Full mobile/responsive checkup + admin single-navigation follow-up | verified |
 | 9 | Release prep and pre-release display fixes; owner merge/deploy pending | implemented |
+| 10 | Docs: README refresh + to-do reorganisation + hero stats test follows source constants | implemented |
 Status: pending → implemented (coding agent) → verified (only via Doc instructions).

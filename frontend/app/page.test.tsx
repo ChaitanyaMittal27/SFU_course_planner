@@ -13,6 +13,7 @@ vi.mock("next/link", () => ({
 }));
 
 import LandingPage from "@/app/page";
+import { HERO_STATS } from "@/components/landing/Hero";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -72,15 +73,18 @@ describe("landing page", () => {
     const hero = screen.getByRole("heading", { level: 1 }).closest("section");
     expect(hero).toContainElement(stats);
 
-    const pairs = [
-      ["SFU students", "70+"],
-      ["courses", "500+"],
-      ["emails every morning", "50+"],
-    ];
-    const terms = within(stats).getAllByRole("term");
-    const values = within(stats).getAllByRole("definition");
-    expect(terms.map((t) => t.textContent)).toEqual(pairs.map(([label]) => label));
-    expect(values.map((d) => d.textContent)).toEqual(pairs.map(([, value]) => value));
+    const items = Array.from(stats.children);
+    expect(items).toHaveLength(HERO_STATS.length);
+    HERO_STATS.forEach(({ label, value }, index) => {
+      const item = items[index] as HTMLElement;
+      const term = within(item).getByRole("term");
+      const definition = within(item).getByRole("definition");
+      expect(term).toHaveTextContent(label);
+      expect(definition).toHaveTextContent(value);
+      // The label comes first semantically; the reversed column puts the number above it.
+      expect(term.compareDocumentPosition(definition) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(item).toHaveClass("flex", "flex-col-reverse");
+    });
 
     const cta = screen.getByRole("link", { name: "Start tracking courses" });
     expect(stats.compareDocumentPosition(cta) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
