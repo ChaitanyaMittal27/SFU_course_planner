@@ -1,28 +1,30 @@
-import { AlertCircle } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import { CircleAlert } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { headerStyles, bodyStyles } from "@/app/fonts";
+import { cn } from "@/lib/utils";
 
 interface ErrorMessageProps {
+  /** Short summary; describe what failed when you can (e.g. "Couldn't load offerings"). */
+  title?: string;
   message: string;
+  /** Only pass a handler that actually re-runs the failed request. */
   onRetry?: () => void;
+  className?: string;
 }
 
-export default function ErrorMessage({ message, onRetry }: ErrorMessageProps) {
+export default function ErrorMessage({ title = "Something went wrong", message, onRetry, className }: ErrorMessageProps) {
   return (
-    <Card className="border-l-4 border-destructive p-6" role="alert">
-      <div className="flex items-start gap-3">
-        <AlertCircle className="w-6 h-6 text-destructive shrink-0" />
-        <div className="flex-1">
-          <h3 className={`${headerStyles.sm} text-destructive mb-1`}>Error Loading Data</h3>
-          <p className={`${bodyStyles.md} text-text-muted mb-3`}>{message}</p>
-          {onRetry && (
-            <Button variant="outline" size="sm" onClick={onRetry}>
-              Try Again
-            </Button>
-          )}
+    <Alert variant="destructive" className={cn("px-4 py-3", className)}>
+      <CircleAlert aria-hidden="true" />
+      <AlertTitle>{title}</AlertTitle>
+      <AlertDescription>{message}</AlertDescription>
+      {onRetry && (
+        <div className="col-start-2 mt-3">
+          <Button variant="outline" size="sm" onClick={onRetry}>
+            Try again
+          </Button>
         </div>
-      </div>
-    </Card>
+      )}
+    </Alert>
   );
 }

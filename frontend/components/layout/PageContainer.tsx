@@ -1,17 +1,22 @@
-import { displayStyles } from "@/app/fonts";
+import PageHeader from "@/components/layout/PageHeader";
+import { cn } from "@/lib/utils";
 
 interface PageContainerProps {
   children: React.ReactNode;
+  /** Shorthand for a title-only PageHeader. Prefer rendering <PageHeader> directly. */
   title?: string;
+  className?: string;
 }
 
-export default function PageContainer({ children, title }: PageContainerProps) {
+/**
+ * The single page width (max-w-page, 1180px). Renders a <div>: AppShell already
+ * provides the page's <main> landmark.
+ */
+export default function PageContainer({ children, title, className }: PageContainerProps) {
   return (
-    <div className="min-h-screen pt-4">
-      <div className="max-w-[1180px] mx-auto px-4 sm:px-7 py-8">
-        {title && <h1 className={`${displayStyles.sm} text-text-primary mb-8`}>{title}</h1>}
-        {children}
-      </div>
+    <div className={cn("mx-auto w-full max-w-page px-4 py-10 sm:px-7", className)}>
+      {title && <PageHeader title={title} />}
+      {children}
     </div>
   );
 }

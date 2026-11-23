@@ -1,38 +1,117 @@
 "use client";
 
+import { seatLoadPercent } from "@/lib/enrollment-status";
+
 import { Suspense, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { offeringHref } from "@/lib/course-routes";
-import { Plus, Eye, TrendingUp, BarChart3, Bell, X, ChevronDown, ChevronUp, Check, Pencil } from "lucide-react";
+import Link from "next/link";
+import { BookmarkPlus, LogOut, X } from "lucide-react";
+import { toast } from "sonner";
 import { api, BookmarkOffering, Bookmark, Course, Department } from "@/lib/api";
 import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import LoadingSpinner from "@/components/feedback/LoadingSpinner";
+import SectionCard, { cardPadding, cardTable } from "@/components/course/SectionCard";
+import SummaryRow from "@/components/course/SummaryRow";
+import LoadBar from "@/components/enrollment/LoadBar";
+import StatusBadge from "@/components/enrollment/StatusBadge";
 import ErrorMessage from "@/components/feedback/ErrorMessage";
-import ProfileAvatar from "@/components/dashboard/ProfileAvatar";
-import LoadBar from "@/components/dashboard/LoadBar";
-import StatusBadge from "@/components/dashboard/StatusBadge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { TableRowsSkeleton, PageSkeleton } from "@/components/feedback/Skeletons";
+import TaskEmptyState from "@/components/feedback/TaskEmptyState";
+import PageContainer from "@/components/layout/PageContainer";
+import PageHeader from "@/components/layout/PageHeader";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { displayStyles, headerStyles, bodyStyles, labelStyles } from "@/app/fonts";
-import { useScrollReveal } from "@/hooks/useScrollReveal";
+import { bodyStyles, headerStyles, labelStyles, numericStyles } from "@/app/fonts";
+import { offeringHref, sectionCode } from "@/lib/course-routes";
+import { formatTerm } from "@/lib/course-stats";
+import { getEnrollmentStatus } from "@/lib/enrollment-status";
 import { useRetryableRequest } from "@/hooks/useRetryableRequest";
+import { cn } from "@/lib/utils";
 
-const formatTerm = (term: string, year: number) =>
-  term.charAt(0).toUpperCase() + term.slice(1) + " " + year;
+const toTitleCase = (str: string) => str.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 
-const toTitleCase = (str: string) =>
-  str.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+function errorText(err: unknown, fallback: string) {
+  return err instanceof Error ? err.message : fallback;
+}
 
-const getStatusFromLoad = (loadPercent: number): string =>
-  loadPercent >= 95 ? "Almost full" : loadPercent >= 80 ? "Filling" : "Open";
+function getInitials(name: string) {
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+const PROVIDER_LABELS: Record<string, string> = { email: "Email and password", google: "Google", azure: "Microsoft" };
+
+interface EditableRowProps {
+  label: string;
+  /** Shown when not editing. */
+  value: React.ReactNode;
+  editing: boolean;
+  saving?: boolean;
+  onEdit: () => void;
+  onCancel: () => void;
+  onSave: () => void;
+  /** The field shown while editing; must carry its own id and accessible label. */
+  field: React.ReactNode;
+}
+
+/** One settings row with the shared inline edit pattern: Edit → field + Save/Cancel. */
+function EditableRow({ label, value, editing, saving = false, onEdit, onCancel, onSave, field }: EditableRowProps) {
+  return (
+    <div className={cn(cardPadding, "py-3.5 sm:py-3.5")}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className={cn(bodyStyles.sm, "text-text-subtle")}>{label}</p>
+          {!editing && <div className={cn(bodyStyles.md, "truncate text-text-primary")}>{value}</div>}
+        </div>
+        {!editing && (
+          <Button variant="ghost" size="sm" onClick={onEdit} aria-label={`Edit ${label.toLowerCase()}`}>
+            Edit
+          </Button>
+        )}
+      </div>
+      {editing && (
+        <form
+          className="mt-2 space-y-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            onSave();
+          }}
+        >
+          {field}
+          <div className="flex gap-2">
+            <Button type="submit" size="sm" disabled={saving}>
+              Save
+            </Button>
+            <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
+              Cancel
+            </Button>
+          </div>
+        </form>
+      )}
+    </div>
+  );
+}
 
 function DashboardPageContent() {
-  const router = useRouter();
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading, signOut } = useAuth();
   const [dataLoading, setDataLoading] = useState(true);
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [offerings, setOfferings] = useState<BookmarkOffering[]>([]);
@@ -41,11 +120,12 @@ function DashboardPageContent() {
   const [error, setError] = useState<string | null>(null);
   const { requestVersion, retry } = useRetryableRequest();
 
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [displayName, setDisplayName] = useState("");
-  const [showPasswordChange, setShowPasswordChange] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  const [editingPassword, setEditingPassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
-  const [passwordStatus, setPasswordStatus] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(false);
   const [emailToggleUpdating, setEmailToggleUpdating] = useState(false);
@@ -53,8 +133,12 @@ function DashboardPageContent() {
   const [isEditingEmail, setIsEditingEmail] = useState(false);
   const [editableEmail, setEditableEmail] = useState("");
 
+  const [pendingRemoval, setPendingRemoval] = useState<{ bookmark: Bookmark; label: string } | null>(null);
+
   useEffect(() => {
     if (user) {
+      // Keep the saved profile label synchronized with Supabase user updates.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDisplayName(user.user_metadata?.display_name || user.email?.split("@")[0] || "User");
     }
   }, [user]);
@@ -86,22 +170,28 @@ function DashboardPageContent() {
 
         const uniqueDeptIds = [...new Set(bookmarkData.map((b) => b.deptId))];
         const coursesMap = new Map<number, Course>();
+        let courseDetailsFailed = false;
 
         await Promise.all(
           uniqueDeptIds.map(async (deptId) => {
             try {
               const deptCourses = await api.getCourses(deptId);
               deptCourses.forEach((course) => coursesMap.set(course.courseId, course));
-            } catch (err) {
-              console.error(`Failed to load courses for dept ${deptId}:`, err);
+            } catch {
+              // Bookmarks still render (without course titles); say so and offer a retry.
+              courseDetailsFailed = true;
             }
           }),
         );
 
-        if (isActive) setCourses(coursesMap);
+        if (isActive) {
+          setCourses(coursesMap);
+          if (courseDetailsFailed) {
+            toast.error("Couldn't load some course details.", { action: { label: "Try again", onClick: retry } });
+          }
+        }
       } catch (err: unknown) {
-        console.error("Failed to load bookmarks:", err);
-        if (isActive) setError(err instanceof Error ? err.message : "Failed to load bookmarks");
+        if (isActive) setError(errorText(err, "Failed to load bookmarks"));
       } finally {
         if (isActive) setDataLoading(false);
       }
@@ -112,52 +202,56 @@ function DashboardPageContent() {
     return () => {
       isActive = false;
     };
-  }, [isAuthenticated, requestVersion, user?.id]);
+  }, [isAuthenticated, requestVersion, retry, user?.id]);
 
-  const handleDelete = async (bookmarkId: number) => {
+  const handleDelete = async (bookmark: Bookmark, label: string) => {
     try {
-      await api.deleteBookmark(bookmarkId);
-      setBookmarks((prev) => prev.filter((b) => b.bookmarkId !== bookmarkId));
-      setOfferings((prev) =>
-        prev.filter((offering) => offering.bookmarkId !== bookmarkId),
-      );
+      await api.deleteBookmark(bookmark.bookmarkId);
+      setBookmarks((prev) => prev.filter((b) => b.bookmarkId !== bookmark.bookmarkId));
+      setOfferings((prev) => prev.filter((offering) => offering.bookmarkId !== bookmark.bookmarkId));
+      toast.success(`Removed ${label} from your bookmarks.`);
     } catch (err: unknown) {
-      console.error("Failed to delete bookmark:", err);
-      alert(`Failed to remove bookmark: ${err instanceof Error ? err.message : "Unknown error"}`);
+      toast.error(`Couldn't remove ${label}: ${errorText(err, "Unknown error")}`);
     }
   };
 
-  const handleRowClick = (bookmark: Bookmark) => {
+  const bookmarkHref = (bookmark: Bookmark) => {
     const { deptId, courseId, semesterCode } = bookmark;
     const course = courses.get(courseId);
     const department = departments.get(deptId);
-    router.push(
-      course && department
-        ? offeringHref(department.deptCode, course.courseNumber, semesterCode)
-        : `/browse/departments/${deptId}/courses/${courseId}/offerings/${semesterCode}`,
-    );
+    return course && department
+      ? offeringHref(department.deptCode, course.courseNumber, semesterCode)
+      : `/browse/departments/${deptId}/courses/${courseId}/offerings/${semesterCode}`;
   };
 
-  const handleSaveProfile = async () => {
+  const handleSaveName = async () => {
+    setSaving(true);
     try {
-      await supabase.auth.updateUser({ data: { display_name: displayName } });
-      setIsEditingProfile(false);
+      const { error } = await supabase.auth.updateUser({ data: { display_name: nameDraft } });
+      if (error) throw error;
+      setDisplayName(nameDraft);
+      setEditingName(false);
+      toast.success("Display name updated.");
     } catch (err) {
-      console.error("Failed to update profile:", err);
+      toast.error(`Couldn't update your display name: ${errorText(err, "Unknown error")}`);
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleChangePassword = async () => {
     if (!newPassword) return;
-    setPasswordStatus(null);
+    setSaving(true);
     try {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
-      setPasswordStatus("Password updated");
       setNewPassword("");
-      setShowPasswordChange(false);
+      setEditingPassword(false);
+      toast.success("Password updated");
     } catch (err: unknown) {
-      setPasswordStatus(err instanceof Error ? err.message : "Failed to update password");
+      toast.error(errorText(err, "Failed to update password"));
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -167,8 +261,9 @@ function DashboardPageContent() {
     try {
       const updated = await api.updateEmailNotificationPreference(newValue);
       setEmailNotificationsEnabled(updated.emailNotificationsEnabled);
+      toast.success(updated.emailNotificationsEnabled ? "Morning email turned on." : "Morning email turned off.");
     } catch (err) {
-      console.error("Failed to update email notification preference:", err);
+      toast.error(`Couldn't update your email alerts: ${errorText(err, "Unknown error")}`);
     } finally {
       setEmailToggleUpdating(false);
     }
@@ -176,12 +271,16 @@ function DashboardPageContent() {
 
   const handleSavePreferredEmail = async () => {
     if (!editableEmail) return;
+    setSaving(true);
     try {
       const updated = await api.updatePreferredEmail(editableEmail);
       setPreferredEmail(updated.userEmail);
       setIsEditingEmail(false);
+      toast.success("Notification email updated.");
     } catch (err) {
-      console.error("Failed to update preferred email:", err);
+      toast.error(`Couldn't update your notification email: ${errorText(err, "Unknown error")}`);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -197,332 +296,284 @@ function DashboardPageContent() {
     return { deptCode: dept.deptCode, courseNumber: course.courseNumber, title: course.title || "Untitled Course" };
   };
 
-  const getOffering = (bookmark: Bookmark) => {
-    return offerings.find((offering) => offering.bookmarkId === bookmark.bookmarkId);
-  };
+  const getOffering = (bookmark: Bookmark) => offerings.find((offering) => offering.bookmarkId === bookmark.bookmarkId);
 
-  const fillingFast = offerings.filter((o) => o.loadPercent >= 90).length;
+  const fillingFast = offerings.filter((o) => getEnrollmentStatus(seatLoadPercent(o)) !== "open").length;
   const averageLoad =
-    offerings.length > 0 ? Math.round(offerings.reduce((sum, o) => sum + o.loadPercent, 0) / offerings.length) : 0;
+    offerings.length > 0 ? Math.floor(offerings.reduce((sum, o) => sum + seatLoadPercent(o), 0) / offerings.length) : 0;
 
-  const statCards = [
-    { label: "Watching", value: String(bookmarks.length), icon: Eye },
-    { label: "Filling Fast", value: String(fillingFast), icon: TrendingUp },
-    { label: "Average Load", value: offerings.length > 0 ? `${averageLoad}%` : "—", icon: BarChart3 },
-    { label: "Email Alerts", value: emailNotificationsEnabled ? "On" : "Off", icon: Bell },
-  ];
-
-  const headerRef = useScrollReveal({ delay: 0 });
-  const statsRef = useScrollReveal({ delay: 50 });
-  const profileRef = useScrollReveal({ delay: 100 });
-  const watchersRef = useScrollReveal({ delay: 150 });
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner />
-      </div>
-    );
-  }
+  if (authLoading) return <PageSkeleton label="Loading your dashboard" />;
 
   if (!isAuthenticated || !user) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-3">
-        <p className={`${bodyStyles.md} text-text-muted`}>Your session could not be restored in this tab.</p>
-        <a className={`${bodyStyles.md} text-accent hover:underline`} href="/login?redirectTo=%2Fdashboard">
-          Sign in again
-        </a>
-      </div>
+      <PageContainer className="max-w-xl">
+        <Alert>
+          <AlertTitle>Your session could not be restored in this tab.</AlertTitle>
+          <AlertDescription>
+            <a className="text-accent-text hover:underline" href="/login?redirectTo=%2Fdashboard">
+              Sign in again
+            </a>
+          </AlertDescription>
+        </Alert>
+      </PageContainer>
     );
   }
 
+  const provider = (user.app_metadata?.provider as string | undefined) ?? "email";
+
   return (
-    <div className="min-h-screen pt-4">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div ref={headerRef} className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
-          <div>
-            <h1 className={`${displayStyles.mdResponsive} text-text-primary`}>Welcome back, {displayName}</h1>
-            <p className={`${bodyStyles.md} text-text-muted mt-1`}>
-              Track your courses and stay on top of enrollment changes.
-            </p>
-          </div>
-          <Button onClick={() => router.push("/browse")} className="gap-2 mt-4 sm:mt-0 shrink-0">
-            <Plus className="w-4 h-4" />
-            Add a course
-          </Button>
-        </div>
+    <PageContainer>
+      <PageHeader
+        title={`Welcome back, ${displayName}`}
+        description="Track your courses and stay on top of enrollment changes."
+        actions={
+          <Link href="/browse" className={buttonVariants({ variant: "outline" })}>
+            Browse courses
+          </Link>
+        }
+      />
 
-        {/* Stat Cards */}
-        <div ref={statsRef} className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {statCards.map((stat) => (
-            <Card key={stat.label} className="p-4">
-              <CardContent className="p-0 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
-                  <stat.icon className="w-5 h-5 text-accent" />
-                </div>
+      <SummaryRow
+        items={[
+          { label: "Watching", value: String(bookmarks.length) },
+          { label: "Filling fast", value: String(fillingFast) },
+          { label: "Average load", value: offerings.length > 0 ? `${averageLoad}%` : "—" },
+          { label: "Email alerts", value: emailNotificationsEnabled ? "On" : "Off" },
+        ]}
+      />
+
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <SectionCard
+          title="Bookmarks"
+          note={bookmarks.length > 0 ? "Included in your morning email" : undefined}
+          flush={!dataLoading && !error && bookmarks.length > 0}
+        >
+          {dataLoading && <TableRowsSkeleton rows={4} columns={4} label="Loading bookmarks" />}
+          {error && <ErrorMessage className="rounded-none border-0 bg-transparent p-0" message={error} onRetry={retry} />}
+          {!dataLoading && !error && bookmarks.length === 0 && (
+            <TaskEmptyState
+              icon={BookmarkPlus}
+              title="No watchers yet"
+              description="Browse courses to track enrollment and updates"
+              action={
+                <Link href="/browse" className={buttonVariants()}>
+                  Browse courses
+                </Link>
+              }
+            />
+          )}
+          {!dataLoading && !error && bookmarks.length > 0 && (
+            <Table className="block sm:table">
+              <TableHeader className="sr-only sm:not-sr-only sm:table-header-group">
+                <TableRow className={cardTable.headRow}>
+                  <TableHead className={cardTable.head}>Course</TableHead>
+                  <TableHead className={cardTable.head}>Section / Term</TableHead>
+                  <TableHead className={cardTable.head}>Enrolled / cap</TableHead>
+                  <TableHead className={cardTable.head}>Load</TableHead>
+                  <TableHead className={cardTable.head}>
+                    <span className="sr-only">Actions</span>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="block sm:table-row-group">
+                {bookmarks.map((bookmark) => {
+                  const courseInfo = getCourseInfo(bookmark);
+                  const offering = getOffering(bookmark);
+                  const section = sectionCode(bookmark.section);
+                  const label = courseInfo ? `${courseInfo.deptCode} ${courseInfo.courseNumber} ${section}` : section;
+
+                  return (
+                    <TableRow key={bookmark.bookmarkId} className={cn(cardTable.row, "group relative grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 px-4 py-3 sm:table-row sm:p-0 [&>td]:px-0 [&>td]:py-1 sm:[&>td]:px-5 sm:[&>td]:py-3")}>
+                      <TableCell className={cn(cardTable.cell, "min-w-0")}>
+                        {courseInfo ? (
+                          <>
+                            <Link
+                              href={bookmarkHref(bookmark)}
+                              className={cn(
+                                numericStyles.md,
+                                "font-semibold text-text-primary underline-offset-4 group-hover:underline focus-visible:outline-none",
+                                "after:absolute after:inset-0 focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-ring"
+                              )}
+                            >
+                              {courseInfo.deptCode} {courseInfo.courseNumber}
+                            </Link>
+                            <div className={cn(bodyStyles.sm, "mt-0.5 max-w-xs whitespace-normal text-text-muted sm:truncate")}>{toTitleCase(courseInfo.title)}</div>
+                          </>
+                        ) : (
+                          <Link href={bookmarkHref(bookmark)} className={cn(bodyStyles.md, "text-text-subtle after:absolute after:inset-0")}>
+                            Loading...
+                          </Link>
+                        )}
+                      </TableCell>
+                      <TableCell className={cn(cardTable.cell, "row-start-2")}>
+                        <div className={cn(numericStyles.md, "text-text-primary")}>{section}</div>
+                        <div className={cn(bodyStyles.sm, "mt-0.5 text-text-muted")}>{offering ? formatTerm(offering.term, offering.year) : "—"}</div>
+                      </TableCell>
+                      <TableCell className={cn(cardTable.cell, numericStyles.md, "row-start-3 text-text-primary")}>
+                        <span className={cn(bodyStyles.sm, "mr-2 text-text-muted sm:hidden")}>Enrolled / cap</span>
+                        {offering ? `${offering.enrolled} / ${offering.capacity}` : "—"}
+                      </TableCell>
+                      <TableCell className={cn(cardTable.cell, "col-span-2 row-start-4")}>
+                        {offering ? (
+                          <div className="flex flex-wrap items-center gap-2">
+                            <LoadBar percent={seatLoadPercent(offering)} />
+                            <StatusBadge loadPercent={seatLoadPercent(offering)} />
+                          </div>
+                        ) : (
+                          <span className={cn(bodyStyles.md, "text-text-subtle")}>—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className={cn(cardTable.cell, "col-start-2 row-start-1 w-8 sm:w-12")}>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => setPendingRemoval({ bookmark, label })}
+                          aria-label={`Remove ${label}`}
+                          className="relative z-10 text-text-muted hover:text-destructive-text"
+                        >
+                          <X aria-hidden="true" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </SectionCard>
+
+        <div className="space-y-6">
+          <SectionCard title="Email alerts" flush>
+            <div className="divide-y divide-border">
+              <div className={cn(cardPadding, "flex items-center justify-between gap-4 py-3.5 sm:py-3.5")}>
                 <div>
-                  <p className={`${labelStyles.md} text-text-muted`}>{stat.label}</p>
-                  <p className={`${headerStyles.md} text-text-primary`}>{stat.value}</p>
+                  <Label htmlFor="morning-email" className={cn(labelStyles.lg, "text-text-primary")}>
+                    Morning email
+                  </Label>
+                  <p className={cn(bodyStyles.sm, "text-text-muted")}>Seat counts for your bookmarks, every day at 12:05 AM.</p>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                <Switch
+                  id="morning-email"
+                  checked={emailNotificationsEnabled}
+                  onCheckedChange={handleEmailToggle}
+                  disabled={emailToggleUpdating}
+                />
+              </div>
+              <EditableRow
+                label="Notification email"
+                value={preferredEmail || <span className="text-text-subtle">No notification email set</span>}
+                editing={isEditingEmail}
+                saving={saving}
+                onEdit={() => {
+                  setEditableEmail(preferredEmail || user.email || "");
+                  setIsEditingEmail(true);
+                }}
+                onCancel={() => setIsEditingEmail(false)}
+                onSave={handleSavePreferredEmail}
+                field={
+                  <Input
+                    id="notification-email"
+                    aria-label="Notification email"
+                    type="email"
+                    value={editableEmail}
+                    onChange={(e) => setEditableEmail(e.target.value)}
+                    placeholder="Notification email"
+                  />
+                }
+              />
+            </div>
+          </SectionCard>
 
-        {/* Two-column: Profile + Watchlist */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Profile Card */}
-          <div ref={profileRef} className="lg:col-span-1">
-            <Card className="p-6 sticky top-24">
-              <CardContent className="p-0">
-                <div className="flex justify-center mb-6">
-                  <ProfileAvatar name={displayName} size="lg" />
-                </div>
-
-                <div className="text-center mb-6">
-                  {isEditingProfile ? (
-                    <Input
-                      type="text"
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
-                      className="text-center mb-2"
-                      placeholder="Display Name"
-                    />
-                  ) : (
-                    <h2 className={`${headerStyles.md} text-text-primary mb-2`}>{displayName}</h2>
-                  )}
-
-                  <p className={`${bodyStyles.md} text-text-muted mb-1`}>{user?.email}</p>
-
-                  {/* Preferred notification email */}
-                  {isEditingEmail ? (
-                    <div className="flex items-center gap-2 justify-center mt-1">
-                      <Input
-                        type="email"
-                        value={editableEmail}
-                        onChange={(e) => setEditableEmail(e.target.value)}
-                        className="max-w-48 h-8"
-                        placeholder="Notification email"
-                      />
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleSavePreferredEmail}>
-                        <Check className="w-4 h-4 text-success" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => setIsEditingEmail(false)}
-                      >
-                        <X className="w-4 h-4 text-text-muted" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center gap-1 mt-1">
-                      <p className={`${bodyStyles.sm} text-text-subtle`}>
-                        {preferredEmail ? `Notifications: ${preferredEmail}` : "No notification email set"}
-                      </p>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => {
-                          setEditableEmail(preferredEmail || user?.email || "");
-                          setIsEditingEmail(true);
-                        }}
-                      >
-                        <Pencil className="w-3 h-3 text-text-subtle" />
-                      </Button>
-                    </div>
-                  )}
-
-                  <p className={`${bodyStyles.sm} text-text-subtle mt-2`}>Member since {getMemberSince()}</p>
-                </div>
-
-                {/* Edit Profile / Save */}
-                <Button
-                  variant="outline"
-                  onClick={isEditingProfile ? handleSaveProfile : () => setIsEditingProfile(true)}
-                  className="w-full mb-3 text-accent border-accent/30 hover:border-accent"
-                >
-                  {isEditingProfile ? "Save Profile" : "Edit Profile"}
+          <SectionCard title="Profile" flush>
+            <div className={cn(cardPadding, "flex items-center gap-3 border-b border-border")}>
+              <Avatar className="size-11">
+                <AvatarFallback className={cn(labelStyles.lg, "bg-surface-raised text-text-primary")}>{getInitials(displayName)}</AvatarFallback>
+              </Avatar>
+              <div className="min-w-0">
+                <p className={cn(headerStyles.sm, "truncate text-text-primary")}>{displayName}</p>
+                <p className={cn(bodyStyles.sm, "truncate text-text-muted")}>{user.email}</p>
+                <p className={cn(bodyStyles.sm, "text-text-subtle")}>
+                  {PROVIDER_LABELS[provider] ?? provider} · Member since {getMemberSince()}
+                </p>
+              </div>
+            </div>
+            <div className="divide-y divide-border">
+              <EditableRow
+                label="Display name"
+                value={displayName}
+                editing={editingName}
+                saving={saving}
+                onEdit={() => {
+                  setNameDraft(displayName);
+                  setEditingName(true);
+                }}
+                onCancel={() => setEditingName(false)}
+                onSave={handleSaveName}
+                field={
+                  <Input id="display-name" aria-label="Display name" value={nameDraft} onChange={(e) => setNameDraft(e.target.value)} placeholder="Display Name" />
+                }
+              />
+              <EditableRow
+                label="Password"
+                value={<span aria-label="Password set">••••••••</span>}
+                editing={editingPassword}
+                saving={saving}
+                onEdit={() => setEditingPassword(true)}
+                onCancel={() => {
+                  setEditingPassword(false);
+                  setNewPassword("");
+                }}
+                onSave={handleChangePassword}
+                field={
+                  <Input
+                    id="new-password"
+                    aria-label="New password"
+                    type="password"
+                    autoComplete="new-password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="New password"
+                  />
+                }
+              />
+              <div className={cn(cardPadding, "py-3 sm:py-3")}>
+                <Button variant="ghost" className="-ml-2.5 text-destructive-text" onClick={() => void signOut()}>
+                  <LogOut aria-hidden="true" />
+                  Sign out
                 </Button>
-
-                {/* Change Password */}
-                <Button
-                  variant="ghost"
-                  onClick={() => setShowPasswordChange(!showPasswordChange)}
-                  className="w-full text-text-muted gap-1"
-                >
-                  Change Password
-                  {showPasswordChange ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                </Button>
-
-                {showPasswordChange && (
-                  <div className="mt-3 space-y-3">
-                    <Input
-                      type="password"
-                      placeholder="New password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                    />
-                    <Button className="w-full" onClick={handleChangePassword}>
-                      Update Password
-                    </Button>
-                    {passwordStatus && (
-                      <p
-                        className={`${bodyStyles.sm} text-center ${passwordStatus === "Password updated" ? "text-success" : "text-destructive"}`}
-                      >
-                        {passwordStatus}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Watchlist */}
-          <div ref={watchersRef} className="lg:col-span-2">
-            <Card className="p-6">
-              <CardContent className="p-0">
-                {/* Watchlist Header */}
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className={`${headerStyles.lg} text-text-primary`}>
-                    Watchlist{" "}
-                    <span className={`${headerStyles.sm} text-text-subtle`}>({bookmarks.length})</span>
-                  </h2>
-
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      checked={emailNotificationsEnabled}
-                      onCheckedChange={handleEmailToggle}
-                      disabled={emailToggleUpdating}
-                      size="sm"
-                      aria-label="Toggle email alerts"
-                    />
-                    <span className={`${labelStyles.md} text-text-muted`}>Email alerts</span>
-                  </div>
-                </div>
-
-                {dataLoading && <LoadingSpinner />}
-                {error && <ErrorMessage message={error} onRetry={retry} />}
-
-                {!dataLoading && !error && (
-                  <>
-                    {bookmarks.length === 0 ? (
-                      <div className="text-center py-12">
-                        <div className="w-20 h-20 mx-auto mb-6 bg-accent/10 rounded-full flex items-center justify-center">
-                          <Eye className="w-10 h-10 text-accent" />
-                        </div>
-                        <h3 className={`${headerStyles.md} text-text-primary mb-2`}>No watchers yet</h3>
-                        <p className={`${bodyStyles.md} text-text-muted mb-6`}>
-                          Browse courses to track enrollment and updates
-                        </p>
-                        <Button onClick={() => router.push("/browse")}>Browse Courses</Button>
-                      </div>
-                    ) : (
-                      <div className="overflow-x-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Course</TableHead>
-                              <TableHead>Section / Term</TableHead>
-                              <TableHead className="text-right">Load</TableHead>
-                              <TableHead className="w-12" />
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {bookmarks.map((bookmark) => {
-                              const courseInfo = getCourseInfo(bookmark);
-                              const offering = getOffering(bookmark);
-
-                              return (
-                                <TableRow
-                                  key={bookmark.bookmarkId}
-                                  onClick={() => handleRowClick(bookmark)}
-                                  className="cursor-pointer"
-                                >
-                                  {/* Course column: code + badge, title below */}
-                                  <TableCell>
-                                    {courseInfo ? (
-                                      <div>
-                                        <div className="flex items-center gap-2">
-                                          <span className={`${labelStyles.lg} text-text-primary`}>
-                                            {courseInfo.deptCode} {courseInfo.courseNumber}
-                                          </span>
-                                          {offering && (
-                                            <StatusBadge status={getStatusFromLoad(offering.loadPercent)} />
-                                          )}
-                                        </div>
-                                        <div className={`${bodyStyles.sm} text-text-muted truncate max-w-xs mt-0.5`}>
-                                          {toTitleCase(courseInfo.title)}
-                                        </div>
-                                      </div>
-                                    ) : (
-                                      <span className={`${bodyStyles.md} text-text-subtle`}>Loading...</span>
-                                    )}
-                                  </TableCell>
-
-                                  {/* Section / Term stacked */}
-                                  <TableCell>
-                                    <div>
-                                      <div className={`${labelStyles.lg} text-text-primary`}>{bookmark.section}</div>
-                                      {offering ? (
-                                        <div className={`${bodyStyles.sm} text-text-muted mt-0.5`}>
-                                          {formatTerm(offering.term, offering.year)}
-                                        </div>
-                                      ) : (
-                                        <span className={`${bodyStyles.sm} text-text-subtle`}>—</span>
-                                      )}
-                                    </div>
-                                  </TableCell>
-
-                                  {/* Load */}
-                                  <TableCell className="text-right">
-                                    {offering ? (
-                                      <LoadBar percent={offering.loadPercent} />
-                                    ) : (
-                                      <span className={`${bodyStyles.md} text-text-subtle`}>—</span>
-                                    )}
-                                  </TableCell>
-
-                                  {/* Delete */}
-                                  <TableCell>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleDelete(bookmark.bookmarkId);
-                                      }}
-                                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                                      title="Remove watcher"
-                                    >
-                                      <X className="w-4 h-4" />
-                                    </Button>
-                                  </TableCell>
-                                </TableRow>
-                              );
-                            })}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    )}
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </div>
+          </SectionCard>
         </div>
       </div>
-    </div>
+
+      <AlertDialog open={pendingRemoval !== null} onOpenChange={(open) => !open && setPendingRemoval(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove {pendingRemoval?.label} from your bookmarks?</AlertDialogTitle>
+            <AlertDialogDescription>It won&apos;t be in your morning email anymore. You can bookmark it again any time.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => {
+                if (pendingRemoval) void handleDelete(pendingRemoval.bookmark, pendingRemoval.label);
+                setPendingRemoval(null);
+              }}
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </PageContainer>
   );
 }
 
 export default function DashboardPage() {
   return (
-    <Suspense fallback={<LoadingSpinner />}>
+    <Suspense fallback={<PageSkeleton />}>
       <DashboardPageContent />
     </Suspense>
   );

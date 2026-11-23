@@ -1,17 +1,20 @@
 "use client";
 
 import { type FormEvent, useCallback, useEffect, useState } from "react";
-import { Calendar, Check, Pencil, X } from "lucide-react";
+import { Check, Pencil } from "lucide-react";
 import { api, AdminTerm } from "@/lib/api";
 import { formatTerm, isTermName, semesterCode, TERM_OPTIONS, type TermName } from "@/lib/semester";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { AdminPage, AdminPageHeader, AdminStatGrid, AdminTable } from "@/components/admin/AdminPage";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import SectionCard, { cardTable } from "@/components/course/SectionCard";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
+import { AdminPage, AdminPageHeader, AdminStats, AdminTable } from "@/components/admin/AdminPage";
 import AdminPageSkeleton from "@/components/admin/AdminPageSkeleton";
 import ErrorMessage from "@/components/feedback/ErrorMessage";
-import { bodyStyles, headerStyles, labelStyles } from "@/app/fonts";
+import { bodyStyles, labelStyles, numericStyles } from "@/app/fonts";
 
 function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
@@ -25,7 +28,7 @@ function formatUpdatedAt(updatedAt: string | null) {
 
 function statusBadge(label: string) {
   return (
-    <Badge className="border-transparent bg-success/15 text-success">
+    <Badge className="border-transparent bg-success-tint text-success-text">
       <span className="size-1.5 rounded-full bg-current" />
       {label}
     </Badge>
@@ -67,6 +70,8 @@ export default function AdminTermsPage() {
   }, []);
 
   useEffect(() => {
+    // Load remote terms and initialize the editable fields from the response.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchTerms().finally(() => setLoading(false));
   }, [fetchTerms]);
 
@@ -144,101 +149,64 @@ export default function AdminTermsPage() {
     <AdminPage>
       <AdminPageHeader title="Terms management" description="Control the current and enrolling academic terms." actions={headerActions} />
 
-      {error && <div className="mb-6"><ErrorMessage message={error} onRetry={fetchTerms} /></div>}
+      {error && <ErrorMessage className="mb-6" message={error} onRetry={fetchTerms} />}
 
       {saveMessage && (
-        <p className={`${bodyStyles.sm} mb-6 flex items-center gap-1.5 text-success`} role="status">
+        <p className={`${bodyStyles.sm} mb-6 flex items-center gap-1.5 text-success-text`} role="status">
           <Check className="size-3.5" />
           {saveMessage}
         </p>
       )}
 
-      <AdminStatGrid columns={2}>
-        <Card className="border-success/20 p-4">
-          <CardContent className="p-0">
-            <p className={`${labelStyles.sm} mb-2 uppercase tracking-widest text-text-subtle`}>Enrolling term</p>
-            <div className="flex flex-wrap items-center gap-3">
-              <span className={`${headerStyles.md} text-text-primary`}>
-                {enrollingTermRecord ? `${formatTerm(enrollingTermRecord.term)} ${enrollingTermRecord.year}` : "Not set"}
-              </span>
-              {enrollingTermRecord && statusBadge("Enrolling")}
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-accent/20 p-4">
-          <CardContent className="p-0">
-            <p className={`${labelStyles.sm} mb-2 uppercase tracking-widest text-text-subtle`}>Current term</p>
-            <div className="flex flex-wrap items-center gap-3">
-              <span className={`${headerStyles.md} text-text-primary`}>
-                {currentTermRecord ? `${formatTerm(currentTermRecord.term)} ${currentTermRecord.year}` : "Not set"}
-              </span>
-              {currentTermRecord && statusBadge("Current")}
-            </div>
-          </CardContent>
-        </Card>
-      </AdminStatGrid>
+      <AdminStats
+        items={[
+          { label: "Enrolling term", value: enrollingTermRecord ? `${formatTerm(enrollingTermRecord.term)} ${enrollingTermRecord.year}` : "Not set" },
+          { label: "Current term", value: currentTermRecord ? `${formatTerm(currentTermRecord.term)} ${currentTermRecord.year}` : "Not set" },
+        ]}
+      />
 
-      <div className="mb-3.5 flex items-center justify-between">
-        <h2 className={`${headerStyles.xs} text-text-primary`}>All terms</h2>
-        <span className={`${labelStyles.sm} font-mono text-text-subtle`}>{terms.length} configured</span>
-      </div>
-
-      <AdminTable className="mb-3.5">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="border-b border-border bg-surface-raised">
-              <tr>
-                <th className={`${labelStyles.sm} px-4 py-2.5 uppercase tracking-wider text-text-subtle`}>Term</th>
-                <th className={`${labelStyles.sm} px-4 py-2.5 text-center uppercase tracking-wider text-text-subtle`}>Enrolling</th>
-                <th className={`${labelStyles.sm} px-4 py-2.5 text-center uppercase tracking-wider text-text-subtle`}>Current</th>
-                <th className={`${labelStyles.sm} px-4 py-2.5 text-right uppercase tracking-wider text-text-subtle`}>Updated</th>
-              </tr>
-            </thead>
-            <tbody>
+      <AdminTable title="All terms" note={`${terms.length} configured`} className="mb-6">
+          <Table className="">
+            <TableHeader>
+              <TableRow className={cardTable.headRow}>
+                <TableHead className={cardTable.head}>Term</TableHead>
+                <TableHead className={cn(cardTable.head, "text-center")}>Enrolling</TableHead>
+                <TableHead className={cn(cardTable.head, "text-center")}>Current</TableHead>
+                <TableHead className={cn(cardTable.head, "text-right")}>Updated</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {terms.map((term) => {
                 const code = semesterCode(term.year, term.term);
                 const isPast = currentCode !== null && code !== null && code < currentCode;
 
                 return (
-                  <tr key={term.termId} className="border-b border-border last:border-b-0 hover:bg-surface-raised">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2.5">
-                        <Calendar className={`size-3.5 shrink-0 ${isPast ? "text-text-subtle" : "text-text-muted"}`} />
-                        <span className={`${labelStyles.lg} ${isPast ? "font-normal text-text-muted" : "font-medium text-text-primary"}`}>
-                          {formatTerm(term.term)} {term.year}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-center">{term.isEnrolling ? statusBadge("Enrolling") : <span className="text-text-subtle">—</span>}</td>
-                    <td className="px-4 py-3 text-center">{term.isCurrent ? statusBadge("Current") : <span className="text-text-subtle">—</span>}</td>
-                    <td className={`${labelStyles.sm} px-4 py-3 text-right font-mono text-text-subtle`}>{formatUpdatedAt(term.updatedAt)}</td>
-                  </tr>
+                  <TableRow key={term.termId} className={cardTable.row}>
+                    <TableCell className={cardTable.cell}>
+                      <span className={`${labelStyles.lg} ${isPast ? "font-normal text-text-muted" : "font-medium text-text-primary"}`}>
+                        {formatTerm(term.term)} {term.year}
+                      </span>
+                    </TableCell>
+                    <TableCell className={cn(cardTable.cell, "text-center")}>{term.isEnrolling ? statusBadge("Enrolling") : <span className="text-text-subtle">—</span>}</TableCell>
+                    <TableCell className={cn(cardTable.cell, "text-center")}>{term.isCurrent ? statusBadge("Current") : <span className="text-text-subtle">—</span>}</TableCell>
+                    <TableCell className={cn(cardTable.cell, numericStyles.sm, "text-right text-text-subtle")}>{formatUpdatedAt(term.updatedAt)}</TableCell>
+                  </TableRow>
                 );
               })}
               {terms.length === 0 && (
-                <tr>
-                  <td colSpan={4} className={`${bodyStyles.md} px-4 py-8 text-center text-text-muted`}>No terms found.</td>
-                </tr>
+                <TableRow className={cardTable.row}>
+                  <TableCell colSpan={4} className={cn(cardTable.cell, bodyStyles.md, "py-8 text-center text-text-muted")}>No terms found.</TableCell>
+                </TableRow>
               )}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
       </AdminTable>
 
       {formOpen && (
-        <Card className="animate-fade-in border-border-strong">
-          <CardContent className="p-6">
-            <div className="mb-5 flex items-start justify-between gap-5">
-              <div>
-                <h2 className={`${headerStyles.xs} mb-1 text-text-primary`}>Update term settings</h2>
-                <p className={`${bodyStyles.sm} text-text-muted`}>
-                  Changes apply immediately and change the default term used by Browse, Graph, and bookmark status.
-                </p>
-              </div>
-              <Button type="button" variant="outline" size="icon-xs" onClick={() => setFormOpen(false)} aria-label="Close term settings">
-                <X />
-              </Button>
-            </div>
+        <SectionCard
+          title="Update term settings"
+          description="Changes apply immediately and change the default term used by Browse, Graph, and bookmark status."
+        >
 
             <form onSubmit={handleSubmit}>
               <div className="mb-5 grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -260,15 +228,14 @@ export default function AdminTermsPage() {
                 />
               </div>
 
-              {formError && <p className={`${bodyStyles.md} mb-4 text-destructive`} role="alert">{formError}</p>}
+              {formError && <p className={`${bodyStyles.md} mb-4 text-destructive-text`} role="alert">{formError}</p>}
 
               <div className="flex items-center gap-2.5 border-t border-border pt-4">
                 <Button type="submit" disabled={submitting}>{submitting ? "Saving…" : "Save changes"}</Button>
                 <Button type="button" variant="outline" onClick={() => setFormOpen(false)}>Cancel</Button>
               </div>
             </form>
-          </CardContent>
-        </Card>
+        </SectionCard>
       )}
     </AdminPage>
   );
@@ -288,14 +255,13 @@ function TermFields({ id, label, term, year, onTermChange, onYearChange }: TermF
     <div>
       <label htmlFor={`${id}-term`} className={`${labelStyles.sm} mb-2 block uppercase tracking-wider text-text-muted`}>{label}</label>
       <div className="flex gap-2">
-        <select
-          id={`${id}-term`}
-          value={term}
-          onChange={(event) => onTermChange(event.target.value as TermName)}
-          className="h-8 min-w-0 flex-1 rounded-lg border border-border bg-surface-raised px-2.5 text-text-primary outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-        >
-          {TERM_OPTIONS.map((option) => <option key={option} value={option}>{formatTerm(option)}</option>)}
-        </select>
+        <NativeSelect id={`${id}-term`} className="min-w-0 flex-1" value={term} onChange={(event) => onTermChange(event.target.value as TermName)}>
+          {TERM_OPTIONS.map((option) => (
+            <NativeSelectOption key={option} value={option}>
+              {formatTerm(option)}
+            </NativeSelectOption>
+          ))}
+        </NativeSelect>
         <Input
           id={`${id}-year`}
           type="number"
@@ -304,7 +270,7 @@ function TermFields({ id, label, term, year, onTermChange, onYearChange }: TermF
           placeholder="Year"
           min={2020}
           max={2035}
-          className="w-24 font-mono"
+          className={`w-24 ${numericStyles.base}`}
           aria-label={`${label} year`}
         />
       </div>

@@ -2,28 +2,24 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, RefreshCw } from "lucide-react";
+import { ChevronRight, RefreshCw } from "lucide-react";
 import { api } from "@/lib/api";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import AdminPageSkeleton from "@/components/admin/AdminPageSkeleton";
-import { AdminPage, AdminPageHeader, AdminStatGrid } from "@/components/admin/AdminPage";
+import { AdminPage, AdminPageHeader, AdminStats } from "@/components/admin/AdminPage";
 import { adminNavigationItems } from "@/components/admin/navigation";
-import { bodyStyles, displayStyles, headerStyles, labelStyles } from "@/app/fonts";
-import { useScrollReveal } from "@/hooks/useScrollReveal";
-
-type StatusBadge = { label: string; className: string };
+import { cardClass } from "@/components/course/SectionCard";
+import { bodyStyles, headerStyles } from "@/app/fonts";
+import { cn } from "@/lib/utils";
 
 type HealthData = {
   statusLabel: string;
   statusColor: string;
   delta: string;
-  deltaColor: string;
   meta: string;
-  badge: StatusBadge;
 };
 
-type TermsData = { meta: string; badge?: StatusBadge };
+type TermsData = { meta: string };
 
 type UsersData = {
   kpiValue: string;
@@ -34,8 +30,8 @@ type UsersData = {
 };
 
 type BookmarksData = { meta: string };
-type SupportData = { meta: string; badge?: StatusBadge; unreadCount: number };
-type RmpData = { meta: string; badge?: StatusBadge };
+type SupportData = { meta: string; unreadCount: number };
+type RmpData = { meta: string };
 
 type DashboardData = {
   health: HealthData | null;
@@ -52,13 +48,13 @@ type DashboardFailures = Record<DashboardDataKey, boolean>;
 const emptyData: DashboardData = { health: null, terms: null, users: null, bookmarks: null, support: null, rmp: null };
 const emptyFailures: DashboardFailures = { health: false, terms: false, users: false, bookmarks: false, support: false, rmp: false };
 
-const dashboardPresentation = {
-  health: { iconClass: "border-success/20 bg-success/10 text-success", defaultMeta: "Checking status" },
-  support: { iconClass: "border-accent/20 bg-accent/10 text-accent", defaultMeta: "Loading support" },
-  terms: { iconClass: "border-accent/20 bg-accent/10 text-accent", defaultMeta: "Loading terms" },
-  users: { iconClass: "border-accent/20 bg-accent/10 text-accent", defaultMeta: "Loading users" },
-  bookmarks: { iconClass: "border-accent/20 bg-accent/10 text-accent", defaultMeta: "Loading bookmarks" },
-  rmp: { iconClass: "border-accent/20 bg-accent/10 text-accent", defaultMeta: "Loading reports" },
+const defaultMeta = {
+  health: "Checking status",
+  support: "Loading support",
+  terms: "Loading terms",
+  users: "Loading users",
+  bookmarks: "Loading bookmarks",
+  rmp: "Loading reports",
 } as const;
 
 function capitalize(value: string) {
@@ -74,9 +70,7 @@ async function loadHealth(): Promise<HealthData> {
       statusLabel: "Unavailable",
       statusColor: "text-text-muted",
       delta: "—",
-      deltaColor: "text-text-muted",
-      meta: "No health checks configured",
-      badge: { label: "No checks", className: "bg-text-muted/15 text-text-muted" },
+      meta: "No health checks configured"
     };
   }
 
@@ -86,14 +80,9 @@ async function loadHealth(): Promise<HealthData> {
 
   return {
     statusLabel: allUp ? "OK" : allDown ? "Down" : "Degraded",
-    statusColor: allUp ? "text-success" : allDown ? "text-destructive" : "text-warning",
+    statusColor: allUp ? "text-success-text" : allDown ? "text-destructive-text" : "text-warning-text",
     delta: `${upCount}/${total}`,
-    deltaColor: allUp ? "text-success" : allDown ? "text-destructive" : "text-warning",
-    meta: allUp ? `${total} services up` : `${upCount}/${total} services up`,
-    badge: {
-      label: allUp ? "OK" : `${upCount}/${total}`,
-      className: allUp ? "bg-success/15 text-success" : allDown ? "bg-destructive/15 text-destructive" : "bg-warning/15 text-warning",
-    },
+    meta: allUp ? `${total} services up` : `${upCount}/${total} services up`
   };
 }
 
@@ -102,16 +91,14 @@ async function loadTerms(): Promise<TermsData> {
   const enrolling = terms.find((term) => term.isEnrolling);
   if (enrolling) {
     return {
-      meta: `${capitalize(enrolling.term)} ${enrolling.year}`,
-      badge: { label: "Enrolling", className: "bg-success/15 text-success" },
+      meta: `${capitalize(enrolling.term)} ${enrolling.year}`
     };
   }
 
   const current = terms.find((term) => term.isCurrent);
   if (current) {
     return {
-      meta: `${capitalize(current.term)} ${current.year}`,
-      badge: { label: "Current", className: "bg-accent/15 text-accent" },
+      meta: `${capitalize(current.term)} ${current.year}`
     };
   }
 
@@ -129,10 +116,10 @@ async function loadUsers(): Promise<UsersData> {
     eligible.length === 0
       ? "text-text-muted"
       : notifiedRecently === eligible.length
-        ? "text-success"
+        ? "text-success-text"
         : notifiedRecently === 0
-          ? "text-destructive"
-          : "text-warning";
+          ? "text-destructive-text"
+          : "text-warning-text";
 
   return {
     kpiValue: stats.totalUsers.toLocaleString(),
@@ -148,7 +135,6 @@ async function loadSupport(): Promise<SupportData> {
   const unreadCount = stats.unreadCount;
   return {
     meta: unreadCount > 0 ? `${unreadCount} unread` : "All caught up",
-    badge: unreadCount > 0 ? { label: String(unreadCount), className: "bg-primary/15 text-primary" } : undefined,
     unreadCount,
   };
 }
@@ -158,7 +144,6 @@ async function loadRmp(): Promise<RmpData> {
   const count = reports.length;
   return {
     meta: count > 0 ? `${count} to review` : "No open reports",
-    badge: count > 0 ? { label: String(count), className: "bg-warning/15 text-warning" } : undefined,
   };
 }
 
@@ -180,9 +165,6 @@ function valueFrom<T>(result: PromiseSettledResult<T>): T | null {
   return result.status === "fulfilled" ? result.value : null;
 }
 
-function badgeFrom(data: Exclude<DashboardData[DashboardDataKey], null> | null): StatusBadge | undefined {
-  return data && "badge" in data ? data.badge : undefined;
-}
 
 export default function AdminDashboardPage() {
   const [data, setData] = useState<DashboardData>(emptyData);
@@ -219,6 +201,8 @@ export default function AdminDashboardPage() {
   }, []);
 
   useEffect(() => {
+    // Fetch results update state after awaiting the API, not during this effect.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadDashboard().finally(() => setLoading(false));
   }, [loadDashboard]);
 
@@ -235,98 +219,86 @@ export default function AdminDashboardPage() {
     }
   }, []);
 
-  const headingRef = useScrollReveal({ delay: 0 });
-  const kpiRef = useScrollReveal({ delay: 50 });
-  const cardsRef = useScrollReveal({ delay: 100 });
-
   if (loading) {
-    return <AdminPageSkeleton statCards={4} />;
+    return <AdminPageSkeleton statCards={4} sectionCards={6} />;
   }
 
-  const kpis = [
-    { label: "Total users", value: data.users?.kpiValue ?? "—", valueColor: "text-text-primary", delta: data.users?.kpiDelta ?? "", deltaColor: "text-success", dataKey: "users" as const },
-    { label: "API status", value: data.health?.statusLabel ?? "—", valueColor: data.health?.statusColor ?? "text-text-muted", delta: data.health?.delta ?? "", deltaColor: data.health?.deltaColor ?? "text-text-muted", dataKey: "health" as const },
-    { label: "Unread support", value: data.support ? String(data.support.unreadCount) : "—", valueColor: data.support && data.support.unreadCount > 0 ? "text-warning" : "text-text-primary", delta: "", deltaColor: "text-text-muted", dataKey: "support" as const },
-    { label: "Notifications (24h)", value: data.users?.notificationValue ?? "—", valueColor: data.users?.notificationColor ?? "text-text-muted", delta: "", deltaColor: "text-text-muted", dataKey: "users" as const },
+  const kpis: { label: string; value: string; tone: string; delta?: string; dataKey: DashboardDataKey }[] = [
+    { label: "Total users", value: data.users?.kpiValue ?? "—", tone: "text-text-primary", delta: data.users?.kpiDelta, dataKey: "users" },
+    { label: "API status", value: data.health?.statusLabel ?? "—", tone: data.health?.statusColor ?? "text-text-muted", delta: data.health?.delta, dataKey: "health" },
+    { label: "Unread support", value: data.support ? String(data.support.unreadCount) : "—", tone: data.support && data.support.unreadCount > 0 ? "text-warning-text" : "text-text-primary", dataKey: "support" },
+    { label: "Notifications (24h)", value: data.users?.notificationValue ?? "—", tone: data.users?.notificationColor ?? "text-text-muted", dataKey: "users" },
   ];
+  const failedKpis = [...new Set(kpis.filter((kpi) => failures[kpi.dataKey]).map((kpi) => kpi.dataKey))];
 
   return (
     <AdminPage>
-      <div ref={headingRef}>
-        <AdminPageHeader title="Admin overview" description="Operational control for SFU Course Planner. Select a section to manage the platform." />
-      </div>
+      <AdminPageHeader title="Admin overview" description="Operational control for SFU Course Planner. Select a section to manage the platform." />
 
-      <div ref={kpiRef}>
-        <AdminStatGrid>
-          {kpis.map((kpi) => (
-            <Card key={kpi.label} className="p-4">
-              <CardContent className="p-0">
-                <p className={`${labelStyles.md} mb-2 text-text-muted`}>{kpi.label}</p>
-                <div className="flex items-baseline gap-2">
-                  <span className={`${displayStyles.sm} font-mono tracking-tight ${kpi.valueColor}`}>{kpi.value}</span>
-                  {kpi.delta && <span className={`${labelStyles.sm} font-mono ${kpi.deltaColor}`}>{kpi.delta}</span>}
-                </div>
-                {failures[kpi.dataKey] && (
-                  <Button type="button" variant="link" size="xs" onClick={() => retrySection(kpi.dataKey)} disabled={retrying[kpi.dataKey]} className="mt-2 px-0 text-text-muted">
-                    <RefreshCw className={retrying[kpi.dataKey] ? "animate-spin" : ""} />
-                    Retry
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
+      <AdminStats
+        className="[&>dl]:grid [&>dl]:w-full [&>dl]:grid-cols-2 [&>dl]:lg:grid-cols-4"
+        items={kpis.map(({ label, value, tone, delta }) => ({
+          label,
+          tone,
+          value: (
+            <>
+              {value}
+              {delta && delta !== "—" && <span className={cn(bodyStyles.sm, "ml-2 font-sans font-normal text-text-muted")}>{delta}</span>}
+            </>
+          ),
+        }))}
+      />
+      {failedKpis.length > 0 && (
+        <div className="-mt-4 mb-6 flex flex-wrap gap-2">
+          {failedKpis.map((key) => (
+            <Button key={key} type="button" variant="outline" size="sm" onClick={() => retrySection(key)} disabled={retrying[key]}>
+              <RefreshCw className={retrying[key] ? "animate-spin" : ""} aria-hidden="true" />
+              Retry {key}
+            </Button>
           ))}
-        </AdminStatGrid>
+        </div>
+      )}
+
+      <div className="mb-3 flex items-baseline justify-between">
+        <h2 className={cn(headerStyles.lg, "text-text-primary")}>Sections</h2>
+        <span className={cn(bodyStyles.sm, "text-text-subtle")}>{adminNavigationItems.length - 1} modules</span>
       </div>
 
-      <div className="mb-3.5 flex items-center justify-between">
-        <h2 className={`${headerStyles.xs} text-text-primary`}>Sections</h2>
-        <span className={`${labelStyles.sm} font-mono text-text-subtle`}>{adminNavigationItems.length - 1} modules</span>
-      </div>
-
-      <div ref={cardsRef} className="grid grid-cols-1 gap-3.5 md:grid-cols-2 xl:grid-cols-3">
+      <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {adminNavigationItems.filter((section) => section.id !== "overview").map((section) => {
-          const Icon = section.icon;
           const dataKey = section.id;
           const sectionData = data[dataKey];
           const failure = failures[dataKey];
           const isRetrying = retrying[dataKey];
-          const badge = badgeFrom(sectionData);
-          const presentation = dashboardPresentation[section.id];
-          const meta = failure ? "Unable to load" : sectionData?.meta ?? presentation.defaultMeta;
+          const meta = failure ? "Unable to load" : sectionData?.meta ?? defaultMeta[dataKey];
 
           return (
-            <Card key={section.id} className="flex h-full flex-col p-5 transition-colors hover:border-border-strong hover:bg-surface-raised">
-              <CardContent className="flex flex-1 flex-col p-0">
-                <div className="mb-3 flex items-center justify-between">
-                  <div className={`flex size-9 items-center justify-center rounded-lg border ${presentation.iconClass}`}>
-                    <Icon className="size-4" />
-                  </div>
-                  {badge && <span className={`${labelStyles.sm} rounded-full px-2 py-0.5 font-mono font-semibold ${badge.className}`}>{badge.label}</span>}
-                </div>
-
-                <h3 className={`${headerStyles.xs} mb-1 text-text-primary`}>{section.label}</h3>
-                <p className={`${bodyStyles.sm} mb-3.5 flex-1 text-text-muted`}>{section.description}</p>
-
-                <div className="flex items-center justify-between border-t border-border pt-3">
-                  <span className={`${labelStyles.sm} font-mono ${failure ? "text-destructive" : "text-text-subtle"}`}>{meta}</span>
-                  <div className="flex items-center gap-2">
-                    {failure && (
-                      <Button type="button" variant="link" size="xs" onClick={() => retrySection(dataKey)} disabled={isRetrying} className="px-0 text-text-muted">
-                        <RefreshCw className={isRetrying ? "animate-spin" : ""} />
-                        Retry
-                      </Button>
-                    )}
-                    <Link href={section.href} className={`${labelStyles.md} flex items-center gap-1 font-semibold text-text-muted transition-colors hover:text-text-primary`}>
-                      Manage
-                      <ArrowRight className="size-3.5" />
-                    </Link>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <li key={section.id} className={cn(cardClass, "group relative flex flex-col transition-colors hover:border-border-strong")}>
+              <div className="flex-1 p-5">
+                <h3 className={cn(headerStyles.sm, "flex items-center justify-between gap-2 text-text-primary")}>
+                  <Link
+                    href={section.href}
+                    className="underline-offset-4 group-hover:underline focus-visible:outline-none after:absolute after:inset-0 after:rounded-lg focus-visible:after:ring-3 focus-visible:after:ring-ring/50"
+                  >
+                    {section.label}
+                  </Link>
+                  <ChevronRight aria-hidden="true" className="size-4 text-text-subtle" />
+                </h3>
+                <p className={cn(bodyStyles.sm, "mt-1 text-text-muted")}>{section.description}</p>
+              </div>
+              <div className="flex items-center justify-between gap-2 border-t border-border px-5 py-3">
+                <span className={cn(bodyStyles.sm, failure ? "text-destructive-text" : "text-text-subtle")}>{meta}</span>
+                {failure && (
+                  <Button type="button" variant="ghost" size="xs" onClick={() => retrySection(dataKey)} disabled={isRetrying} className="relative z-10 text-text-muted">
+                    <RefreshCw className={isRetrying ? "animate-spin" : ""} aria-hidden="true" />
+                    Retry
+                  </Button>
+                )}
+              </div>
+            </li>
           );
         })}
-      </div>
+      </ul>
     </AdminPage>
   );
 }

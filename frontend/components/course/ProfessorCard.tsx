@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ExternalLink, Flag } from "lucide-react";
-import { bodyStyles, headerStyles, labelStyles } from "@/app/fonts";
-import { Badge } from "@/components/ui/badge";
+import { ExternalLink } from "lucide-react";
+import { bodyStyles, headerStyles, numericStyles } from "@/app/fonts";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { RmpLookupState } from "@/hooks/useRmpLookups";
 import type { RmpTeacher } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 interface ProfessorCardProps {
   /** Display name shown until the lookup returns its own. */
@@ -29,32 +29,43 @@ function formatPercent(value: number | null) {
   return value === null ? "—" : `${Math.round(value)}%`;
 }
 
-function Stats({ teacher }: { teacher: RmpTeacher }) {
-  const stats = [
-    { label: "Rating", value: formatOutOfFive(teacher.avgRating) },
+function OverallRating({ value, loading }: { value: number | null; loading: boolean }) {
+  if (loading) return <Skeleton aria-hidden="true" className="h-9 w-16" />;
+  return (
+    <p className="flex flex-col gap-1">
+      <span className={cn(numericStyles.display, value === null ? "text-text-subtle" : "text-text-primary")}>
+        {value === null ? "—" : value.toFixed(1)}
+      </span>
+      <span className={cn(bodyStyles.sm, "text-text-muted")}>/ 5 overall</span>
+    </p>
+  );
+}
+
+function RatingDetails({ teacher }: { teacher: RmpTeacher }) {
+  const details = [
     { label: "Difficulty", value: formatOutOfFive(teacher.avgDifficulty) },
     { label: "Would take again", value: formatPercent(teacher.wouldTakeAgainPercent) },
-    { label: "Ratings", value: teacher.numRatings === null ? "—" : String(teacher.numRatings) },
+    { label: "Number of ratings", value: teacher.numRatings === null ? "—" : String(teacher.numRatings) },
   ];
   return (
-    <dl className="mt-3 grid grid-cols-2 gap-3">
-      {stats.map(({ label, value }) => (
-        <div key={label}>
-          <dt className={`${bodyStyles.sm} text-text-subtle`}>{label}</dt>
-          <dd className={`${headerStyles.md} text-text-primary`}>{value}</dd>
+    <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      {details.map(({ label, value }) => (
+        <div key={label} className="flex flex-col-reverse gap-0.5">
+          <dt className={cn(bodyStyles.sm, "text-text-subtle")}>{label}</dt>
+          <dd className={cn(numericStyles.md, "whitespace-nowrap text-text-primary")}>{value}</dd>
         </div>
       ))}
     </dl>
   );
 }
 
-function StatsSkeleton() {
+function DetailsSkeleton() {
   return (
-    <div className="mt-3 grid grid-cols-2 gap-3" aria-hidden="true">
-      {[0, 1, 2, 3].map((index) => (
+    <div className="grid grid-cols-3 gap-3" aria-hidden="true">
+      {[0, 1, 2].map((index) => (
         <div key={index} className="space-y-1.5">
+          <Skeleton className="h-4 w-10" />
           <Skeleton className="h-3 w-16" />
-          <Skeleton className="h-5 w-12" />
         </div>
       ))}
     </div>
@@ -67,7 +78,7 @@ function ExternalTextLink({ href, children }: { href: string; children: React.Re
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className={`${bodyStyles.md} inline-flex items-center gap-1 text-accent hover:underline`}
+      className={cn(bodyStyles.md, "inline-flex items-center gap-1 text-accent-text hover:underline")}
     >
       {children}
       <ExternalLink className="size-3.5" aria-hidden="true" />
@@ -75,10 +86,21 @@ function ExternalTextLink({ href, children }: { href: string; children: React.Re
   );
 }
 
+const reportLabels: Record<ReportState, string> = {
+  idle: "Wrong professor?",
+  reporting: "Reporting…",
+  reported: "Reported, thanks",
+  failed: "Couldn't report, try again",
+};
+
+/** One professor as a borderless row inside the Instructors card, rating on the left. */
 export default function ProfessorCard({ name, sections, state, onRetry, onReport }: ProfessorCardProps) {
   const [report, setReport] = useState<ReportState>("idle");
   const lookup = state.status === "loaded" ? state.lookup : null;
   const displayName = lookup?.searchName || name;
+  const loading = state.status === "loading";
+  const failed = state.status === "error" || lookup?.status === "UNAVAILABLE";
+  const teacher = lookup?.status === "MATCHED" ? lookup.teacher : null;
   const canReport = lookup !== null && lookup.status !== "UNAVAILABLE" && lookup.lookupId !== null;
 
   const handleReport = async () => {
@@ -94,66 +116,67 @@ export default function ProfessorCard({ name, sections, state, onRetry, onReport
     }
   };
 
-  return (
-    <div className="border rounded-xl p-4 border-border/50" aria-busy={state.status === "loading"}>
-      <div className={`${headerStyles.sm} text-text-primary`}>{displayName}</div>
+  const identity = (
+    <div>
+      <h3 className={cn(headerStyles.sm, "text-text-primary")}>{displayName}</h3>
       {sections.length > 0 && (
-        <div className="mt-1.5 flex flex-wrap gap-1.5">
-          {sections.map((section) => (
-            <Badge key={section} variant="outline" className="text-text-muted">
-              {section}
-            </Badge>
-          ))}
-        </div>
+        <p className={cn(bodyStyles.sm, "mt-0.5 text-text-muted")}>
+          Teaches <span className={numericStyles.base}>{sections.join(", ")}</span>
+        </p>
       )}
+    </div>
+  );
 
-      {state.status === "loading" && <StatsSkeleton />}
+  const body = (
+    <>
+      {loading && <DetailsSkeleton />}
+      {teacher && <RatingDetails teacher={teacher} />}
 
-      {lookup?.status === "MATCHED" && lookup.teacher && <Stats teacher={lookup.teacher} />}
+      {lookup?.status === "NO_MATCH" && <p className={cn(bodyStyles.md, "text-text-muted")}>Not found on RateMyProfessors.</p>}
 
-      {lookup?.status === "NO_MATCH" && (
-        <p className={`mt-3 ${bodyStyles.md} text-text-muted`}>Not found on Rate My Professors.</p>
-      )}
-
-      {(state.status === "error" || lookup?.status === "UNAVAILABLE") && (
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <p className={`${bodyStyles.md} text-text-muted`}>Couldn&apos;t reach Rate My Professors.</p>
+      {failed && (
+        <div className="flex flex-wrap items-center gap-3">
+          <p className={cn(bodyStyles.md, "text-text-muted")}>Couldn&apos;t reach RateMyProfessors.</p>
           <Button variant="outline" size="sm" onClick={onRetry}>
             Retry
           </Button>
         </div>
       )}
 
-      {lookup && (
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
-          {lookup.status === "MATCHED" && lookup.teacher?.profileUrl ? (
-            <ExternalTextLink href={lookup.teacher.profileUrl}>View on Rate My Professors</ExternalTextLink>
+      {lookup && !failed && (
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          {teacher?.profileUrl ? (
+            <ExternalTextLink href={teacher.profileUrl}>View on RateMyProfessors</ExternalTextLink>
           ) : (
-            <ExternalTextLink href={lookup.searchUrl}>Search on Rate My Professors</ExternalTextLink>
+            <ExternalTextLink href={lookup.searchUrl}>Search on RateMyProfessors</ExternalTextLink>
           )}
 
           {canReport && (
-            <Button
-              variant="ghost"
-              size="sm"
+            <button
+              type="button"
               onClick={handleReport}
               disabled={report === "reporting" || report === "reported"}
-              className={`${labelStyles.md} text-text-muted`}
-            >
-              {report === "reported" ? (
-                <>
-                  <Check aria-hidden="true" /> Reported
-                </>
-              ) : (
-                <>
-                  <Flag aria-hidden="true" />
-                  {report === "failed" ? "Couldn't report, try again" : "Report wrong match"}
-                </>
+              className={cn(
+                bodyStyles.sm,
+                "rounded-sm text-text-muted underline-offset-4 hover:text-text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:no-underline disabled:hover:text-text-muted"
               )}
-            </Button>
+            >
+              {reportLabels[report]}
+            </button>
           )}
         </div>
       )}
-    </div>
+    </>
+  );
+
+  // The overall rating always shows ("—" without a match).
+  return (
+    <article aria-busy={loading} aria-label={displayName} className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-x-4 py-4">
+      <OverallRating value={teacher?.avgRating ?? null} loading={loading} />
+      <div className="space-y-3">
+        {identity}
+        {body}
+      </div>
+    </article>
   );
 }

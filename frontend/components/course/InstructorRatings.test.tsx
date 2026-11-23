@@ -36,7 +36,7 @@ const noMatch: RmpLookup = {
 const unavailable: RmpLookup = { ...noMatch, status: "UNAVAILABLE", lookupId: null };
 
 function card(name: string) {
-  return screen.getByText(name).closest("div.border") as HTMLElement;
+  return screen.getByRole("article", { name });
 }
 
 beforeEach(() => {
@@ -56,15 +56,18 @@ describe("InstructorRatings", () => {
     await waitFor(() => expect(mocks.getRmp).toHaveBeenCalledWith("Hall, Margaret", "als"));
 
     finish(matched);
-    expect(await screen.findByText("4.3 / 5")).toBeInTheDocument();
+    expect(await screen.findByText("4.3")).toBeInTheDocument();
+    expect(screen.getByText("/ 5 overall")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 3, name: "Margaret Hall" })).toBeInTheDocument();
     expect(screen.getByText("2.4 / 5")).toBeInTheDocument();
     expect(screen.getByText("71%")).toBeInTheDocument();
     expect(screen.getByText("27")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /View on Rate My Professors/ })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /View on RateMyProfessors/ })).toHaveAttribute(
       "href",
       "https://www.ratemyprofessors.com/professor/1436226",
     );
-    expect(screen.getByRole("link", { name: "Rate My Professors" })).toHaveAttribute("href", "https://www.ratemyprofessors.com");
+    expect(screen.getByRole("link", { name: "RateMyProfessors" })).toHaveAttribute("href", "https://www.ratemyprofessors.com");
+    expect(screen.getByRole("heading", { level: 2, name: "Instructors" })).toBeInTheDocument();
   });
 
   it("shows a dash for missing values", async () => {
@@ -86,12 +89,33 @@ describe("InstructorRatings", () => {
       />,
     );
 
-    expect(within(card("Brian Fraser")).getByText("D100")).toBeInTheDocument();
-    expect(within(card("Brian Fraser")).getByText("D200")).toBeInTheDocument();
+    expect(within(card("Brian Fraser")).getByText("D100, D200")).toBeInTheDocument();
     expect(within(card("John Doe")).getByText("D200")).toBeInTheDocument();
     await waitFor(() => expect(mocks.getRmp).toHaveBeenCalledTimes(2));
     expect(mocks.getRmp).not.toHaveBeenCalledWith("TBA", "cmpt");
-    await waitFor(() => expect(screen.getAllByText("Not found on Rate My Professors.")).toHaveLength(2));
+    await waitFor(() => expect(screen.getAllByText("Not found on RateMyProfessors.")).toHaveLength(2));
+  });
+
+  it("renders one Instructors card with a row per professor", async () => {
+    mocks.getRmp.mockImplementation((name: string) => Promise.resolve(name === "Hall, Margaret" ? matched : noMatch));
+    render(
+      <InstructorRatings
+        sections={[section("CRIM 101 D100", "Hall, Margaret"), section("CRIM 101 D200", "Yip, Karen")]}
+        deptCode="als"
+      />,
+    );
+
+    const heading = screen.getByRole("heading", { level: 2, name: "Instructors" });
+    const instructorsCard = heading.closest("section") as HTMLElement;
+    expect(instructorsCard).toHaveTextContent("Ratings from RateMyProfessors");
+    expect(within(instructorsCard).getAllByRole("article")).toHaveLength(2);
+    // Rows, not nested cards: no professor entry has its own border.
+    for (const row of within(instructorsCard).getAllByRole("article")) {
+      expect(row.className).not.toMatch(/border|rounded/);
+    }
+    expect(await within(card("Margaret Hall")).findByText("4.3")).toBeInTheDocument();
+    await waitFor(() => expect(within(card("Karen Yip")).getByText("—")).toBeInTheDocument());
+    expect(within(card("Karen Yip")).getByText("Not found on RateMyProfessors.")).toBeInTheDocument();
   });
 
   it("explains when no instructor is announced", () => {
@@ -104,9 +128,9 @@ describe("InstructorRatings", () => {
     mocks.getRmp.mockResolvedValue(noMatch);
     render(<InstructorRatings sections={[section("CRIM 101 D100", "Yip, Karen")]} deptCode="als" />);
 
-    expect(await screen.findByText("Not found on Rate My Professors.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Search on Rate My Professors/ })).toHaveAttribute("href", noMatch.searchUrl);
-    expect(screen.getByRole("button", { name: /Report wrong match/ })).toBeInTheDocument();
+    expect(await screen.findByText("Not found on RateMyProfessors.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Search on RateMyProfessors/ })).toHaveAttribute("href", noMatch.searchUrl);
+    expect(screen.getByRole("button", { name: "Wrong professor?" })).toBeInTheDocument();
   });
 
   it("lets the user retry when RMP is unavailable, without a report button", async () => {
@@ -114,10 +138,10 @@ describe("InstructorRatings", () => {
     mocks.getRmp.mockResolvedValueOnce(unavailable).mockResolvedValueOnce(matched);
     render(<InstructorRatings sections={[section("CRIM 101 D100", "Hall, Margaret")]} deptCode="als" />);
 
-    expect(await screen.findByText("Couldn't reach Rate My Professors.")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Report/ })).not.toBeInTheDocument();
+    expect(await screen.findByText("Couldn't reach RateMyProfessors.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Wrong professor?" })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Retry" }));
-    expect(await screen.findByText("4.3 / 5")).toBeInTheDocument();
+    expect(await screen.findByText("4.3")).toBeInTheDocument();
   });
 
   it("shows retry when the request itself fails", async () => {
@@ -133,11 +157,11 @@ describe("InstructorRatings", () => {
     mocks.reportRmpMismatch.mockResolvedValue({ reportId: 9 });
     render(<InstructorRatings sections={[section("CRIM 101 D100", "Hall, Margaret")]} deptCode="als" />);
 
-    await user.click(await screen.findByRole("button", { name: /Report wrong match/ }));
+    await user.click(await screen.findByRole("button", { name: "Wrong professor?" }));
 
     expect(window.open).toHaveBeenCalledWith(matched.searchUrl, "_blank", "noopener,noreferrer");
     expect(mocks.reportRmpMismatch).toHaveBeenCalledWith(1);
-    const reported = await screen.findByRole("button", { name: /Reported/ });
+    const reported = await screen.findByRole("button", { name: "Reported, thanks" });
     expect(reported).toBeDisabled();
   });
 
@@ -147,10 +171,10 @@ describe("InstructorRatings", () => {
     mocks.reportRmpMismatch.mockRejectedValueOnce(new Error("down")).mockResolvedValueOnce({ reportId: 9 });
     render(<InstructorRatings sections={[section("CRIM 101 D100", "Hall, Margaret")]} deptCode="als" />);
 
-    await user.click(await screen.findByRole("button", { name: /Report wrong match/ }));
+    await user.click(await screen.findByRole("button", { name: "Wrong professor?" }));
     const again = await screen.findByRole("button", { name: /Couldn't report, try again/ });
     expect(again).toBeEnabled();
     await user.click(again);
-    expect(await screen.findByRole("button", { name: /Reported/ })).toBeDisabled();
+    expect(await screen.findByRole("button", { name: "Reported, thanks" })).toBeDisabled();
   });
 });

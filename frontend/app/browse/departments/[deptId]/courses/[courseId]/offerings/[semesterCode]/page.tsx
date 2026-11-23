@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import ErrorMessage from "@/components/feedback/ErrorMessage";
-import LoadingSpinner from "@/components/feedback/LoadingSpinner";
+import { PageSkeleton } from "@/components/feedback/Skeletons";
+import PageContainer from "@/components/layout/PageContainer";
+import { useRetryableRequest } from "@/hooks/useRetryableRequest";
 import { offeringHref, parseLegacyCourseRoute, parsePositiveRouteInteger } from "@/lib/course-routes";
 import { resolveCourseIds } from "@/lib/course-resolver";
 
@@ -15,7 +17,8 @@ export default function OfferingDetailPage() {
     [params.courseId, params.deptId],
   );
   const semesterCode = useMemo(() => parsePositiveRouteInteger(params.semesterCode), [params.semesterCode]);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; retryable: boolean } | null>(null);
+  const { requestVersion, retry } = useRetryableRequest();
   const canResolve = legacyRoute.status === "valid" && semesterCode !== null;
 
   useEffect(() => {
@@ -23,29 +26,39 @@ export default function OfferingDetailPage() {
       return;
     }
 
+    let active = true;
     void resolveCourseIds(legacyRoute.deptId, legacyRoute.courseId)
       .then((course) => {
-        if (!course) setError("This offering could not be found.");
+        if (!active) return;
+        if (!course) setError({ message: "This offering could not be found.", retryable: false });
         else router.replace(offeringHref(course.deptCode, course.courseNumber, semesterCode));
       })
-      .catch(() => setError("Failed to resolve this offering link."));
-  }, [canResolve, legacyRoute, router, semesterCode]);
+      .catch(() => active && setError({ message: "Failed to resolve this offering link.", retryable: true }));
+    return () => {
+      active = false;
+    };
+  }, [canResolve, legacyRoute, router, semesterCode, requestVersion]);
+
+  const retryResolution = () => {
+    setError(null);
+    retry();
+  };
 
   if (!canResolve) {
     return (
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <PageContainer>
         <ErrorMessage message="This offering link is invalid." />
-      </main>
+      </PageContainer>
     );
   }
 
   if (error) {
     return (
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <ErrorMessage message={error} />
-      </main>
+      <PageContainer>
+        <ErrorMessage message={error.message} onRetry={error.retryable ? retryResolution : undefined} />
+      </PageContainer>
     );
   }
 
-  return <LoadingSpinner />;
+  return <PageSkeleton label="Opening this offering" />;
 }

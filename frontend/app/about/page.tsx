@@ -1,39 +1,39 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { ChevronDown, BookOpen, TrendingUp, Eye, LayoutGrid, CheckCircle2, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import SectionCard from "@/components/course/SectionCard";
 import PageContainer from "@/components/layout/PageContainer";
-import LoadingSpinner from "@/components/feedback/LoadingSpinner";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import PageHeader from "@/components/layout/PageHeader";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { displayStyles, bodyStyles, labelStyles, headerStyles } from "@/app/fonts";
-import { useScrollReveal } from "@/hooks/useScrollReveal";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import { Spinner } from "@/components/ui/spinner";
+import { Textarea } from "@/components/ui/textarea";
+import { bodyStyles, headerStyles, labelStyles } from "@/app/fonts";
+import { cn } from "@/lib/utils";
 
 const features = [
   {
     href: "/browse",
-    icon: BookOpen,
     title: "Browse Courses",
     description: "Explore 500+ courses across 50+ departments with real-time enrollment data",
   },
   {
-    href: "/graph",
-    icon: TrendingUp,
+    href: "/graph/load",
     title: "Analyze Trends",
     description: "Visualize historical enrollment patterns and grade distributions",
   },
   {
     href: "/dashboard",
-    icon: Eye,
     title: "Track Availability",
     description: "Monitor course sections and get notified when seats open up",
   },
   {
-    href: "/compare",
-    icon: LayoutGrid,
+    href: "/compare/courses",
     title: "Compare Courses",
     description: "Compare courses and offerings side-by-side to make better decisions",
   },
@@ -67,265 +67,187 @@ const faqs = [
   },
 ];
 
-function AboutPageContent() {
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const [formData, setFormData] = useState({ name: "", email: "", reason: "", message: "" });
-  const [formStatus, setFormStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [formError, setFormError] = useState<string | null>(null);
+const REASONS = ["Bug Report", "Feature Request", "General Inquiry", "Technical Support", "Other"];
 
-  const aboutRef = useScrollReveal({ delay: 0 });
-  const faqRef = useScrollReveal({ delay: 100 });
-  const contactRef = useScrollReveal({ delay: 200 });
+type ContactField = "name" | "email" | "reason" | "message";
+type ContactForm = Record<ContactField, string>;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormStatus("loading");
-    setFormError(null);
+const EMPTY_FORM: ContactForm = { name: "", email: "", reason: "", message: "" };
 
-    if (!formData.name || formData.name.length < 2) {
-      setFormError("Name must be at least 2 characters");
-      setFormStatus("error");
+/** Same rules and messages as before; one message per field. */
+function validateField(field: ContactField, form: ContactForm): string | null {
+  switch (field) {
+    case "name":
+      return !form.name || form.name.length < 2 ? "Name must be at least 2 characters" : null;
+    case "email":
+      return !form.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email) ? "Please enter a valid email address" : null;
+    case "reason":
+      return !form.reason ? "Please select a reason" : null;
+    case "message":
+      return !form.message || form.message.length < 10 ? "Message must be at least 10 characters" : null;
+  }
+}
+
+const FIELDS: ContactField[] = ["name", "email", "reason", "message"];
+
+function ContactForm() {
+  const [form, setForm] = useState<ContactForm>(EMPTY_FORM);
+  const [errors, setErrors] = useState<Partial<Record<ContactField, string>>>({});
+  const [sending, setSending] = useState(false);
+
+  const update = (field: ContactField, value: string) => {
+    const next = { ...form, [field]: value };
+    setForm(next);
+    // Once a field shows an error, re-check it as the user types so the error clears.
+    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: validateField(field, next) ?? undefined }));
+  };
+
+  const blur = (field: ContactField) => setErrors((prev) => ({ ...prev, [field]: validateField(field, form) ?? undefined }));
+
+  const errorProps = (field: ContactField) => ({
+    "aria-invalid": errors[field] ? true : undefined,
+    "aria-describedby": errors[field] ? `${field}-error` : undefined,
+  });
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const found = Object.fromEntries(FIELDS.map((field) => [field, validateField(field, form) ?? undefined])) as Partial<Record<ContactField, string>>;
+    setErrors(found);
+    const firstInvalid = FIELDS.find((field) => found[field]);
+    if (firstInvalid) {
+      document.getElementById(firstInvalid)?.focus();
       return;
     }
-    if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      setFormError("Please enter a valid email address");
-      setFormStatus("error");
-      return;
-    }
-    if (!formData.reason) {
-      setFormError("Please select a reason");
-      setFormStatus("error");
-      return;
-    }
-    if (!formData.message || formData.message.length < 10) {
-      setFormError("Message must be at least 10 characters");
-      setFormStatus("error");
-      return;
-    }
 
+    setSending(true);
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/contact`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          reason: formData.reason,
-          message: formData.message,
-        }),
+        body: JSON.stringify({ name: form.name, email: form.email, reason: form.reason, message: form.message }),
       });
-
       if (!response.ok) throw new Error("Failed to send");
-
-      setFormStatus("success");
-      setFormData({ name: "", email: "", reason: "", message: "" });
+      toast.success("Thanks for reaching out! We'll respond ASAP.");
+      setForm(EMPTY_FORM);
+      setErrors({});
     } catch (error) {
       console.error("Contact form error:", error);
-      setFormError("Failed to send message. Please try again or contact us directly via GitHub.");
-      setFormStatus("error");
+      toast.error("Failed to send message. Please try again or contact us directly via GitHub.");
+    } finally {
+      setSending(false);
     }
   };
 
-  const selectClass = `w-full rounded-md border border-border bg-background text-text-primary px-3 py-2 ${bodyStyles.md} focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50`;
-
   return (
-    <PageContainer>
-      <div className="max-w-4xl mx-auto space-y-8 sm:space-y-10">
-        {/* About Section */}
-        <section ref={aboutRef}>
-          <div className="max-w-3xl">
-            <h1 className={`${displayStyles.mdResponsive} text-text-primary mb-3`}>About SFU Course Planner</h1>
+    <form onSubmit={handleSubmit} noValidate className="space-y-5">
+      <Field data-invalid={Boolean(errors.name)}>
+        <FieldLabel htmlFor="name">Name *</FieldLabel>
+        <Input id="name" type="text" value={form.name} placeholder="John Doe" disabled={sending}
+          onChange={(e) => update("name", e.target.value)} onBlur={() => blur("name")} {...errorProps("name")} />
+        <FieldError id="name-error">{errors.name}</FieldError>
+      </Field>
 
-            <p className={`${bodyStyles.lg} text-text-muted leading-relaxed`}>
-              SFU Course Planner helps students make informed course enrollment decisions by aggregating real-time
-              data from multiple sources into one intuitive platform.
-            </p>
-          </div>
+      <Field data-invalid={Boolean(errors.email)}>
+        <FieldLabel htmlFor="email">Email *</FieldLabel>
+        <Input id="email" type="email" value={form.email} placeholder="john.doe@example.com" disabled={sending}
+          onChange={(e) => update("email", e.target.value)} onBlur={() => blur("email")} {...errorProps("email")} />
+        <FieldError id="email-error">{errors.email}</FieldError>
+      </Field>
 
-          <div className="mt-8 grid gap-5 md:grid-cols-2">
-            <div className="border-l-2 border-accent pl-4">
-              <h2 className={`${headerStyles.lg} text-text-primary mb-2`}>The Problem</h2>
-              <p className={`${bodyStyles.md} text-text-muted leading-relaxed`}>
-                SFU students face scattered course information across multiple systems like CourseSys, the SFU
-                Calendar, and CourseDiggers. There&apos;s no easy way to track enrollment changes, visualize historical
-                trends, or compare courses side-by-side. Students often miss enrollment opportunities or make
-                uninformed decisions.
-              </p>
-            </div>
+      <Field data-invalid={Boolean(errors.reason)}>
+        <FieldLabel htmlFor="reason">Reason *</FieldLabel>
+        <NativeSelect id="reason" className="w-full" value={form.reason} disabled={sending}
+          onChange={(e) => update("reason", e.target.value)} onBlur={() => blur("reason")} {...errorProps("reason")}>
+          <NativeSelectOption value="">Select a reason</NativeSelectOption>
+          {REASONS.map((reason) => (
+            <NativeSelectOption key={reason} value={reason}>
+              {reason}
+            </NativeSelectOption>
+          ))}
+        </NativeSelect>
+        <FieldError id="reason-error">{errors.reason}</FieldError>
+      </Field>
 
-            <div className="border-l-2 border-accent pl-4">
-              <h2 className={`${headerStyles.lg} text-text-primary mb-2`}>The Solution</h2>
-              <p className={`${bodyStyles.md} text-text-muted leading-relaxed`}>
-                This platform consolidates everything you need in one place with a clean, searchable interface that
-                makes course planning simple and efficient.
-              </p>
-            </div>
-          </div>
+      <Field data-invalid={Boolean(errors.message)}>
+        <FieldLabel htmlFor="message">Message *</FieldLabel>
+        <Textarea id="message" value={form.message} placeholder="Please describe your question or feedback..." rows={6} disabled={sending}
+          className="resize-none" onChange={(e) => update("message", e.target.value)} onBlur={() => blur("message")} {...errorProps("message")} />
+        <FieldError id="message-error">{errors.message}</FieldError>
+      </Field>
 
-          <div className="mt-8 grid gap-4 sm:grid-cols-2">
-            {features.map(({ href, icon: Icon, title, description }) => (
-              <Link
-                href={href}
-                key={href}
-                className="group rounded-xl border border-border bg-surface p-5 no-underline transition-colors hover:border-accent/50 hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <Icon className="w-5 h-5 text-accent" aria-hidden="true" />
-                  <h3 className={`${headerStyles.md} text-text-primary`}>{title}</h3>
-                </div>
-                <p className={`${bodyStyles.md} text-text-muted`}>{description}</p>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        {/* FAQ Section */}
-        <section ref={faqRef} aria-labelledby="faq-heading">
-          <Card>
-            <CardContent className="p-5 sm:p-8">
-              <h2 id="faq-heading" className={`${displayStyles.sm} text-text-primary mb-5`}>Frequently Asked Questions</h2>
-              <div className="space-y-3">
-                {faqs.map((faq, index) => (
-                  <div key={index} className="border border-border rounded-lg overflow-hidden transition-all">
-                    <button
-                      id={`faq-question-${index}`}
-                      onClick={() => setOpenFaq(openFaq === index ? null : index)}
-                      aria-expanded={openFaq === index}
-                      aria-controls={`faq-answer-${index}`}
-                      className="w-full px-4 sm:px-6 py-4 flex items-center justify-between bg-surface hover:bg-surface-raised transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-                    >
-                      <span className={`${labelStyles.lg} text-text-primary text-left`}>{faq.question}</span>
-                      <ChevronDown
-                        className={`w-5 h-5 text-text-muted shrink-0 transition-transform ${openFaq === index ? "rotate-180" : ""}`}
-                        aria-hidden="true"
-                      />
-                    </button>
-                    {openFaq === index && (
-                      <div id={`faq-answer-${index}`} role="region" aria-labelledby={`faq-question-${index}`} className="px-4 sm:px-6 py-4 bg-surface border-t border-border animate-fade-in">
-                        <p className={`${bodyStyles.md} text-text-muted leading-relaxed`}>{faq.answer}</p>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* Contact Form */}
-        <section ref={contactRef} aria-labelledby="contact-heading">
-          <Card>
-            <CardContent className="p-5 sm:p-8">
-              <h2 id="contact-heading" className={`${displayStyles.sm} text-text-primary mb-2`}>Contact Us</h2>
-              <p className={`${bodyStyles.md} text-text-muted mb-6`}>
-                Have questions, feedback, or found a bug? We&apos;d love to hear from you!
-              </p>
-
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label htmlFor="name" className={`${labelStyles.lg} text-text-primary block mb-2`}>
-                    Name *
-                  </label>
-                  <Input
-                    id="name"
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="John Doe"
-                    disabled={formStatus === "loading"}
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="email" className={`${labelStyles.lg} text-text-primary block mb-2`}>
-                    Email *
-                  </label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="john.doe@example.com"
-                    disabled={formStatus === "loading"}
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="reason" className={`${labelStyles.lg} text-text-primary block mb-2`}>
-                    Reason *
-                  </label>
-                  <select
-                    id="reason"
-                    value={formData.reason}
-                    onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                    disabled={formStatus === "loading"}
-                    className={selectClass}
-                  >
-                    <option value="">Select a reason</option>
-                    <option value="Bug Report">Bug Report</option>
-                    <option value="Feature Request">Feature Request</option>
-                    <option value="General Inquiry">General Inquiry</option>
-                    <option value="Technical Support">Technical Support</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label htmlFor="message" className={`${labelStyles.lg} text-text-primary block mb-2`}>
-                    Message *
-                  </label>
-                  <Textarea
-                    id="message"
-                    value={formData.message}
-                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                    placeholder="Please describe your question or feedback..."
-                    rows={6}
-                    disabled={formStatus === "loading"}
-                    className="resize-none"
-                  />
-                </div>
-
-                {formStatus === "error" && formError && (
-                  <div
-                    className={`p-4 bg-destructive/10 border border-destructive/20 rounded-lg ${bodyStyles.md} text-destructive`}
-                    role="alert"
-                  >
-                    {formError}
-                  </div>
-                )}
-
-                {formStatus === "success" && (
-                  <div className="p-4 bg-success/10 border border-success/20 rounded-lg flex items-center gap-2" role="status" aria-live="polite">
-                    <CheckCircle2 className="w-5 h-5 text-success shrink-0" aria-hidden="true" />
-                    <span className={`${labelStyles.lg} text-success`}>
-                      Thanks for reaching out! We&apos;ll respond ASAP.
-                    </span>
-                  </div>
-                )}
-
-                <Button type="submit" disabled={formStatus === "loading"} className="w-full sm:w-auto">
-                  {formStatus === "loading" ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Sending...
-                    </>
-                  ) : (
-                    "Send Message"
-                  )}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        </section>
-      </div>
-    </PageContainer>
+      <Button type="submit" disabled={sending} className="w-full sm:w-auto">
+        {sending ? (
+          <>
+            <Spinner aria-hidden="true" role="presentation" aria-label={undefined} />
+            Sending...
+          </>
+        ) : (
+          "Send message"
+        )}
+      </Button>
+    </form>
   );
 }
 
 export default function AboutPage() {
   return (
-    <Suspense fallback={<LoadingSpinner />}>
-      <AboutPageContent />
-    </Suspense>
+    <PageContainer>
+      <PageHeader
+        title="About SFU Course Planner"
+        description="SFU Course Planner helps students make informed course enrollment decisions by aggregating real-time data from multiple sources into one intuitive platform."
+      />
+
+      <div className="mb-10 grid gap-8 md:grid-cols-2">
+        <section>
+          <h2 className={cn(headerStyles.lg, "mb-2 text-text-primary")}>The Problem</h2>
+          <p className={cn(bodyStyles.md, "text-text-muted")}>
+            SFU students face scattered course information across multiple systems like CourseSys, the SFU Calendar, and
+            CourseDiggers. There&apos;s no easy way to track enrollment changes, visualize historical trends, or compare
+            courses side-by-side. Students often miss enrollment opportunities or make uninformed decisions.
+          </p>
+        </section>
+        <section>
+          <h2 className={cn(headerStyles.lg, "mb-2 text-text-primary")}>The Solution</h2>
+          <p className={cn(bodyStyles.md, "text-text-muted")}>
+            This platform consolidates everything you need in one place with a clean, searchable interface that makes
+            course planning simple and efficient.
+          </p>
+        </section>
+      </div>
+
+      <SectionCard title="What you can do" flush className="mb-6">
+        <ul className="grid grid-cols-1 divide-y divide-border sm:grid-cols-2 sm:divide-y-0 sm:[&>li:nth-child(n+3)]:border-t sm:[&>li:nth-child(even)]:border-l [&>li]:border-border">
+          {features.map(({ href, title, description }) => (
+            <li key={href} className="p-4 sm:p-5">
+              <h3 className={cn(headerStyles.sm, "text-text-primary")}>
+                <Link href={href} className="rounded-sm underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  {title}
+                </Link>
+              </h3>
+              <p className={cn(bodyStyles.md, "mt-1 text-text-muted")}>{description}</p>
+            </li>
+          ))}
+        </ul>
+      </SectionCard>
+
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
+        <SectionCard title="Frequently asked questions">
+          <Accordion>
+            {faqs.map((faq) => (
+              <AccordionItem key={faq.question} value={faq.question} className="border-border">
+                <AccordionTrigger className={cn(labelStyles.lg, "py-3 text-text-primary")}>{faq.question}</AccordionTrigger>
+                <AccordionContent>
+                  <p className={cn(bodyStyles.md, "pb-3 text-text-muted")}>{faq.answer}</p>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </SectionCard>
+
+        <SectionCard title="Contact us" description="Have questions, feedback, or found a bug? We'd love to hear from you!">
+          <ContactForm />
+        </SectionCard>
+      </div>
+    </PageContainer>
   );
 }
