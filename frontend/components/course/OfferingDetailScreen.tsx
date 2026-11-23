@@ -1,5 +1,7 @@
 "use client";
 
+import { seatLoadPercent } from "@/lib/enrollment-status";
+
 import { ExternalLink } from "lucide-react";
 import GradeHistogram from "@/components/analytics/GradeHistogram";
 import BookmarkButton from "@/components/course/BookmarkButton";
@@ -99,7 +101,7 @@ export default function OfferingDetailScreen({ detail, backHref }: OfferingDetai
                         {section.enrolled} / {section.capacity}
                       </TableCell>
                       <TableCell className={cn(cardTable.cell, "text-right lg:text-left")}>
-                        <StatusBadge loadPercent={section.loadPercent ?? 0} />
+                        <StatusBadge loadPercent={seatLoadPercent(section)} />
                       </TableCell>
                       <TableCell className={cardTable.cell}>
                         <a

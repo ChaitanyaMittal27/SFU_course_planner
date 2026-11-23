@@ -1,5 +1,5 @@
 import { formatPercent, formatTerm } from "@/lib/course-stats";
-import { getEnrollmentStatus } from "@/lib/enrollment-status";
+import { displayLoadPercent, seatLoadPercent, getEnrollmentStatus } from "@/lib/enrollment-status";
 import { shareAtOrAbove } from "@/lib/grades";
 import type { EnrollmentDataPoint, GradeDistribution } from "@/lib/types";
 
@@ -23,13 +23,13 @@ export function sortByTerm<T extends { semesterCode: number }>(points: T[]): T[]
 /** "Average load 87% over 12 terms · full in 3 of them." */
 export function loadSummary(points: EnrollmentDataPoint[]): string | null {
   if (points.length === 0) return null;
-  const average = points.reduce((sum, point) => sum + point.loadPercent, 0) / points.length;
-  const full = points.filter((point) => getEnrollmentStatus(point.loadPercent) === "full").length;
+  const average = points.reduce((sum, point) => sum + seatLoadPercent(point), 0) / points.length;
+  const full = points.filter((point) => getEnrollmentStatus(seatLoadPercent(point)) === "full").length;
   const terms = points.length === 1 ? "1 term" : `${points.length} terms`;
-  return `Average load ${Math.round(average)}% over ${terms} · full in ${full} of them.`;
+  return `Average load ${displayLoadPercent(average)}% over ${terms} · full in ${full} of them.`;
 }
 
-/** Capacity at the first and last plotted terms, e.g. "Capacity grew from 120 in Fall 2021 to 200 in Spring 2026 (+80)." */
+/** Capacity range across all plotted terms, in chronological order. */
 export function enrollmentSummary(points: EnrollmentDataPoint[]): string | null {
   if (points.length === 0) return null;
   const sorted = sortByTerm(points);
@@ -39,11 +39,11 @@ export function enrollmentSummary(points: EnrollmentDataPoint[]): string | null 
   const to = termLabel(last);
   if (sorted.length === 1) return `Capacity was ${first.capacity} in ${from}.`;
 
-  const change = last.capacity - first.capacity;
-  if (change === 0) return `Capacity stayed at ${first.capacity} from ${from} to ${to}.`;
-  const verb = change > 0 ? "grew" : "shrank";
-  const sign = change > 0 ? "+" : "−";
-  return `Capacity ${verb} from ${first.capacity} in ${from} to ${last.capacity} in ${to} (${sign}${Math.abs(change)}).`;
+  const capacities = sorted.map((point) => point.capacity);
+  const min = Math.min(...capacities);
+  const max = Math.max(...capacities);
+  if (min === max) return `Capacity stayed at ${min} from ${from} to ${to}.`;
+  return `Capacity ranged from ${min} to ${max} seats between ${from} and ${to}.`;
 }
 
 /** "Median B- · fail rate 8% · 74% of students get C- or better." */

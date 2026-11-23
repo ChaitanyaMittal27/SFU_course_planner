@@ -9,6 +9,8 @@ type Props = {
   /** Highlighted bar and summary line; omit to show bars only. */
   medianGrade?: string | null;
   failRate?: number | null;
+  /** Hide a summary already supplied by the surrounding page. */
+  showSummary?: boolean;
   /** Chart height: "sm" for side-by-side comparisons, "lg" for the Grades graph. */
   size?: "sm" | "md" | "lg";
   className?: string;
@@ -32,7 +34,7 @@ export function buildGradeBars(distribution: Record<string, number>) {
  * colour, % above each bar and the grade below. Exposed to assistive tech as one image
  * whose label lists every value.
  */
-export default function GradeHistogram({ distribution, medianGrade, failRate, size = "md", className }: Props) {
+export default function GradeHistogram({ distribution, medianGrade, failRate, size = "md", showSummary = true, className }: Props) {
   const bars = buildGradeBars(distribution);
   const maxPercent = Math.max(...bars.map((bar) => bar.percent), 0);
   const failText = formatPercent(failRate ?? null);
@@ -48,7 +50,7 @@ export default function GradeHistogram({ distribution, medianGrade, failRate, si
 
   return (
     <div className={className}>
-      {summary && <p className={cn(bodyStyles.md, "mb-4 text-text-muted")}>{summary}</p>}
+      {showSummary && summary && <p className={cn(bodyStyles.md, "mb-4 text-text-muted")}>{summary}</p>}
       <div role="img" aria-label={label} className={cn("flex items-end gap-1 sm:gap-1.5", heights[size])}>
         {bars.map((bar) => {
           const isMedian = bar.grade === medianGrade;

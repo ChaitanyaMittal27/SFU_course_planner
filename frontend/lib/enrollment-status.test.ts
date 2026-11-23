@@ -3,6 +3,8 @@ import {
   ENROLLMENT_STATUS_LABELS,
   ENROLLMENT_STATUS_TONES,
   getEnrollmentStatus,
+  seatLoadPercent,
+  displayLoadPercent,
 } from "@/lib/enrollment-status";
 
 describe("getEnrollmentStatus", () => {
@@ -24,5 +26,23 @@ describe("getEnrollmentStatus", () => {
   it("labels and tones statuses to match the email digest", () => {
     expect(ENROLLMENT_STATUS_LABELS).toEqual({ open: "Open", "almost-full": "Almost full", full: "Full" });
     expect(ENROLLMENT_STATUS_TONES).toEqual({ open: "success", "almost-full": "warning", full: "destructive" });
+  });
+});
+
+describe("raw seat load", () => {
+  it.each([
+    [199, "almost-full", 99],
+    [200, "full", 100],
+    [179, "open", 89],
+  ] as const)("classifies and displays %s/200", (enrolled, status, percent) => {
+    const raw = seatLoadPercent({ enrolled: String(enrolled), capacity: "200" });
+    expect(getEnrollmentStatus(raw)).toBe(status);
+    expect(displayLoadPercent(raw)).toBe(percent);
+  });
+
+  it("includes waitlists and handles unavailable or zero capacity", () => {
+    expect(seatLoadPercent({ enrolled: "199 (+2)", capacity: "200" })).toBe(100.5);
+    expect(seatLoadPercent({ enrolled: "199", capacity: "0" })).toBe(0);
+    expect(seatLoadPercent({ enrolled: "N/A", capacity: "200" })).toBe(0);
   });
 });

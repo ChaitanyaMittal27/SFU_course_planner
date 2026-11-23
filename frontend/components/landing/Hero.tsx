@@ -65,11 +65,11 @@ export default function Hero() {
 
           <dl
             aria-label="SFU Course Planner in numbers"
-            className="mb-8 flex max-w-lg flex-wrap gap-x-10 gap-y-4 border-t border-border pt-4.5"
+            className="mb-8 grid max-w-lg grid-cols-3 gap-x-3 gap-y-4 sm:flex sm:flex-wrap sm:gap-x-10 border-t border-border pt-4.5"
           >
             {HERO_STATS.map((stat) => (
               // dt stays first in the markup; column-reverse puts the number on top visually.
-              <div key={stat.label} className="flex flex-col-reverse gap-1.5">
+              <div key={stat.label} className="flex min-w-0 flex-col-reverse justify-end gap-1.5">
                 <dt className={cn(bodyStyles.sm, "text-text-muted")}>{stat.label}</dt>
                 <dd className={cn(numericStyles.stat, "text-text-primary")}>{stat.value}</dd>
               </div>

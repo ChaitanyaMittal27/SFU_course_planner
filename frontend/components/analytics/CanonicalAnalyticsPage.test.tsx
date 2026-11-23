@@ -86,7 +86,7 @@ describe("graphs page", () => {
 
     await user.click(screen.getByRole("button", { name: "1 year" }));
     expect(mocks.setRange).toHaveBeenCalledWith("1yr");
-    expect(await screen.findByText("Capacity grew from 100 in Spring 2026 to 120 in Summer 2026 (+20).")).toBeInTheDocument();
+    expect(await screen.findByText("Capacity ranged from 100 to 120 seats between Spring 2026 and Summer 2026.")).toBeInTheDocument();
   });
 
   it("shows the grade distribution with its summary and no range toggle", async () => {
@@ -94,6 +94,7 @@ describe("graphs page", () => {
     await waitFor(() => expect(mocks.getGradeDistribution).toHaveBeenCalledWith(3998));
     expect(await screen.findByText("Median B- · fail rate 8% · 74% of students get C- or better.")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: /Grade distribution/ })).toBeInTheDocument();
+    expect(screen.getAllByText(/Median B-/)).toHaveLength(1);
     expect(screen.queryByRole("button", { name: "5 years" })).not.toBeInTheDocument();
   });
 

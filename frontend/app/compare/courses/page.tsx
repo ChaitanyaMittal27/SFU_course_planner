@@ -345,7 +345,7 @@ function CourseComparisonContent() {
                     {column.medianGrade && <span className="text-text-muted">Median {column.medianGrade}</span>}
                   </p>
                   {column.distribution ? (
-                    <GradeHistogram distribution={column.distribution} medianGrade={column.medianGrade} size="sm" />
+                    <GradeHistogram distribution={column.distribution} medianGrade={column.medianGrade} showSummary={false} size="sm" />
                   ) : (
                     <p className={cn(bodyStyles.md, "py-8 text-center text-text-subtle")}>No grade data.</p>
                   )}
@@ -373,7 +373,7 @@ function comparisonRows({ columns, best: winners }: ReturnType<typeof buildCours
     {
       label: "Avg. load, last 3 terms",
       cells: columns.map((c, i) =>
-        c.avgLoad === null ? "—" : <LoadBar key={i} percent={Math.round(c.avgLoad)} labelClassName={mark(winners.avgLoad, i)} />,
+        c.avgLoad === null ? "—" : <LoadBar key={i} percent={c.avgLoad} labelClassName={mark(winners.avgLoad, i)} />,
       ),
     },
     { label: "Units", cells: columns.map((c, i) => <span key={i} className={numericStyles.md}>{c.units ?? "—"}</span>) },

@@ -1,5 +1,7 @@
 "use client";
 
+import { seatLoadPercent } from "@/lib/enrollment-status";
+
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ChevronRight, ClipboardList } from "lucide-react";
@@ -87,12 +89,13 @@ export default function SectionComparisonResults({ course, semesterCode, request
 
   const settled = result?.attempt === requestVersion ? result : null;
   const availableSections = useMemo(() => settled?.sections ?? [], [settled]);
-  const selectedSections = normalizeSelectedSections(requestedSections, availableSections);
+  const selectedSections = useMemo(
+    () => normalizeSelectedSections(requestedSections, availableSections),
+    [requestedSections, availableSections],
+  );
   const comparisonSections = useMemo(
     () => availableSections.filter((section) => selectedSections.includes(sectionCode(section.section))),
-    // selectedSections is derived from requestedSections each render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [availableSections, selectedSections.join(",")],
+    [availableSections, selectedSections],
   );
 
   const comparing = comparisonSections.length >= 2;
@@ -157,8 +160,8 @@ export default function SectionComparisonResults({ course, semesterCode, request
       label: "Load",
       cells: comparisonSections.map((section) => (
         <div key={section.section} className="flex flex-wrap items-center gap-2">
-          <LoadBar percent={section.loadPercent ?? 0} />
-          <StatusBadge loadPercent={section.loadPercent ?? 0} />
+          <LoadBar percent={seatLoadPercent(section)} />
+          <StatusBadge loadPercent={seatLoadPercent(section)} />
         </div>
       )),
     },

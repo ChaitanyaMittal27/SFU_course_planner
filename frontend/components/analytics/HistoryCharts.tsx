@@ -5,7 +5,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } f
 import { bodyStyles, labelStyles, numericStyles } from "@/app/fonts";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { sortByTerm, termLabel } from "@/lib/analytics-summary";
-import { ENROLLMENT_STATUS_TONES, getEnrollmentStatus, type EnrollmentTone } from "@/lib/enrollment-status";
+import { displayLoadPercent, seatLoadPercent, ENROLLMENT_STATUS_TONES, getEnrollmentStatus, type EnrollmentTone } from "@/lib/enrollment-status";
 import { cn } from "@/lib/utils";
 import type { EnrollmentDataPoint } from "@/lib/types";
 
@@ -21,7 +21,7 @@ const chartClass = "aspect-auto h-60 w-full sm:h-80";
 function useChartRows(points: EnrollmentDataPoint[]) {
   // Below sm there is room for short labels only ("F26").
   const wide = useMediaQuery("(min-width: 640px)");
-  return sortByTerm(points).map((point) => ({ ...point, label: termLabel(point, !wide), fullLabel: termLabel(point) }));
+  return sortByTerm(points).map((point) => ({ ...point, loadPercent: seatLoadPercent(point), label: termLabel(point, !wide), fullLabel: termLabel(point) }));
 }
 
 function ValueRow({ label, value, color }: { label: string; value: string; color: string }) {
@@ -52,7 +52,7 @@ export function LoadChart({ points }: { points: EnrollmentDataPoint[] }) {
             <ChartTooltipContent
               labelFormatter={(_, payload) => payload?.[0]?.payload?.fullLabel}
               formatter={(value, _name, item) => (
-                <ValueRow label="Load" value={`${value}%`} color={toneFill[ENROLLMENT_STATUS_TONES[getEnrollmentStatus(Number(value))]] ?? item.color ?? ""} />
+                <ValueRow label="Load" value={`${displayLoadPercent(Number(value))}%`} color={toneFill[ENROLLMENT_STATUS_TONES[getEnrollmentStatus(Number(value))]] ?? item.color ?? ""} />
               )}
             />
           }
@@ -158,7 +158,7 @@ export function HistoryDataTable({ kind, points, caption }: { kind: "load" | "en
         {sortByTerm(points).map((point) => (
           <tr key={point.semesterCode}>
             <th scope="row">{termLabel(point)}</th>
-            {kind === "load" ? <td>{`${Math.round(point.loadPercent)}%`}</td> : (
+            {kind === "load" ? <td>{`${displayLoadPercent(seatLoadPercent(point))}%`}</td> : (
               <>
                 <td>{point.enrolled}</td>
                 <td>{point.capacity}</td>

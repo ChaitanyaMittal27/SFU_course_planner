@@ -82,7 +82,7 @@ describe("dashboard flow", () => {
 
     const summary = screen.getByText("Watching").closest("dl") as HTMLElement;
     const values = within(summary).getAllByRole("definition").map((d) => d.textContent);
-    expect(values).toEqual(["1", "1", "92%", "Off"]);
+    expect(values).toEqual(["1", "0", "88%", "Off"]);
     expect(screen.getByRole("heading", { level: 2, name: "Bookmarks" }).closest("section")).toHaveTextContent("Included in your morning email");
   });
 

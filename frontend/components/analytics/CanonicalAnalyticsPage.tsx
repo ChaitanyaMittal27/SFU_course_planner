@@ -56,10 +56,12 @@ export default function CanonicalAnalyticsPage({ kind }: { kind: AnalyticsKind }
   const [rangeParam, setRange] = useQueryState("range", { defaultValue: DEFAULT_RANGE });
   const range = RANGES.some((r) => r.value === rangeParam) ? rangeParam : DEFAULT_RANGE;
 
-  const hasCourseInUrl = Boolean(params?.deptCode || params?.courseNumber);
+  const deptCode = params?.deptCode ?? "";
+  const courseNumber = params?.courseNumber ?? "";
+  const hasCourseInUrl = Boolean(deptCode || courseNumber);
   const identity = useMemo(
-    () => (hasCourseInUrl ? normalizeCourseIdentity(params.deptCode ?? "", params.courseNumber ?? "") : null),
-    [hasCourseInUrl, params?.deptCode, params?.courseNumber],
+    () => (hasCourseInUrl ? normalizeCourseIdentity(deptCode, courseNumber) : null),
+    [hasCourseInUrl, deptCode, courseNumber],
   );
   const identityKey = identity ? `${identity.deptCode}/${identity.courseNumber}` : "";
 
@@ -262,7 +264,7 @@ function ChartCard({
       <SectionCard title={title} description={courseTitle} note={<ChartLegend kind="grades" />}>
         {hasData ? (
           <>
-            <GradeHistogram distribution={grades.distribution} medianGrade={grades.medianGrade} size="lg" />
+            <GradeHistogram distribution={grades.distribution} medianGrade={grades.medianGrade} showSummary={false} size="lg" />
             <GradeDataTable distribution={grades.distribution} caption={`${title} data`} />
             <Summary text={gradesSummary(grades)} />
           </>

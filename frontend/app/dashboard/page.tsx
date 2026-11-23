@@ -1,5 +1,7 @@
 "use client";
 
+import { seatLoadPercent } from "@/lib/enrollment-status";
+
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { BookmarkPlus, LogOut, X } from "lucide-react";
@@ -135,6 +137,8 @@ function DashboardPageContent() {
 
   useEffect(() => {
     if (user) {
+      // Keep the saved profile label synchronized with Supabase user updates.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDisplayName(user.user_metadata?.display_name || user.email?.split("@")[0] || "User");
     }
   }, [user]);
@@ -294,9 +298,9 @@ function DashboardPageContent() {
 
   const getOffering = (bookmark: Bookmark) => offerings.find((offering) => offering.bookmarkId === bookmark.bookmarkId);
 
-  const fillingFast = offerings.filter((o) => getEnrollmentStatus(o.loadPercent) !== "open").length;
+  const fillingFast = offerings.filter((o) => getEnrollmentStatus(seatLoadPercent(o)) !== "open").length;
   const averageLoad =
-    offerings.length > 0 ? Math.round(offerings.reduce((sum, o) => sum + o.loadPercent, 0) / offerings.length) : 0;
+    offerings.length > 0 ? Math.floor(offerings.reduce((sum, o) => sum + seatLoadPercent(o), 0) / offerings.length) : 0;
 
   if (authLoading) return <PageSkeleton label="Loading your dashboard" />;
 
@@ -412,8 +416,8 @@ function DashboardPageContent() {
                       <TableCell className={cn(cardTable.cell, "col-span-2 row-start-4")}>
                         {offering ? (
                           <div className="flex flex-wrap items-center gap-2">
-                            <LoadBar percent={offering.loadPercent} />
-                            <StatusBadge loadPercent={offering.loadPercent} />
+                            <LoadBar percent={seatLoadPercent(offering)} />
+                            <StatusBadge loadPercent={seatLoadPercent(offering)} />
                           </div>
                         ) : (
                           <span className={cn(bodyStyles.md, "text-text-subtle")}>—</span>

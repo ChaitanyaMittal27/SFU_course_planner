@@ -36,6 +36,12 @@ beforeEach(() => {
 });
 
 describe("CourseOfferingsPanel", () => {
+  it("renders 199/200 as 99% even when the API rounds load to 100", async () => {
+    mocks.getOfferings.mockResolvedValue([offering(1267, "fall", 2026, { enrolled: "199", capacity: "200", loadPercent: 100 })]);
+    renderPanel();
+    expect(await screen.findByText("99%", { selector: "span" })).toHaveClass("text-warning-text");
+    expect(screen.queryByText("100%")).not.toBeInTheDocument();
+  });
   it("renders the course heading, facts and actions", async () => {
     renderPanel();
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("CMPT 225 · Data Structures");

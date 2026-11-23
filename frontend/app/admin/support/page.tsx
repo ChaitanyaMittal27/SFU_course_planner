@@ -70,6 +70,8 @@ export default function AdminSupportPage() {
   }, []);
 
   useEffect(() => {
+    // Synchronize the selected filter with remote support data, clearing stale errors.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData(filter).finally(() => setLoading(false));
   }, [fetchData, filter]);
 

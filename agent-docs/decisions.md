@@ -1,4 +1,5 @@
 # Decisions — one line each: "YYYY-MM-DD <decision>: <why>"
+2026-11-23 Next.js upgraded to 16.4.6 before the UI release for security advisories; matching eslint-config-next, React 19.2.1 retained, shadcn CLI/CSS tooling moved to devDependencies.
 Seeded entries before 2026-11 are dated by the commit that first documented them.
 
 2026-08-20 JPA `ddl-auto=validate`; schema changes only via Supabase migrations: Hibernate must never create or migrate the production schema.
@@ -26,3 +27,5 @@ Seeded entries before 2026-11 are dated by the commit that first documented them
 2026-11-23 Hero dots follow the email preview; its table responds to container width: the two-column desktop preview is narrower than the viewport breakpoint suggests.
 
 2026-11-23 Admin uses its own navigation shell without public header/footer; desktop and mobile sheet share contents and existing auth/theme actions: one navigation per viewport, consistent controls.
+
+2026-11-23 Seat-load UI recomputes raw ratios from seat counts (including waitlists) and floors labels: rounded API offering percentages cannot distinguish 199/200 from full.

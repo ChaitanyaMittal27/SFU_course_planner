@@ -118,7 +118,7 @@ export default function CourseOfferingsPanel({ reference, department, course }: 
         items={[
           { label: "Median grade", value: grades?.medianGrade || null },
           { label: "Fail rate", value: grades ? formatPercent(grades.failRate) : null },
-          { label: "Avg. load, last 3 terms", value: avgLoad === null ? null : `${Math.round(avgLoad)}%` },
+          { label: "Avg. load, last 3 terms", value: avgLoad === null ? null : `${Math.floor(avgLoad)}%` },
         ]}
       />
 

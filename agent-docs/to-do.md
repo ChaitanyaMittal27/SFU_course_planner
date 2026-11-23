@@ -3,6 +3,8 @@
 Product-hardening backlog derived from the repository audit, ordered by expected risk reduction and enabling value; not a release plan. Original item numbers kept in brackets.
 
 ## Active
+- [Security] Revisit shadcn's dev-only ts-morph/common/minimatch chain when an upstream compatible fix is available: 4 moderate findings (GHSA-g3hv-75wg-m249); npm currently proposes a breaking shadcn@1.0.0 downgrade. Production audit is clean.
+- [UI] Next.js dev warns that smooth-scrolling html needs data-scroll-behavior="smooth"; verify route-transition scroll behavior when adding it.
 - [0] RMP health check in /admin/health (backend). Ship in the same backend release as GET /api/courses.
 - [17] GET /api/courses for full title/fuzzy search (backend): return all courses with dept code, number, title so browse search can match titles and fuzzy queries across every department; frontend search is code-only until then. Ship with the RMP health check.
 - [0.5] Test coverage tooling + gaps (after the UI refresh): measure current coverage, then add tests.

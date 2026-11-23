@@ -70,6 +70,8 @@ export default function AdminTermsPage() {
   }, []);
 
   useEffect(() => {
+    // Load remote terms and initialize the editable fields from the response.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchTerms().finally(() => setLoading(false));
   }, [fetchTerms]);
 

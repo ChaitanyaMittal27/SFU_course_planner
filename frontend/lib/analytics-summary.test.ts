@@ -27,12 +27,24 @@ describe("loadSummary", () => {
 });
 
 describe("enrollmentSummary", () => {
+  it("reports variation even when the first and last capacities match", () => {
+    expect(enrollmentSummary([
+      point(1264, "summer", 2026, 100, 120),
+      point(1261, "spring", 2026, 100, 200),
+      point(1257, "fall", 2025, 100, 120),
+    ])).toBe("Capacity ranged from 120 to 200 seats between Fall 2025 and Summer 2026.");
+  });
+
+  it("uses raw seat counts for load averages and full-term counts", () => {
+    expect(loadSummary([point(1264, "summer", 2026, 199, 200)]))
+      .toBe("Average load 99% over 1 term · full in 0 of them.");
+  });
   it("describes the capacity change between the first and last terms, in term order", () => {
     expect(enrollmentSummary([point(1264, "summer", 2026, 150, 200), point(1217, "fall", 2021, 100, 120)])).toBe(
-      "Capacity grew from 120 in Fall 2021 to 200 in Summer 2026 (+80).",
+      "Capacity ranged from 120 to 200 seats between Fall 2021 and Summer 2026.",
     );
     expect(enrollmentSummary([point(1217, "fall", 2021, 100, 200), point(1264, "summer", 2026, 150, 150)])).toBe(
-      "Capacity shrank from 200 in Fall 2021 to 150 in Summer 2026 (−50).",
+      "Capacity ranged from 150 to 200 seats between Fall 2021 and Summer 2026.",
     );
     expect(enrollmentSummary([point(1217, "fall", 2021, 100, 120), point(1264, "summer", 2026, 150, 120)])).toBe(
       "Capacity stayed at 120 from Fall 2021 to Summer 2026.",

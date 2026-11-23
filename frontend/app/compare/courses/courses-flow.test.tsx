@@ -30,7 +30,7 @@ vi.mock("@/lib/api", () => ({
   },
 }));
 vi.mock("@/lib/course-resolver", () => ({ resolveCourseIdentity: mocks.resolveCourseIdentity, resolveCourseIds: mocks.resolveCourseIds }));
-vi.mock("@/components/analytics/GradeHistogram", () => ({ default: ({ medianGrade }: { medianGrade: string }) => <div>Grade chart, median {medianGrade}</div> }));
+
 
 import CourseComparisonPage from "@/app/compare/courses/page";
 
@@ -152,8 +152,9 @@ describe("Compare courses", () => {
     expect(row("Prerequisites")).toHaveTextContent("CMPT 125");
 
     const grades = screen.getByRole("heading", { level: 2, name: "Grade distributions" }).closest("section") as HTMLElement;
-    expect(within(grades).getByText("Grade chart, median B-")).toBeInTheDocument();
-    expect(within(grades).getByText("Median B")).toBeInTheDocument();
+    expect(within(grades).getAllByRole("img", { name: /Grade distribution/ })).toHaveLength(2);
+    expect(within(grades).getAllByText("Median B")).toHaveLength(1);
+    expect(within(grades).getAllByText("Median B-")).toHaveLength(1);
   });
 
   it("retries a failed comparison request", async () => {

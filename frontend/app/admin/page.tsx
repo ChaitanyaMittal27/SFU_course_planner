@@ -201,6 +201,8 @@ export default function AdminDashboardPage() {
   }, []);
 
   useEffect(() => {
+    // Fetch results update state after awaiting the API, not during this effect.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadDashboard().finally(() => setLoading(false));
   }, [loadDashboard]);
 

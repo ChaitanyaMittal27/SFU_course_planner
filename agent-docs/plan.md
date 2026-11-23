@@ -17,5 +17,5 @@ Card-based, calm, data-first design (see decisions.md). Each subtask is one Clau
 | 6 | Cleanup: dead code + consistency audit | verified |
 | 7 | Hero dot background fix | verified |
 | 8 | Full mobile/responsive checkup + admin single-navigation follow-up | verified |
-| 9 | Release: merge dev → main, Vercel deploy | pending |
+| 9 | Release prep and pre-release display fixes; owner merge/deploy pending | implemented |
 Status: pending → implemented (coding agent) → verified (only via Doc instructions).

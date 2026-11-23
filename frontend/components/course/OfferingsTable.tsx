@@ -1,5 +1,7 @@
 "use client";
 
+import { seatLoadPercent } from "@/lib/enrollment-status";
+
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import type { CourseOffering, TermInfo } from "@/lib/types";
@@ -71,7 +73,7 @@ export default function OfferingsTable({ offerings, enrollingTerm, offeringHref 
               {o.enrolled} / {o.capacity}
             </TableCell>
             <TableCell className={cardTable.cell}>
-              <LoadBar percent={o.loadPercent ?? 0} tonedLabel className="flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-2" />
+              <LoadBar percent={seatLoadPercent(o)} tonedLabel className="flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-2" />
             </TableCell>
             <TableCell className={cn(cardTable.cell, "w-8 text-text-subtle")}>
               <ChevronRight aria-hidden="true" className="size-4" />

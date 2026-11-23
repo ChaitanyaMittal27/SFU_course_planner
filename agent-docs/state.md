@@ -1,30 +1,30 @@
-﻿# State - overwrite each subtask, max 30 lines
-Task: UI refresh - finish and release - Updated: 2026-11-23 - Branch: ui-2
+# State - overwrite each subtask, max 30 lines
+Task: UI refresh - subtask 9 release prep display fixes - Updated: 2026-11-23 - Branch: ui-2
 ## Done so far
-Subtasks 1-8 verified per owner Doc instructions; 8 includes the admin single-navigation layout follow-up.
-Subtask 9 checks completed against the working tree; release gates failed, so status remains pending.
+Subtasks 1-8 verified; subtask 9 release preparation and display fixes implemented; owner release actions remain.
+Seat-load status now uses raw seat counts (including CourseSys waitlists), bypassing rounded offering API percentages.
+Load labels floor percentages across browse, offering details, comparisons, dashboard, graphs and summaries.
+Compare grade distributions keep the header median; Grades graph keeps the summary sentence; histogram highlights remain.
+Enrollment summary checks every capacity: varied ranges show min/max; only constant ranges say stayed at.
+Phone hero stats use three equal columns with wrapping labels; desktop layout and typography retained.
 ## Last subtask result (incl. tests)
-Frontend npm ci PASS (739 packages); lint PASS; 43 files / 278 tests PASS; clean production build + TypeScript PASS.
-Sandbox blocked npm cache and Google Fonts initially; approved retries passed; .next removed before each build.
-npm ci audit: 32 vulnerabilities (18 moderate, 12 high, 2 critical); dependencies left unchanged.
-Production-server HTTP: /compare -> /compare/courses and /graph -> /graph/load both 307.
-Legacy /graph/{load,enrollment,grades}?deptId=14&courseId=3998 return 200; client canonical redirects pass automated tests.
-Tests also cover range handling, invalid/unknown IDs and retry; no live browser/API resolution asserted here.
-No missing NEXT_PUBLIC_* code references in frontend/.env.example (API_URL, SUPABASE_URL, SUPABASE_ANON_KEY present; SITE_URL also documented).
-package.json vs main: added cmdk ^1.1.1, sonner ^2.0.8; recharts ^3.6.0 -> ^3.8.0; no other dependency changes.
-git diff --check PASS. No backend/Supabase working-tree or staged changes; no source changes made this session.
-## Uncommitted files (from git status)
-73 modified tracked files (64 frontend, 8 agent-docs, test/rmp/README.md), 5 staged frontend deletions, 3 untracked files.
-Untracked: agent-docs/reference/ui-cleanup-2026-11.md, ui-responsive-2026-11.md; frontend/components/layout/AppShell.test.tsx.
-This session changed only agent-docs/state.md and plan.md; prior changes preserved; no git mutations or deploy.
+Frontend lint PASS; 43 files / 288 tests PASS; production build PASS (Next.js 16.4.6, TypeScript/static generation).
+Regression coverage: 199/200 Almost full 99%, 200/200 Full 100%, 179/200 Open 89%; rounded API row; variable capacities; single medians.
+Production browser check with real API PASS: /browse/CMPT/225 Spring 2026 D100 199/200 renders 99% with warning text.
+375px landing PASS: three stats share one row and aligned numbers; labels wrap; document width 375px; desktop flex/gap 40px retained.
+Screenshots and isolated browser script are ignored artifacts in test-logs/; original frontend container restored.
+git diff --check PASS. No commits, pushes, backend changes or deployments.
+## Uncommitted files (git status)
+agent-docs/{state,plan,decisions,to-do}.md; frontend/{package.json,package-lock.json}; contexts/AuthContext.tsx.
+frontend/app/admin/{page,support/page,terms/page}.tsx; app/dashboard/{page.tsx,dashboard-flow.test.tsx}.
+frontend/app/compare/courses/{page.tsx,courses-flow.test.tsx}.
+frontend/components/analytics/{CanonicalAnalyticsPage.tsx,CanonicalAnalyticsPage.test.tsx,GradeHistogram.tsx,HistoryCharts.tsx}.
+frontend/components/course/{CourseOfferingsPanel.tsx,CourseOfferingsPanel.test.tsx,OfferingDetailScreen.tsx,OfferingsTable.tsx,SectionComparisonResults.tsx}.
+frontend/components/enrollment/{LoadBar.tsx,enrollment.test.tsx}; components/landing/Hero.tsx.
+frontend/lib/{enrollment-status.ts,enrollment-status.test.ts,analytics-summary.ts,analytics-summary.test.ts}.
 ## Blockers / known issues
-Working tree is NOT clean. main...HEAD backend/supabase diff: 49 files, +5776/-1529 (45 backend, 4 Supabase).
-Includes RMP backend/config/tests, removed legacy scripts, Supabase config, two migrations and seed-users.sql.
-Local main (8570b28) vs HEAD (0ab835e) also differs; refs not fetched. Frontend-only release gate fails.
+Existing audit: 4 moderate dev-only shadcn/minimatch findings; production audit clean in prior prep; no new audit run.
+Original Docker frontend served stale code during initial smoke; rebuilt host production app passed; Docker dependencies/cache still need refreshing.
 ## Next
-- [ ] Owner reviews/commits accumulated work and resolves backend/Supabase release scope; rerun clean-tree/scope gates before release.
-- [ ] No frontend release runbook found in agent-docs/reference; use the following owner checklist.
-- [ ] Push ui-2 -> merge into dev -> wait for CI Frontend + Backend jobs to pass.
-- [ ] Merge dev into main through PR with both required checks -> confirm Vercel deployment succeeds.
-- [ ] Smoke-test production: landing, browse search, a course + offering page, compare, graphs, sign in, dashboard, admin, 404.
-- [ ] Repeat production smoke tests in both themes and on a phone; verify legacy redirects.
+- [ ] Owner review/commit, push ui-2, merge to dev, CI green, merge main, deploy and production smoke.
+- [ ] Refresh Docker frontend dependencies/cache for the previous package changes before using it for further UI checks.
