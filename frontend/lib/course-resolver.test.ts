@@ -73,4 +73,16 @@ describe("course route resolution", () => {
 
     await expect(resolveCourseIdentity({ deptCode: "CMPT", courseNumber: "225" })).rejects.toThrow("API unavailable");
   });
+
+  it("does not cache a failed lookup, so a retry calls the API again", async () => {
+    apiMocks.getDepartments.mockRejectedValueOnce(new Error("API unavailable"));
+    apiMocks.getCourses.mockRejectedValueOnce(new Error("API unavailable"));
+    const { resolveCourseIdentity } = await import("@/lib/course-resolver");
+
+    await expect(resolveCourseIdentity({ deptCode: "CMPT", courseNumber: "225" })).rejects.toThrow();
+    await expect(resolveCourseIdentity({ deptCode: "CMPT", courseNumber: "225" })).rejects.toThrow();
+    await expect(resolveCourseIdentity({ deptCode: "CMPT", courseNumber: "225" })).resolves.toMatchObject({ courseId: 3998 });
+    expect(apiMocks.getDepartments).toHaveBeenCalledTimes(2);
+    expect(apiMocks.getCourses).toHaveBeenCalledTimes(2);
+  });
 });

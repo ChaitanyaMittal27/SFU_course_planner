@@ -1,17 +1,31 @@
 "use client";
 
+import { seatLoadPercent } from "@/lib/enrollment-status";
+
 import { useEffect, useMemo, useState } from "react";
-import { ClipboardList } from "lucide-react";
-import { bodyStyles, headerStyles, labelStyles } from "@/app/fonts";
+import Link from "next/link";
+import { ChevronRight, ClipboardList } from "lucide-react";
+import { bodyStyles, labelStyles, numericStyles } from "@/app/fonts";
+import ComparisonTable, { type ComparisonRowData } from "@/components/compare/ComparisonTable";
+import SectionCard from "@/components/course/SectionCard";
+import LoadBar from "@/components/enrollment/LoadBar";
+import StatusBadge from "@/components/enrollment/StatusBadge";
 import ErrorMessage from "@/components/feedback/ErrorMessage";
-import LoadingSpinner from "@/components/feedback/LoadingSpinner";
+import { TableRowsSkeleton } from "@/components/feedback/Skeletons";
 import TaskEmptyState from "@/components/feedback/TaskEmptyState";
-import InstructorRatings from "@/components/course/InstructorRatings";
-import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { useRetryableRequest } from "@/hooks/useRetryableRequest";
+import { useRmpLookups, type RmpLookupState } from "@/hooks/useRmpLookups";
 import { api, type CourseOffering } from "@/lib/api";
-import { sectionCode } from "@/lib/course-routes";
+import { offeringHref, sectionCode } from "@/lib/course-routes";
 import type { ResolvedCourseRoute } from "@/lib/course-resolver";
+import { formatCourseCode } from "@/lib/course-stats";
+import { instructorDisplayName, splitInstructors } from "@/lib/instructors";
+import { formatSemesterCode } from "@/lib/semester";
+import { cn } from "@/lib/utils";
+
+export const MAX_COMPARED_SECTIONS = 3;
 
 type SectionComparisonResultsProps = {
   course: ResolvedCourseRoute;
@@ -22,213 +36,197 @@ type SectionComparisonResultsProps = {
 
 function normalizeSelectedSections(sections: string[], availableSections: CourseOffering[]) {
   const availableCodes = new Set(availableSections.map((section) => sectionCode(section.section)));
-  return [...new Set(sections.map(sectionCode).filter((code) => availableCodes.has(code)))].slice(0, 3);
+  return [...new Set(sections.map(sectionCode).filter((code) => availableCodes.has(code)))].slice(0, MAX_COMPARED_SECTIONS);
 }
 
-export default function SectionComparisonResults({
-  course,
-  semesterCode,
-  requestedSections,
-  onSectionsChange,
-}: SectionComparisonResultsProps) {
-  const [availableSections, setAvailableSections] = useState<CourseOffering[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+function RatingCell({ names, lookups }: { names: string[]; lookups: Record<string, RmpLookupState> }) {
+  if (names.length === 0) return <span className="text-text-subtle">—</span>;
+  return (
+    <ul className="space-y-1">
+      {names.map((name) => {
+        const state = lookups[name];
+        const lookup = state?.status === "loaded" ? state.lookup : null;
+        const rating = lookup?.status === "MATCHED" ? lookup.teacher?.avgRating ?? null : null;
+        return (
+          <li key={name}>
+            {names.length > 1 && <span className={cn(bodyStyles.sm, "block text-text-muted")}>{instructorDisplayName(name)}</span>}
+            {!state || state.status === "loading" ? (
+              <Skeleton aria-label="Loading rating" className="h-4 w-12" />
+            ) : rating !== null ? (
+              <span className={numericStyles.md}>
+                {rating.toFixed(1)} <span className={cn(bodyStyles.sm, "text-text-muted")}>/ 5</span>
+              </span>
+            ) : lookup?.status === "MATCHED" ? (
+              <span className="text-text-subtle">— / 5 · {lookup.teacher?.numRatings ?? 0} ratings</span>
+            ) : lookup?.status === "NO_MATCH" ? (
+              <span className="text-text-subtle">No match</span>
+            ) : (
+              <span className="text-text-subtle">Unavailable</span>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+export default function SectionComparisonResults({ course, semesterCode, requestedSections, onSectionsChange }: SectionComparisonResultsProps) {
+  const { requestVersion, retry } = useRetryableRequest();
+  const [result, setResult] = useState<{ attempt: number; sections: CourseOffering[] | null } | null>(null);
+  const [limitMessage, setLimitMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
-
-    void api
+    const attempt = requestVersion;
+    api
       .getOfferingDetail(course.deptId, course.courseId, semesterCode)
-      .then((offering) => {
-        if (!active) return;
-        setError(null);
-        setAvailableSections(offering.sections);
-      })
-      .catch(() => {
-        if (!active) return;
-        setAvailableSections([]);
-        setError("This course is not offered in the selected term.");
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-
+      .then((offering) => active && setResult({ attempt, sections: offering.sections }))
+      .catch(() => active && setResult({ attempt, sections: null }));
     return () => {
       active = false;
     };
-  }, [course.courseId, course.deptId, semesterCode]);
+  }, [course.courseId, course.deptId, semesterCode, requestVersion]);
 
-  const selectedSections = normalizeSelectedSections(requestedSections, availableSections);
+  const settled = result?.attempt === requestVersion ? result : null;
+  const availableSections = useMemo(() => settled?.sections ?? [], [settled]);
+  const selectedSections = useMemo(
+    () => normalizeSelectedSections(requestedSections, availableSections),
+    [requestedSections, availableSections],
+  );
   const comparisonSections = useMemo(
     () => availableSections.filter((section) => selectedSections.includes(sectionCode(section.section))),
     [availableSections, selectedSections],
   );
 
-  const toggleSection = (section: string) => {
-    const code = sectionCode(section);
-    const nextSections = selectedSections.includes(code)
-      ? selectedSections.filter((selected) => selected !== code)
-      : selectedSections.length < 3
-        ? [...selectedSections, code]
-        : selectedSections;
+  const comparing = comparisonSections.length >= 2;
+  const instructorNames = useMemo(
+    () => (comparing ? [...new Set(comparisonSections.flatMap((section) => splitInstructors(section.instructors)))] : []),
+    [comparing, comparisonSections],
+  );
+  const { lookups } = useRmpLookups(instructorNames, course.deptCode);
 
-    if (nextSections.length === selectedSections.length && !selectedSections.includes(code)) {
-      setError("You can compare up to three sections at a time.");
+  const code = formatCourseCode(course.deptCode, course.courseNumber);
+  const termLabel = formatSemesterCode(semesterCode);
+
+  if (!settled) return <TableRowsSkeleton rows={4} columns={3} label="Loading sections" />;
+  if (settled.sections === null) {
+    return <ErrorMessage title="Couldn't load sections" message={`${code} sections for ${termLabel} didn't load. It may not be offered that term.`} onRetry={retry} />;
+  }
+  if (availableSections.length === 0) {
+    return <TaskEmptyState headingLevel={2} icon={ClipboardList} title={`No sections of ${code} in ${termLabel}.`} description="Pick another term to compare." />;
+  }
+  if (availableSections.length === 1) {
+    return (
+      <TaskEmptyState
+        headingLevel={2}
+        icon={ClipboardList}
+        title={`Only one section of ${code} in ${termLabel}. Pick another term to compare.`}
+        description="There is nothing to compare it with in this term."
+      />
+    );
+  }
+
+  const handleChange = (values: string[]) => {
+    if (values.length > MAX_COMPARED_SECTIONS) {
+      setLimitMessage(`You can compare up to ${MAX_COMPARED_SECTIONS} sections at a time.`);
       return;
     }
-
-    setError(null);
-    onSectionsChange(nextSections);
+    setLimitMessage(null);
+    onSectionsChange(values);
   };
 
-  if (loading) return <LoadingSpinner />;
-  if (error && availableSections.length === 0) return <ErrorMessage message={error} />;
+  const rows: ComparisonRowData[] = [
+    {
+      label: "Instructor",
+      cells: comparisonSections.map((section) => {
+        const names = splitInstructors(section.instructors);
+        return names.length > 0 ? names.map(instructorDisplayName).join(", ") : "—";
+      }),
+    },
+    {
+      label: "RMP rating",
+      cells: comparisonSections.map((section) => <RatingCell key={section.section} names={splitInstructors(section.instructors)} lookups={lookups} />),
+    },
+    { label: "Campus", cells: comparisonSections.map((section) => section.location || "—") },
+    {
+      label: "Enrolled / cap",
+      cells: comparisonSections.map((section) => (
+        <span key={section.section} className={numericStyles.md}>
+          {section.enrolled} / {section.capacity}
+        </span>
+      )),
+    },
+    {
+      label: "Load",
+      cells: comparisonSections.map((section) => (
+        <div key={section.section} className="flex flex-wrap items-center gap-2">
+          <LoadBar percent={seatLoadPercent(section)} />
+          <StatusBadge loadPercent={seatLoadPercent(section)} />
+        </div>
+      )),
+    },
+    {
+      label: "Details",
+      cells: comparisonSections.map((section) => (
+        <Link
+          key={section.section}
+          href={offeringHref(course.deptCode, course.courseNumber, semesterCode)}
+          aria-label={`View offering for ${sectionCode(section.section)}`}
+          className={cn(bodyStyles.sm, "inline-flex items-center gap-0.5 text-accent-text hover:underline")}
+        >
+          View offering
+          <ChevronRight aria-hidden="true" className="size-3.5" />
+        </Link>
+      )),
+    },
+  ];
 
   return (
     <>
-      {error && <ErrorMessage message={error} onRetry={() => setError(null)} />}
+      <fieldset className="mb-8">
+        <legend className={cn(labelStyles.lg, "mb-2 text-text-primary")}>Sections</legend>
+        <ToggleGroup
+          multiple
+          value={selectedSections}
+          onValueChange={(values) => handleChange(values as string[])}
+          spacing={2}
+          className="w-full flex-wrap"
+          aria-label={`Sections of ${code} in ${termLabel}`}
+        >
+          {availableSections.map((section) => {
+            const short = sectionCode(section.section);
+            return (
+              <ToggleGroupItem
+                key={section.section}
+                value={short}
+                variant="outline"
+                className="h-auto flex-col items-start gap-0 px-3 py-1.5 aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground"
+              >
+                <span className={cn(numericStyles.md, "font-semibold")}>{short}</span>
+                <span className={cn(bodyStyles.sm, "font-normal opacity-80")}>{section.location || "Campus TBA"}</span>
+              </ToggleGroupItem>
+            );
+          })}
+        </ToggleGroup>
+        <p role="status" className={cn(bodyStyles.sm, "mt-2 min-h-5 text-warning-text")}>
+          {limitMessage}
+        </p>
+      </fieldset>
 
-      {availableSections.length > 0 && (
-        <Card className="mb-6 p-5 sm:mb-8 sm:p-6">
-          <CardContent className="p-0">
-            <h2 className={`${headerStyles.md} mb-2 text-text-primary`}>
-              Available Sections ({availableSections.length})
-            </h2>
-            <p className={`${bodyStyles.md} mb-4 text-text-muted`}>
-              Select two or three sections to compare. Selected: {selectedSections.length}/3
-            </p>
-
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {availableSections.map((section) => {
-                const code = sectionCode(section.section);
-                const isSelected = selectedSections.includes(code);
-
-                return (
-                  <button
-                    key={section.section}
-                    type="button"
-                    onClick={() => toggleSection(section.section)}
-                    aria-pressed={isSelected}
-                    className={`rounded-lg border-2 p-4 text-left transition-colors ${
-                      isSelected ? "border-accent bg-accent/5" : "border-border hover:border-accent/50"
-                    }`}
-                  >
-                    <div className={`${labelStyles.lg} mb-1 text-text-primary`}>{section.section}</div>
-                    <div className={`${bodyStyles.md} text-text-muted`}>{section.instructors}</div>
-                    <div className={`${bodyStyles.sm} mt-2 text-text-subtle`}>
-                      {section.enrolled}/{section.capacity} • {section.loadPercent}% full
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {comparisonSections.length >= 2 && (
-        <Card className="p-5 sm:p-6">
-          <CardContent className="p-0">
-            <h2 className={`${headerStyles.lg} mb-6 text-text-primary`}>Section Comparison</h2>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableBody>
-                  <ComparisonRow label="Section">
-                    {comparisonSections.map((section) => (
-                      <TableCell key={section.section} className={`${headerStyles.sm} text-text-primary`}>
-                        {section.section}
-                      </TableCell>
-                    ))}
-                  </ComparisonRow>
-                  <ComparisonRow label="Instructor">
-                    {comparisonSections.map((section) => (
-                      <TableCell key={section.section} className="text-text-primary">
-                        {section.instructors}
-                      </TableCell>
-                    ))}
-                  </ComparisonRow>
-                  <ComparisonRow label="Campus">
-                    {comparisonSections.map((section) => (
-                      <TableCell key={section.section} className="text-text-primary">
-                        {section.location}
-                      </TableCell>
-                    ))}
-                  </ComparisonRow>
-                  <ComparisonRow label="Enrollment">
-                    {comparisonSections.map((section) => (
-                      <TableCell key={section.section} className="text-text-primary">
-                        {section.enrolled} / {section.capacity}
-                      </TableCell>
-                    ))}
-                  </ComparisonRow>
-                  <ComparisonRow label="Capacity Used">
-                    {comparisonSections.map((section) => (
-                      <TableCell key={section.section}>
-                        <div className="flex items-center gap-2">
-                          <div className="h-2 flex-grow rounded-full bg-surface-raised">
-                            <div
-                              className="h-2 rounded-full bg-gradient-to-r from-primary to-accent"
-                              style={{ width: `${Math.min(section.loadPercent, 100)}%` }}
-                            />
-                          </div>
-                          <span className={`${labelStyles.md} text-text-primary`}>{section.loadPercent}%</span>
-                        </div>
-                      </TableCell>
-                    ))}
-                  </ComparisonRow>
-                  <ComparisonRow label="CourseSys Link">
-                    {comparisonSections.map((section) => (
-                      <TableCell key={section.section}>
-                        <a
-                          href={`https://coursys.sfu.ca${section.infoUrl}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`text-accent hover:underline ${bodyStyles.md}`}
-                        >
-                          View Details →
-                        </a>
-                      </TableCell>
-                    ))}
-                  </ComparisonRow>
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {comparisonSections.length >= 2 && (
-        <Card className="mt-6 p-5 sm:p-6">
-          <CardContent className="p-0">
-            <InstructorRatings sections={comparisonSections} deptCode={course.deptCode} />
-          </CardContent>
-        </Card>
-      )}
-
-      {availableSections.length === 0 && !error && (
-        <TaskEmptyState
-          icon={ClipboardList}
-          title="No sections available"
-          description="There are no sections to compare for this course and term."
-        />
-      )}
-      {availableSections.length > 0 && selectedSections.length < 2 && (
-        <TaskEmptyState
-          icon={ClipboardList}
-          title="Select one more section"
-          description="Choose at least two sections from the list above to compare them side by side."
-        />
+      {comparing ? (
+        <SectionCard title={`${code} · ${termLabel}`} note={`${comparisonSections.length} sections selected`} flush>
+          <ComparisonTable
+            columns={comparisonSections.map((section) => ({
+              key: section.section,
+              mobileLabel: sectionCode(section.section),
+              header: <span className={cn(numericStyles.md, "font-semibold")}>{sectionCode(section.section)}</span>,
+            }))}
+            rows={rows}
+          />
+        </SectionCard>
+      ) : (
+        <TaskEmptyState headingLevel={2} icon={ClipboardList} title="Select at least two sections to compare." description={`Pick up to ${MAX_COMPARED_SECTIONS} sections above.`} />
       )}
     </>
-  );
-}
-
-function ComparisonRow({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <TableRow className="border-b border-border">
-      <TableCell className={`w-1/5 font-medium text-text-muted ${bodyStyles.md}`}>{label}</TableCell>
-      {children}
-    </TableRow>
   );
 }

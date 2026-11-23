@@ -1,97 +1,78 @@
 import type { ReactNode } from "react";
-import { Info } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { bodyStyles, headerStyles, labelStyles } from "@/app/fonts";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import { labelStyles } from "@/app/fonts";
+import { cn } from "@/lib/utils";
 import type { Course, Department } from "@/lib/api";
 
 type AnalyticsCourseSelectorProps = {
   departments: Department[];
-  courses: Course[];
-  selectedDepartmentId: string | null;
-  selectedCourseId: string | null;
-  selectedDepartment?: Department;
-  selectedCourse?: Course;
-  isLoadingCourses: boolean;
+  /** Courses of the selected department; null while they load. */
+  courses: Course[] | null;
+  selectedDepartmentId: string;
+  selectedCourseId: string;
+  disabled?: boolean;
   onDepartmentChange: (value: string) => void;
   onCourseChange: (value: string) => void;
+  /** Extra controls on the right (e.g. the time range toggle). */
   children?: ReactNode;
 };
 
-const selectClass = `w-full rounded-md border border-border bg-background text-text-primary px-3 py-2 ${bodyStyles.md} focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50`;
-
+/** Department and course pickers for the graphs, on the page background. */
 export default function AnalyticsCourseSelector({
   departments,
   courses,
   selectedDepartmentId,
   selectedCourseId,
-  selectedDepartment,
-  selectedCourse,
-  isLoadingCourses,
+  disabled = false,
   onDepartmentChange,
   onCourseChange,
   children,
 }: AnalyticsCourseSelectorProps) {
-  const hasSelection = selectedDepartment && selectedCourse;
-
   return (
-    <Card className="p-5 sm:p-6 mb-6 sm:mb-8">
-      <CardContent className="p-0">
-        <h2 className={`${headerStyles.md} text-text-primary mb-4`}>Select a course</h2>
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <label htmlFor="analytics-department" className={`block ${labelStyles.md} text-text-primary mb-2`}>
-              Department
-            </label>
-            <select
-              id="analytics-department"
-              value={selectedDepartmentId || ""}
-              onChange={(event) => onDepartmentChange(event.target.value)}
-              className={selectClass}
-            >
-              <option value="">Select a department…</option>
-              {departments.map((department) => (
-                <option key={department.deptId} value={department.deptId}>
-                  {department.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="analytics-course" className={`block ${labelStyles.md} text-text-primary mb-2`}>
-              Course
-            </label>
-            <select
-              id="analytics-course"
-              value={selectedCourseId || ""}
-              onChange={(event) => onCourseChange(event.target.value)}
-              className={selectClass}
-              disabled={!selectedDepartmentId || isLoadingCourses}
-            >
-              <option value="">{isLoadingCourses ? "Loading courses…" : "Select a course…"}</option>
-              {[...courses]
-                .sort((a, b) => a.courseNumber.localeCompare(b.courseNumber))
-                .map((course) => (
-                  <option key={course.courseId} value={course.courseId}>
-                    {course.courseNumber} — {course.title}
-                  </option>
-                ))}
-            </select>
-          </div>
+    <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+      <div className="grid w-full gap-4 sm:w-auto sm:grid-cols-[16rem_20rem]">
+        <div>
+          <label htmlFor="analytics-department" className={cn(labelStyles.lg, "mb-2 block text-text-primary")}>
+            Department
+          </label>
+          <NativeSelect
+            id="analytics-department"
+            className="w-full"
+            value={selectedDepartmentId}
+            disabled={disabled || departments.length === 0}
+            onChange={(event) => onDepartmentChange(event.target.value)}
+          >
+            <NativeSelectOption value="">Select a department</NativeSelectOption>
+            {departments.map((department) => (
+              <NativeSelectOption key={department.deptId} value={department.deptId}>
+                {department.name}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
         </div>
-
-        {hasSelection && (
-          <div className="mt-4 rounded-lg border border-accent/20 bg-accent/5 p-4">
-            <div className="flex items-start gap-2">
-              <Info className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
-              <span className={`${labelStyles.lg} text-text-primary`}>
-                {selectedDepartment.deptCode} {selectedCourse.courseNumber} — {selectedCourse.title}
-              </span>
-            </div>
-            {children && <div className="mt-4">{children}</div>}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+        <div>
+          <label htmlFor="analytics-course" className={cn(labelStyles.lg, "mb-2 block text-text-primary")}>
+            Course
+          </label>
+          <NativeSelect
+            id="analytics-course"
+            className="w-full"
+            value={selectedCourseId}
+            disabled={disabled || !selectedDepartmentId || courses === null}
+            onChange={(event) => onCourseChange(event.target.value)}
+          >
+            <NativeSelectOption value="">
+              {!selectedDepartmentId ? "Select a department first" : courses === null ? "Loading courses…" : "Select a course"}
+            </NativeSelectOption>
+            {(courses ?? []).map((course) => (
+              <NativeSelectOption key={course.courseId} value={course.courseId}>
+                {course.courseNumber} · {course.title}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+        </div>
+      </div>
+      {children}
+    </div>
   );
 }

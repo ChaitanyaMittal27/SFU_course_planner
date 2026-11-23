@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
-import { bodyStyles, displayStyles } from "@/app/fonts";
-import { Card, CardContent } from "@/components/ui/card";
+import SectionCard from "@/components/course/SectionCard";
+import SummaryRow from "@/components/course/SummaryRow";
+import PageHeader from "@/components/layout/PageHeader";
+import { cn } from "@/lib/utils";
 
 type AdminPageProps = {
   children: ReactNode;
@@ -13,43 +15,48 @@ type AdminPageHeaderProps = {
   actions?: ReactNode;
 };
 
-type AdminStatGridProps = {
-  children: ReactNode;
-  columns?: 2 | 3 | 4 | 5;
+export type AdminStat = {
+  label: string;
+  value: ReactNode;
+  /** Text colour token for the value, e.g. "text-success-text". */
+  tone?: string;
 };
 
 type AdminTableProps = {
+  /** Card header strip. */
+  title: string;
+  note?: ReactNode;
   children: ReactNode;
   className?: string;
 };
 
-const statGridColumns = {
-  2: "grid-cols-1 sm:grid-cols-2",
-  3: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
-  4: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4",
-  5: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-5",
-};
-
-export function AdminPage({ children, className = "" }: AdminPageProps) {
-  return <div className={`w-full max-w-[1180px] p-4 sm:p-6 lg:p-8 ${className}`}>{children}</div>;
+/** Admin content column: the shared page width beside the sidebar. */
+export function AdminPage({ children, className }: AdminPageProps) {
+  return <div className={cn("w-full max-w-page p-4 sm:p-6 lg:p-8", className)}>{children}</div>;
 }
 
 export function AdminPageHeader({ title, description, actions }: AdminPageHeaderProps) {
+  return <PageHeader title={title} description={description} actions={actions} />;
+}
+
+/** KPI numbers as the plain summary row (no tiles). */
+export function AdminStats({ items, className }: { items: AdminStat[]; className?: string }) {
   return (
-    <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-      <div>
-        <h1 className={`${displayStyles.mdResponsive} mb-1 text-text-primary`}>{title}</h1>
-        <p className={`${bodyStyles.md} text-text-muted`}>{description}</p>
-      </div>
-      {actions && <div className="shrink-0">{actions}</div>}
-    </div>
+    <SummaryRow
+      className={className}
+      items={items.map((item) => ({
+        label: item.label,
+        value: <span className={cn(item.tone ?? "text-text-primary")}>{item.value}</span>,
+      }))}
+    />
   );
 }
 
-export function AdminStatGrid({ children, columns = 4 }: AdminStatGridProps) {
-  return <div className={`mb-8 grid gap-3.5 ${statGridColumns[columns]}`}>{children}</div>;
-}
-
-export function AdminTable({ children, className = "" }: AdminTableProps) {
-  return <Card className={`overflow-hidden ${className}`}><CardContent className="p-0">{children}</CardContent></Card>;
+/** A table (or list) in its own card: header strip, content edge to edge. */
+export function AdminTable({ title, note, children, className }: AdminTableProps) {
+  return (
+    <SectionCard title={title} note={note} flush className={className}>
+      <div className="overflow-x-auto">{children}</div>
+    </SectionCard>
+  );
 }

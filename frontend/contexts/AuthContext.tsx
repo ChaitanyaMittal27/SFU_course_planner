@@ -77,6 +77,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error("Unable to sign out from Supabase:", error);
     } finally {
       updateSession(null);
+      // A full navigation clears authenticated client caches after signing out.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.assign("/");
     }
   }, [updateSession]);

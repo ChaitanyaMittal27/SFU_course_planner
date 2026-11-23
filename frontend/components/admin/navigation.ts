@@ -55,7 +55,7 @@ export const adminNavigationItems = [
   },
   {
     id: "rmp",
-    label: "RMP Reports",
+    label: "RMP reports",
     href: "/admin/rmp",
     icon: Flag,
     description: "Review wrong Rate My Professors matches reported from professor cards.",

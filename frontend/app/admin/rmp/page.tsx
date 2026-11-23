@@ -4,14 +4,15 @@ import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { Check, ChevronDown, ExternalLink, Flag, UserCheck, UserX } from "lucide-react";
 import { api, ApiError, AdminRmpReport } from "@/lib/api";
 import { parseRmpProfessorUrl } from "@/lib/instructors";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { AdminPage, AdminPageHeader, AdminStatGrid, AdminTable } from "@/components/admin/AdminPage";
+import { AdminPage, AdminPageHeader, AdminStats, AdminTable } from "@/components/admin/AdminPage";
+import SectionCard from "@/components/course/SectionCard";
+import TaskEmptyState from "@/components/feedback/TaskEmptyState";
 import AdminPageSkeleton from "@/components/admin/AdminPageSkeleton";
 import ErrorMessage from "@/components/feedback/ErrorMessage";
-import { bodyStyles, displayStyles, labelStyles } from "@/app/fonts";
+import { bodyStyles, labelStyles, numericStyles } from "@/app/fonts";
 
 type Action = "dismiss" | "no-match" | "professor";
 
@@ -85,6 +86,10 @@ export default function AdminRmpReportsPage() {
   if (error && reports.length === 0) {
     return (
       <AdminPage>
+        <AdminPageHeader
+          title="RMP Reports"
+          description="Professor cards that users reported as the wrong Rate My Professors match. Every action resolves all open reports for that instructor."
+        />
         <ErrorMessage message={error} onRetry={fetchReports} />
       </AdminPage>
     );
@@ -92,8 +97,8 @@ export default function AdminRmpReportsPage() {
 
   const openReports = reports.reduce((total, report) => total + report.openReports, 0);
   const stats = [
-    { label: "Instructors to review", value: reports.length },
-    { label: "Open reports", value: openReports },
+    { label: "Instructors to review", value: String(reports.length) },
+    { label: "Open reports", value: String(openReports) },
   ];
 
   return (
@@ -103,28 +108,14 @@ export default function AdminRmpReportsPage() {
         description="Professor cards that users reported as the wrong Rate My Professors match. Every action resolves all open reports for that instructor."
       />
 
-      <AdminStatGrid columns={2}>
-        {stats.map((stat) => (
-          <Card key={stat.label} className="p-4">
-            <CardContent className="p-0">
-              <p className={`${labelStyles.md} mb-2 text-text-muted`}>{stat.label}</p>
-              <span className={`${displayStyles.sm} font-mono tracking-tight text-text-primary`}>{stat.value}</span>
-            </CardContent>
-          </Card>
-        ))}
-      </AdminStatGrid>
+      <AdminStats items={stats} />
 
       {reports.length === 0 ? (
-        <Card className="p-8">
-          <CardContent className="p-0 text-center">
-            <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-surface-raised">
-              <Flag className="size-8 text-text-subtle" />
-            </div>
-            <p className={`${bodyStyles.md} text-text-muted`}>No open reports</p>
-          </CardContent>
-        </Card>
+        <SectionCard title="Reports">
+          <TaskEmptyState icon={Flag} title="No open reports" description="Reports from professor cards show up here." />
+        </SectionCard>
       ) : (
-        <AdminTable>
+        <AdminTable title="Reports" note={`${reports.length} ${reports.length === 1 ? "instructor" : "instructors"}`}>
           <ul>
             {reports.map((report) => (
               <ReportRow
@@ -189,13 +180,13 @@ function ReportRow({
   };
 
   return (
-    <li className="border-b border-border last:border-b-0">
+    <li className="border-t border-border first:border-t-0">
       <button
         type="button"
         onClick={onToggle}
         aria-expanded={isExpanded}
         aria-controls={panelId}
-        className="flex w-full flex-wrap items-center gap-x-4 gap-y-2 px-[18px] py-3 text-left transition-colors hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="flex w-full flex-wrap items-center gap-x-4 gap-y-2 px-4 sm:px-5 py-3 text-left transition-colors hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <div className="min-w-0 flex-1 basis-48">
           <span className={`${labelStyles.lg} block truncate font-medium text-text-primary`}>{report.displayName}</span>
@@ -206,22 +197,22 @@ function ReportRow({
 
         <div className="flex flex-none items-center gap-2">
           {matched ? (
-            <Badge variant="outline" className="font-mono text-text-muted">RMP #{report.rmpLegacyId}</Badge>
+            <Badge variant="outline" className={`${numericStyles.sm} text-text-muted`}>RMP #{report.rmpLegacyId}</Badge>
           ) : (
             <Badge variant="outline" className="text-text-muted">No match</Badge>
           )}
           {matched && (
-            <span className={`${labelStyles.sm} font-mono text-text-subtle`}>
+            <span className={`${numericStyles.sm} text-text-subtle`}>
               {report.matchScore === null ? "No score" : `Score ${report.matchScore.toFixed(2)}`}
             </span>
           )}
         </div>
 
         <div className="flex flex-none items-center gap-2">
-          <Badge className="border-transparent bg-warning/15 text-warning">
+          <Badge className="border-transparent bg-warning-tint text-warning-text">
             {report.openReports} {report.openReports === 1 ? "report" : "reports"}
           </Badge>
-          <span className={`${labelStyles.sm} font-mono text-text-subtle`}>{formatDate(report.lastReportedAt)}</span>
+          <span className={`${numericStyles.sm} text-text-subtle`}>{formatDate(report.lastReportedAt)}</span>
           <ChevronDown
             aria-hidden="true"
             className={`size-4 text-text-subtle transition-transform ${isExpanded ? "rotate-180" : ""}`}
@@ -230,7 +221,7 @@ function ReportRow({
       </button>
 
       {isExpanded && (
-        <div id={panelId} className="animate-fade-in space-y-3 px-[18px] pt-1 pb-4">
+        <div id={panelId} className="space-y-3 px-4 sm:px-5 pt-1 pb-4">
           <div className="flex flex-wrap items-center gap-2">
             {report.profileUrl ? (
               <a
@@ -263,7 +254,7 @@ function ReportRow({
               <Check aria-hidden="true" /> {pending === "dismiss" ? "Saving..." : "Match is correct"}
             </Button>
           </div>
-          {actionError && <p className={`${bodyStyles.sm} text-destructive`} role="alert">{actionError}</p>}
+          {actionError && <p className={`${bodyStyles.sm} text-destructive-text`} role="alert">{actionError}</p>}
 
           <form onSubmit={handleSetProfessor} noValidate>
             <label htmlFor={`${panelId}-url`} className={`${labelStyles.md} mb-1.5 block text-text-muted`}>
@@ -289,7 +280,7 @@ function ReportRow({
               </Button>
             </div>
             {urlError && (
-              <p id={`${panelId}-url-error`} className={`${bodyStyles.sm} mt-1.5 text-destructive`} role="alert">
+              <p id={`${panelId}-url-error`} className={`${bodyStyles.sm} mt-1.5 text-destructive-text`} role="alert">
                 {urlError}
               </p>
             )}

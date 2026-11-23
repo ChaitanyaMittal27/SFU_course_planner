@@ -17,6 +17,8 @@ function loadDepartments() {
 
   const request = api.getDepartments();
   departmentsPromise.set(cacheKey, request);
+  // Forget a failed request so a retry calls the API again.
+  request.catch(() => departmentsPromise.delete(cacheKey));
   return request;
 }
 
@@ -26,6 +28,7 @@ function loadCourses(deptId: number) {
 
   const request = api.getCourses(deptId);
   coursesPromise.set(deptId, request);
+  request.catch(() => coursesPromise.delete(deptId));
   return request;
 }
 

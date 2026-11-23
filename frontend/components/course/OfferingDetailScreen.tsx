@@ -1,135 +1,124 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { seatLoadPercent } from "@/lib/enrollment-status";
+
+import { ExternalLink } from "lucide-react";
 import GradeHistogram from "@/components/analytics/GradeHistogram";
 import BookmarkButton from "@/components/course/BookmarkButton";
+import CourseBreadcrumb from "@/components/course/CourseBreadcrumb";
 import InstructorRatings from "@/components/course/InstructorRatings";
-import BackButton from "@/components/layout/BackButton";
-import { Card } from "@/components/ui/card";
+import SectionCard, { cardClass, cardPadding, cardTable } from "@/components/course/SectionCard";
+import SummaryRow from "@/components/course/SummaryRow";
+import StatusBadge from "@/components/enrollment/StatusBadge";
+import PageContainer from "@/components/layout/PageContainer";
+import PageHeader from "@/components/layout/PageHeader";
+import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { bodyStyles, headerStyles, numericStyles } from "@/app/fonts";
+import { useSectionBookmarks } from "@/hooks/useSectionBookmarks";
+import { sectionCode } from "@/lib/course-routes";
+import { formatCourseCode, formatPercent, formatTerm, sumSeats } from "@/lib/course-stats";
+import { cn } from "@/lib/utils";
 import type { OfferingDetail } from "@/lib/types";
-import { bodyStyles, headerStyles, labelStyles } from "@/app/fonts";
 
 interface OfferingDetailScreenProps {
   detail: OfferingDetail;
+  /** The course page this offering belongs to. */
   backHref: string;
 }
 
-function extractSection(section: string) {
-  const parts = section.trim().split(/\s+/);
-  return parts[parts.length - 1].toLowerCase();
+function outlineHref(detail: OfferingDetail, section: string) {
+  return `https://www.sfu.ca/outlines.html?${detail.year}/${detail.term.toLowerCase()}/${detail.deptCode.toLowerCase()}/${detail.courseNumber.toLowerCase()}/${sectionCode(section).toLowerCase()}`;
 }
 
 export default function OfferingDetailScreen({ detail, backHref }: OfferingDetailScreenProps) {
-  const router = useRouter();
+  const bookmarks = useSectionBookmarks();
+  const code = formatCourseCode(detail.deptCode, detail.courseNumber);
+  const term = formatTerm(detail.term, detail.year);
+  const seats = sumSeats(detail.sections);
+  const sectionCount = detail.sections.length;
+  const description = [term, detail.units ? `${detail.units} units` : null, `${sectionCount} ${sectionCount === 1 ? "section" : "sections"}`]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <BackButton onClick={() => router.push(backHref)} label="Back to offerings" className="mb-6" />
+    <PageContainer>
+      <CourseBreadcrumb items={[{ label: "Browse", href: "/browse" }, { label: code, href: backHref }, { label: term }]} />
+      <PageHeader
+        title={
+          <>
+            <span className={numericStyles.base}>{code}</span>
+            {detail.title ? ` · ${detail.title}` : ""}
+          </>
+        }
+        description={description}
+      />
 
-      <Card className="p-6 rounded-2xl">
-        <div className="flex flex-col gap-1">
-          <div className={`${bodyStyles.md} text-text-muted`}>
-            {detail.deptCode.toUpperCase()} {detail.courseNumber}
-          </div>
-          <div className={`${headerStyles.lg} text-text-primary`}>{detail.title}</div>
-          <div className={`${bodyStyles.md} text-text-muted`}>
-            {detail.term} {detail.year}
-            {detail.campus ? ` • ${detail.campus}` : ""}
-          </div>
-        </div>
+      <SummaryRow
+        items={[
+          { label: "Seats taken", value: seats ? `${seats.enrolled} / ${seats.capacity}` : null },
+          { label: "Median grade", value: detail.medianGrade || null },
+          { label: "Fail rate", value: detail.medianGrade || detail.gradeDistribution ? formatPercent(detail.failRate) : null },
+        ]}
+      >
+        {detail.designation && <Badge variant="outline">{detail.designation}</Badge>}
+        {detail.degreeLevel && <Badge variant="outline">{detail.degreeLevel}</Badge>}
+      </SummaryRow>
 
-        <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[
-            { label: "Units", value: detail.units },
-            { label: "Median Grade", value: detail.medianGrade ?? "N/A" },
-            {
-              label: "Fail Rate",
-              value: Number.isFinite(detail.failRate) ? `${detail.failRate.toFixed(2)}%` : "N/A",
-            },
-          ].map(({ label, value }) => (
-            <div key={label} className="border rounded-xl p-4 border-border/50">
-              <div className={`${bodyStyles.sm} text-text-subtle`}>{label}</div>
-              <div className={`${headerStyles.md} text-text-primary`}>{value}</div>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-6 flex flex-wrap gap-3">
-          {detail.degreeLevel && (
-            <span className="inline-flex items-center px-3 py-2 rounded-lg bg-surface-raised text-text-primary text-sm">
-              {detail.degreeLevel}
-            </span>
-          )}
-          {detail.designation && (
-            <span className="inline-flex items-center px-3 py-2 rounded-lg bg-surface-raised text-text-primary text-sm">
-              {detail.designation}
-            </span>
-          )}
-        </div>
-
-        <div className="mt-6 space-y-4">
-          {detail.description && (
-            <div>
-              <div className={`${labelStyles.lg} text-text-primary mb-1`}>Description</div>
-              <p className={`${bodyStyles.md} text-text-muted leading-relaxed`}>{detail.description}</p>
-            </div>
-          )}
-
-          {(detail.prerequisites || detail.corequisites) && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="border rounded-xl p-4 border-border/50">
-                <div className={`${labelStyles.lg} text-text-primary mb-1`}>Prerequisites</div>
-                <p className={`${bodyStyles.md} text-text-muted`}>{detail.prerequisites ?? "None"}</p>
-              </div>
-              <div className="border rounded-xl p-4 border-border/50">
-                <div className={`${labelStyles.lg} text-text-primary mb-1`}>Corequisites</div>
-                <p className={`${bodyStyles.md} text-text-muted`}>{detail.corequisites ?? "None"}</p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="mt-8">
-          <div className={`${headerStyles.md} text-text-primary mb-3`}>Sections</div>
-          {detail.sections.length === 0 ? (
-            <div className={`${bodyStyles.md} text-text-muted`}>No section data found.</div>
+      <div className="space-y-6">
+        <SectionCard
+          title="Sections"
+          note={sectionCount > 0 ? "Bookmarked sections are included in your morning email" : undefined}
+          flush={sectionCount > 0}
+        >
+          {sectionCount === 0 ? (
+            <p className={cn(bodyStyles.md, "text-text-muted")}>No section data found.</p>
           ) : (
-            <div className="overflow-x-auto rounded-xl border border-border/50">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Section</TableHead>
-                    <TableHead>Instructor</TableHead>
-                    <TableHead>Campus</TableHead>
-                    <TableHead>Enrolled</TableHead>
-                    <TableHead>Capacity</TableHead>
-                    <TableHead>Load</TableHead>
-                    <TableHead>Jump to Outline</TableHead>
-                    <TableHead className="text-center">Bookmark</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {detail.sections.map((section) => (
-                    <TableRow key={section.section} className="cursor-default">
-                      <TableCell>{section.section}</TableCell>
-                      <TableCell>{section.instructors || "—"}</TableCell>
-                      <TableCell>{section.location || "—"}</TableCell>
-                      <TableCell>{section.enrolled}</TableCell>
-                      <TableCell>{section.capacity}</TableCell>
-                      <TableCell>{section.loadPercent ?? 0}%</TableCell>
-                      <TableCell>
+            <Table className="block lg:table">
+              <TableHeader className="sr-only lg:not-sr-only lg:table-header-group">
+                <TableRow className={cardTable.headRow}>
+                  <TableHead className={cardTable.head}>Section</TableHead>
+                  <TableHead className={cardTable.head}>Instructor</TableHead>
+                  <TableHead className={cn(cardTable.head, "lg:table-cell")}>Campus</TableHead>
+                  <TableHead className={cardTable.head}>Enrolled / cap</TableHead>
+                  <TableHead className={cardTable.head}>Status</TableHead>
+                  <TableHead className={cardTable.head}>Outline</TableHead>
+                  <TableHead className={cardTable.head}>
+                    <span className="sr-only">Bookmark</span>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="block lg:table-row-group">
+                {detail.sections.map((section) => {
+                  const short = sectionCode(section.section);
+                  return (
+                    <TableRow key={section.section} className={cn(cardTable.row, "grid grid-cols-2 items-center px-4 py-3 lg:table-row lg:p-0 [&>td]:px-0 [&>td]:py-1.5 lg:[&>td]:px-5 lg:[&>td]:py-3")}>
+                      <TableCell className={cn(cardTable.cell, numericStyles.md, "font-medium text-text-primary")}>{short}</TableCell>
+                      <TableCell className={cn(cardTable.cell, bodyStyles.md, "col-span-2 row-start-2 whitespace-normal lg:table-cell")}>{section.instructors || "—"}</TableCell>
+                      <TableCell className={cn(cardTable.cell, bodyStyles.md, "col-span-2 row-start-3 whitespace-normal text-text-muted lg:table-cell")}>{section.location || "—"}</TableCell>
+                      <TableCell className={cn(cardTable.cell, numericStyles.md, "text-text-primary")}>
+                        <span className={cn(bodyStyles.sm, "block text-text-muted lg:hidden")}>Enrolled / cap</span>
+                        {section.enrolled} / {section.capacity}
+                      </TableCell>
+                      <TableCell className={cn(cardTable.cell, "text-right lg:text-left")}>
+                        <StatusBadge loadPercent={seatLoadPercent(section)} />
+                      </TableCell>
+                      <TableCell className={cardTable.cell}>
                         <a
-                          href={`https://www.sfu.ca/outlines.html?${detail.year}/${detail.term.toLowerCase()}/${detail.deptCode.toLowerCase()}/${detail.courseNumber.toLowerCase()}/${extractSection(section.section)}`}
+                          href={outlineHref(detail, section.section)}
                           target="_blank"
                           rel="noreferrer"
-                          className="text-accent hover:underline"
+                          aria-label={`Outline for ${short} (opens in a new tab)`}
+                          className={cn(bodyStyles.sm, "inline-flex items-center gap-1 text-accent-text hover:underline")}
                         >
-                          Open outline
+                          Outline
+                          <ExternalLink className="size-3.5" aria-hidden="true" />
                         </a>
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className={cn(cardTable.cell, "col-start-2 row-start-1 text-right lg:table-cell")}>
                         <BookmarkButton
+                          bookmarks={bookmarks}
+                          label={`${code} ${short}`}
                           deptId={detail.deptId}
                           courseId={detail.courseId}
                           semesterCode={section.semesterCode}
@@ -137,38 +126,57 @@ export default function OfferingDetailScreen({ detail, backHref }: OfferingDetai
                         />
                       </TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  );
+                })}
+              </TableBody>
+            </Table>
           )}
-        </div>
+        </SectionCard>
 
-        {detail.sections.length > 0 && (
-          <div className="mt-8">
-            <InstructorRatings sections={detail.sections} deptCode={detail.deptCode} />
-          </div>
-        )}
-
-        {detail.gradeDistribution && (
-          <div className="mt-8">
-            <div className={`${headerStyles.md} text-text-primary mb-3`}>Grade Distribution</div>
-            <GradeHistogram distribution={detail.gradeDistribution} />
-            <p className={`mt-2 ${bodyStyles.sm} text-text-subtle`}>
-              Based on Coursediggers data. For more information refer to{" "}
-              <a
-                href="https://coursediggers.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-accent hover:underline"
+        {(sectionCount > 0 || detail.gradeDistribution) && (
+          <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
+            {sectionCount > 0 && <InstructorRatings sections={detail.sections} deptCode={detail.deptCode} />}
+            {detail.gradeDistribution && (
+              <SectionCard
+                title="Grade distribution"
+                note={
+                  <>
+                    All terms ·{" "}
+                    <a href="https://coursediggers.com" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:underline">
+                      CourseDiggers
+                    </a>
+                  </>
+                }
               >
-                Coursediggers
-              </a>
-              .
-            </p>
+                <GradeHistogram distribution={detail.gradeDistribution} medianGrade={detail.medianGrade} failRate={detail.failRate} />
+              </SectionCard>
+            )}
           </div>
         )}
-      </Card>
-    </div>
+
+        {(detail.description || detail.prerequisites || detail.corequisites) && (
+          <div className={cn(cardClass, "grid grid-cols-1 divide-y divide-border md:grid-cols-2 md:divide-x md:divide-y-0")}>
+            <section aria-labelledby="description-heading" className={cardPadding}>
+              <h2 id="description-heading" className={cn(headerStyles.md, "mb-2 text-text-primary")}>
+                Description
+              </h2>
+              <p className={cn(bodyStyles.md, "text-text-muted")}>{detail.description || "No description available."}</p>
+            </section>
+            <section aria-labelledby="prereq-heading" className={cardPadding}>
+              <h2 id="prereq-heading" className={cn(headerStyles.md, "mb-2 text-text-primary")}>
+                Prerequisites
+              </h2>
+              <p className={cn(bodyStyles.md, "text-text-muted")}>{detail.prerequisites || "None listed."}</p>
+              {detail.corequisites && (
+                <p className={cn(bodyStyles.md, "mt-3 text-text-muted")}>
+                  <span className="font-medium text-text-primary">Corequisites: </span>
+                  {detail.corequisites}
+                </p>
+              )}
+            </section>
+          </div>
+        )}
+      </div>
+    </PageContainer>
   );
 }
