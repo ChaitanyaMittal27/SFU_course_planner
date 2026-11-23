@@ -8,16 +8,24 @@ SFU Course Planner helps Simon Fraser University students research courses, insp
 
 ## Product overview
 
-The application supports browsing SFU courses and offerings, live CourseSys enrollment data, CourseDiggers grade/enrollment history, readable shareable URLs, Supabase authentication, bookmarks with Resend digests, and a role-gated admin console.
+The application supports:
+
+- Browsing SFU courses and current and historical offerings, with live CourseSys enrollment data and readable, shareable URLs.
+- Comparing courses and sections.
+- Enrollment, grades, and load graphs, including CourseDiggers grade history.
+- Rate My Professors instructor ratings.
+- Section bookmarks with a daily enrollment digest sent through Resend.
+- A signed-in dashboard for bookmarks, notification preferences, and account settings, using Supabase authentication.
+- A role-gated admin console with Overview, Health, Support, Terms, Users, Bookmarks, and RMP reports sections.
 
 ## Architecture
 
 | Area | Technology | Responsibility |
 | --- | --- | --- |
-| Frontend | Next.js App Router, React, TypeScript, Tailwind | Browser UI, readable routes, Supabase Auth UI |
+| Frontend | Next.js App Router, React, TypeScript, Tailwind, shadcn/ui, Geist, Recharts | Browser UI, readable routes, Supabase Auth UI |
 | Backend | Java 17, Spring Boot 3.0, Gradle | REST API, authorization, CourseSys integration, scheduled email |
 | Database and Auth | Supabase PostgreSQL and Auth | Catalog, terms, bookmarks, preferences, support data, sessions |
-| External data | SFU CourseSys and CourseDiggers | Live offerings/enrollment and historical grade data |
+| External data | SFU CourseSys, CourseDiggers, and Rate My Professors | Live offerings/enrollment, historical grade data, and instructor ratings |
 | Email | Resend | Support replies and bookmark digests |
 
 The Next.js frontend and Spring Boot backend deploy independently. The browser calls the backend through `NEXT_PUBLIC_API_URL`; Spring Boot does not serve the frontend.
@@ -43,10 +51,18 @@ backend/                   Spring Boot API
     scheduler/             Daily bookmark digest
   Dockerfile               dev, test, builder, runtime targets
 
-supabase/                  Local configuration, migrations, and catalog seed data
+supabase/                  Local configuration, migrations, and seed data
+  seed-users.sql           Local user and admin accounts
+init_db/                   Database initialization guidance, legacy scripts, local output
+test/rmp/                  Manual backend RMP client and its tests
+AGENTS.md / CLAUDE.md      AI agent entry points
 agent-docs/                Persistent project guidance and engineering backlog
+  index.md                 Documentation entry point
+  plan.md, state.md         Active subtasks and current handoff
+  reference/               Repository rules and detailed behavior references
+  features/                Feature-specific guidance
 .github/workflows/ci.yml   Frontend and backend CI checks
-docker-compose.yaml         Local frontend/backend development environment
+docker-compose.yaml        Local frontend/backend development environment
 ```
 
 ## Local development
@@ -104,6 +120,8 @@ Open:
 - Supabase Studio: <http://127.0.0.1:54323>
 - Mailpit inbox: <http://127.0.0.1:54324>
 
+After a local database reset, open <http://localhost:3000/login> and use email/password sign-in with the local-only accounts from `supabase/seed-users.sql`: `user@test.com` / `user` for the dashboard, or `admin@test.com` / `admin` for the admin console. `supabase/config.toml` loads this file after the catalog seed. Local Google sign-in requires separate provider configuration.
+
 Stop the application containers and local Supabase separately:
 
 ```powershell
@@ -160,7 +178,7 @@ Generated local reports in `test-logs/` are ignored and should not be committed.
 
 ## Local database workflow
 
-The local schema is defined in `supabase/migrations/`; `supabase/seed.sql` supplies catalog data after a reset.
+The local schema is defined in `supabase/migrations/`; `supabase/seed.sql` supplies catalog data and `supabase/seed-users.sql` supplies local test accounts after a reset.
 
 ```powershell
 # Recreate only the local database from migrations and seed data
@@ -194,6 +212,12 @@ GitHub Actions runs two checks on pushes and pull requests targeting `dev` or `m
 
 For deeper project conventions, architecture details, and the hardening backlog, see [agent-docs/](agent-docs/).
 
+## Working with AI agents
+
+Agents start at [AGENTS.md](AGENTS.md), then [agent-docs/index.md](agent-docs/index.md).
+Read the current plan and state before starting; the index identifies any additional guidance needed.
+[agent-docs/protocol.md](agent-docs/protocol.md) covers completion and handoff.
+
 ## Deployment
 
 - Frontend: Vercel, served at the custom domain.
@@ -209,5 +233,6 @@ Docker validates and runs the local development environment. It is not currently
 | Supabase client reports a missing URL or key | Ensure all four frontend variables are present in `frontend/.env.local`, then restart the frontend. |
 | Backend cannot connect locally | Start Supabase first and confirm the database credentials in `backend/.env.local`; Compose uses `host.docker.internal` for the local stack. |
 | A newly added dynamic route returns an old 404 in Compose | The disposable `frontend_next` cache may be stale. Run `docker compose down -v`, then `docker compose up --build`. This removes Compose caches only; it does not remove Supabase CLI data. |
+| Frontend dependencies are missing or outdated after package.json changes | The `frontend_node_modules` volume is stale. Run `docker compose down -v && docker compose up --build` (in PowerShell 5.1, run the two commands separately). This recreates Compose volumes, not Supabase CLI data. |
 | No password-reset or confirmation email appears | Check Mailpit at <http://127.0.0.1:54324>. |
 | Local Gradle uses an old JVM | Confirm `java -version` reports Java 17 or newer before running Gradle. |
