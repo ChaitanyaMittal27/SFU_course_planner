@@ -1,6 +1,6 @@
 # Coding standards
 
-These are project conventions that prevent regressions across the Spring API, Next.js frontend, and Supabase boundary. They complement [AGENTS.md](AGENTS.md); existing nearby code remains the style reference for exact details.
+These are project conventions that prevent regressions across the Spring API, Next.js frontend, and Supabase boundary. They complement [repo-rules.md](reference/repo-rules.md); existing nearby code remains the style reference for exact details.
 
 ## Cross-cutting
 
