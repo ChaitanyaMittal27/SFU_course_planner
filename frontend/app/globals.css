@@ -57,6 +57,18 @@
   /* Modal/sheet backdrop */
   --color-overlay: var(--overlay);
 
+  /* Email illustration — identical in both themes (always light) */
+  --color-email-canvas: var(--email-canvas);
+  --color-email-card: var(--email-card);
+  --color-email-text: var(--email-text);
+  --color-email-muted: var(--email-muted);
+  --color-email-border: var(--email-border);
+  --color-email-header: var(--email-header);
+  --color-email-brand: var(--email-brand);
+  --color-email-ok: var(--email-ok);
+  --color-email-warn: var(--email-warn);
+  --color-email-bad: var(--email-bad);
+
   /* shadcn compatibility — these map to our tokens */
   --color-card: var(--surface);
   --color-card-foreground: var(--text-primary);
@@ -121,6 +133,18 @@
    ============================================ */
 :root {
   --radius: 0.375rem;
+
+  /* Email illustration — not themed; the same values apply in .dark */
+  --email-canvas: #f4f4f5;
+  --email-card: #ffffff;
+  --email-text: #111111;
+  --email-muted: #646b78;
+  --email-border: #eeeef0;
+  --email-header: #f8f8f9;
+  --email-brand: #c23032;
+  --email-ok: #15803d;
+  --email-warn: #b45309;
+  --email-bad: #b42628;
   --app-nav-height: 3.75rem;
   --admin-mobile-header-height: 3.5rem;
 
@@ -142,7 +166,7 @@
   /* Text */
   --text-primary: #111111;
   --text-muted: #4b5563;
-  --text-subtle: #6b7280;
+  --text-subtle: #646b78;
 
   /* Borders */
   --border: #e2e2e2;
@@ -162,6 +186,9 @@
   --warning-tint: #fdf1e3;
   --destructive-tint: #fbe9e9;
   --overlay: rgb(17 17 17 / 0.3);
+
+  /* Landing hero dot grid */
+  --hero-dot: rgb(0 0 0 / 0.07);
 
   /* Charts */
   --chart-1: var(--primary);
@@ -219,7 +246,7 @@
   --border-strong: #484f58; /* GitHub border muted */
 
   /* Semantic */
-  --destructive: #e84545;
+  --destructive: #c23032;
   --destructive-foreground: #ffffff;
   --success: #22c55e;
   --success-foreground: #ffffff;
@@ -232,6 +259,9 @@
   --warning-tint: rgb(210 153 34 / 0.13);
   --destructive-tint: rgb(255 107 99 / 0.13);
   --overlay: rgb(1 4 9 / 0.6);
+
+  /* Landing hero dot grid */
+  --hero-dot: rgb(255 255 255 / 0.06);
 
   /* Charts */
   --chart-1: var(--primary);
@@ -304,6 +334,7 @@
 
 /* ============================================
    ANIMATIONS
+   Disabled globally under prefers-reduced-motion (see MOTION).
    ============================================ */
 @layer utilities {
   @keyframes fade-in {
@@ -334,25 +365,6 @@
       transform: translateY(0);
     }
   }
-  @keyframes scale-in {
-    from {
-      opacity: 0;
-      transform: scale(0.95);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1);
-    }
-  }
-  @keyframes float {
-    0%,
-    100% {
-      transform: translateY(0px);
-    }
-    50% {
-      transform: translateY(-6px);
-    }
-  }
   @keyframes pulse-soft {
     0%,
     100% {
@@ -362,12 +374,15 @@
       opacity: 0.6;
     }
   }
-  @keyframes shimmer {
-    0% {
-      background-position: -200% 0;
+  /* Short entrance: starts partly visible so content never reads as missing. */
+  @keyframes rise-in {
+    from {
+      opacity: 0.01;
+      transform: translateY(8px);
     }
-    100% {
-      background-position: 200% 0;
+    to {
+      opacity: 1;
+      transform: translateY(0);
     }
   }
 
@@ -380,20 +395,12 @@
   .animate-slide-down {
     animation: slide-down 0.2s ease-out;
   }
-  .animate-scale-in {
-    animation: scale-in 0.2s ease-out;
-  }
-  .animate-float {
-    animation: float 3s ease-in-out infinite;
-  }
   .animate-pulse-soft {
     animation: pulse-soft 2s ease-in-out infinite;
   }
-
-  .animate-shimmer {
-    background: linear-gradient(90deg, var(--surface) 25%, var(--surface-raised) 50%, var(--surface) 75%);
-    background-size: 200% 100%;
-    animation: shimmer 1.5s infinite;
+  /* Landing hero entrance (~0.45s). Pair with [animation-delay:80ms] for a follower. */
+  .animate-rise-in {
+    animation: rise-in 0.45s cubic-bezier(0.22, 0.61, 0.36, 1) both;
   }
 
   .stagger-children > *:nth-child(1) {
@@ -412,47 +419,6 @@
     animation: slide-up 0.3s ease-out 0.25s both;
   }
 
-  @keyframes spin-slow {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-  @keyframes width-expand {
-    from {
-      width: 0;
-      opacity: 0;
-    }
-    to {
-      width: 8rem;
-      opacity: 1;
-    }
-  }
-
-  .animate-spin-slow {
-    animation: spin-slow 3s linear infinite;
-  }
-  .animate-spin-reverse {
-    animation: spin-slow 4s linear infinite reverse;
-  }
-  .animate-pulse-slow {
-    animation: pulse-soft 3s ease-in-out infinite;
-  }
-  .animate-fade-in-delay {
-    animation: fade-in 0.4s ease-out 0.5s both;
-  }
-  .animate-fade-in-stagger-1 {
-    animation: fade-in 0.3s ease-out 0.7s both;
-  }
-  .animate-fade-in-stagger-2 {
-    animation: fade-in 0.3s ease-out 0.9s both;
-  }
-  .animate-fade-in-stagger-3 {
-    animation: fade-in 0.3s ease-out 1.1s both;
-  }
-  .animate-width-expand {
-    animation: width-expand 0.5s ease-out 0.3s both;
-  }
-
   @keyframes reveal-up {
     from {
       opacity: 0;
@@ -468,12 +434,21 @@
     animation: reveal-up 0.6s cubic-bezier(0.22, 0.61, 0.36, 1) both;
   }
 
-  .dot-grid-hero {
-    background-image: radial-gradient(circle, var(--border-strong) 1px, transparent 1px);
-    background-size: 26px 26px;
-    opacity: 0.18;
-    -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 35%, transparent 75%);
-    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 35%, transparent 75%);
+  /* Landing hero backdrop: 1px dots every 24px, visible only around the email.
+     Stacked (mobile): the email is the lower part of the hero, so the mask sits low.
+     Two columns (lg+): the mask is centred behind the email and reaches 0 by ~50% width,
+     before the text column. */
+  .hero-dots {
+    background-image: radial-gradient(circle, var(--hero-dot) 1px, transparent 1.5px);
+    background-size: 24px 24px;
+    --hero-dots-mask: radial-gradient(ellipse 80% 34% at 50% 76%, #000 35%, transparent 100%);
+    -webkit-mask-image: var(--hero-dots-mask);
+    mask-image: var(--hero-dots-mask);
+  }
+  @media (width >= 64rem) {
+    .hero-dots {
+      --hero-dots-mask: radial-gradient(ellipse 30% 62% at 77% 50%, #000 40%, transparent 100%);
+    }
   }
 }
 

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -69,6 +69,14 @@ describe("admin pages", () => {
     expect(screen.getByRole("heading", { name: "RMP Reports" })).toBeInTheDocument();
     expect(screen.getByText("1 to review")).toBeInTheDocument();
     expect(apiMocks.getAdminBookmarks).toHaveBeenCalledOnce();
+
+    // KPIs are a plain summary row; each section is a whole-card link.
+    const kpis = screen.getByText("Total users").closest("dl") as HTMLElement;
+    expect(within(kpis).getByText("API status").nextElementSibling).toHaveTextContent("OK");
+    expect(within(kpis).getByText("API status").nextElementSibling?.firstElementChild).toHaveClass("text-success-text");
+    expect(screen.getByRole("heading", { level: 2, name: "Sections" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Health" })).toHaveAttribute("href", "/admin/health");
+    expect(screen.getByRole("link", { name: "RMP Reports" })).toHaveAttribute("href", "/admin/rmp");
   });
 
   it("renders health checks and rechecks an individual service", async () => {
@@ -76,7 +84,11 @@ describe("admin pages", () => {
     render(<AdminHealthPage />);
 
     expect(await screen.findByRole("heading", { name: "System health" })).toBeInTheDocument();
-    expect(screen.getByText("Operational")).toBeInTheDocument();
+    const services = screen.getByRole("heading", { level: 2, name: "Services" }).closest("section") as HTMLElement;
+    expect(services).toHaveTextContent("1 of 1 up");
+    const row = within(services).getByRole("heading", { name: "API" }).closest("li") as HTMLElement;
+    expect(within(row).getByText("http://api.test")).toBeInTheDocument();
+    expect(within(row).getByText("Operational")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Recheck" }));
     await waitFor(() => expect(apiMocks.getServiceHealth).toHaveBeenCalledWith("api"));
     expect(screen.getByText("8ms")).toBeInTheDocument();

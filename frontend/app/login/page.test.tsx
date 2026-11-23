@@ -30,6 +30,7 @@ vi.mock("@/lib/supabase/client", () => ({
 vi.mock("@/lib/api", () => ({ api: { initializePreferencesOnSignup: mocks.initializePreferencesOnSignup } }));
 
 import LoginPage from "@/app/login/page";
+import LoginCard from "@/components/auth/LoginCard";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -92,7 +93,7 @@ describe("login page", () => {
   it("validates sign-up locally before contacting Supabase", async () => {
     const user = userEvent.setup();
     render(<LoginPage />);
-    await user.click(screen.getByRole("tab", { name: "Sign Up" }));
+    await user.click(screen.getByRole("tab", { name: "Sign up" }));
     await user.type(screen.getByLabelText("Email"), "student@example.com");
     await user.type(screen.getByLabelText("Password"), "password123");
     await user.type(screen.getByLabelText("Confirm Password"), "different-password");
@@ -107,7 +108,7 @@ describe("login page", () => {
     mocks.search = new URLSearchParams("redirectTo=/dashboard?welcome=true");
     const view = render(<LoginPage />);
 
-    await user.click(screen.getByRole("tab", { name: "Sign Up" }));
+    await user.click(screen.getByRole("tab", { name: "Sign up" }));
     await user.type(screen.getByLabelText("Email"), "student@example.com");
     await user.type(screen.getByLabelText("Password"), "password123");
     await user.type(screen.getByLabelText("Confirm Password"), "password123");
@@ -118,15 +119,35 @@ describe("login page", () => {
       options: { emailRedirectTo: "http://localhost:3000/auth/callback?redirectTo=%2Fdashboard%3Fwelcome%3Dtrue" },
     })));
 
-    await user.click(screen.getByRole("button", { name: "Sign in with Google" }));
+    await user.click(screen.getByRole("button", { name: "Continue with Google" }));
     await waitFor(() => expect(mocks.signInWithOAuth).toHaveBeenCalledWith({
       provider: "google",
       options: { redirectTo: "http://localhost:3000/auth/callback?redirectTo=%2Fdashboard%3Fwelcome%3Dtrue" },
     }));
 
-    // Microsoft sign-in was removed; Google is the only OAuth provider.
-    expect(screen.queryByRole("button", { name: "Sign in with Microsoft" })).not.toBeInTheDocument();
+    // Microsoft sign-in is hidden until SFU's Azure setup is done (SHOW_MICROSOFT_LOGIN = false).
+    expect(screen.queryByRole("button", { name: "Continue with Microsoft" })).not.toBeInTheDocument();
     view.unmount();
+  });
+
+  it("uses shadcn tabs and opens the sign-up tab from ?tab=signup", () => {
+    mocks.search = new URLSearchParams("tab=signup");
+    render(<LoginPage />);
+    expect(screen.getByRole("tab", { name: "Sign up" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "Sign in" })).toHaveAttribute("aria-selected", "false");
+    expect(screen.getByLabelText("Confirm Password")).toBeInTheDocument();
+    expect(screen.getByText("or with email")).toBeInTheDocument();
+  });
+
+  it("offers Microsoft through the same OAuth callback when enabled", async () => {
+    const user = userEvent.setup();
+    mocks.search = new URLSearchParams("redirectTo=/dashboard");
+    render(<LoginCard showMicrosoft />);
+    await user.click(screen.getByRole("button", { name: "Continue with Microsoft" }));
+    await waitFor(() => expect(mocks.signInWithOAuth).toHaveBeenCalledWith({
+      provider: "azure",
+      options: { redirectTo: "http://localhost:3000/auth/callback?redirectTo=%2Fdashboard", scopes: "email" },
+    }));
   });
 
   it("sends password reset requests to the existing reset route", async () => {
@@ -140,5 +161,15 @@ describe("login page", () => {
       redirectTo: "http://localhost:3000/auth/reset-password",
     }));
     expect(screen.getByRole("status")).toHaveTextContent("Email Sent!");
+  });
+
+  it("opens the reset dialog and closes it with Escape", async () => {
+    const user = userEvent.setup();
+    render(<LoginPage />);
+    await user.click(screen.getByRole("button", { name: "Forgot password?" }));
+    expect(await screen.findByRole("dialog", { name: "Reset Password" })).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Reset Password" })).not.toBeInTheDocument());
+    expect(mocks.resetPasswordForEmail).not.toHaveBeenCalled();
   });
 });

@@ -29,6 +29,7 @@ const statusTones: Record<string, Tone> = {
   "almost full": "warning",
   full: "destructive",
   closed: "destructive",
+  "not offered": "destructive",
   cancelled: "neutral",
 };
 

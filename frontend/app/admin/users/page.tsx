@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Bell, RefreshCw, UserPlus, Users } from "lucide-react";
+import { ChevronRight, RefreshCw } from "lucide-react";
 import {
   CartesianGrid,
   Line,
@@ -13,13 +13,13 @@ import {
   YAxis,
 } from "recharts";
 import { api, AdminUsersResponse } from "@/lib/api";
-import { bodyStyles, headerStyles, labelStyles } from "@/app/fonts";
-import { AdminPage, AdminPageHeader, AdminStatGrid, AdminTable } from "@/components/admin/AdminPage";
+import { bodyStyles, labelStyles, numericStyles } from "@/app/fonts";
+import { AdminPage, AdminPageHeader, AdminStats, AdminTable } from "@/components/admin/AdminPage";
+import SectionCard from "@/components/course/SectionCard";
 import AdminPageSkeleton from "@/components/admin/AdminPageSkeleton";
 import ErrorMessage from "@/components/feedback/ErrorMessage";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 
 const RECENT_NOTIFICATION_WINDOW_MS = 25 * 60 * 60 * 1000;
 
@@ -140,39 +140,23 @@ export default function AdminUsersPage() {
     return referenceTime - new Date(user.lastNotifiedAt).getTime() <= RECENT_NOTIFICATION_WINDOW_MS;
   }).length;
 
-  const statCards = [
-    { label: "Total users", value: stats.totalUsers, icon: Users },
-    { label: "New this month", value: stats.newThisMonth, icon: UserPlus },
-    { label: "Notification opt-ins", value: stats.optedInNotifications, icon: Bell },
-    { label: "Active in 30 days", value: stats.activeInLast30Days, icon: Users },
-    { label: "Notified (25h)", value: recentlyNotified, icon: Bell },
+  const statItems = [
+    { label: "Total users", value: stats.totalUsers.toLocaleString() },
+    { label: "New this month", value: stats.newThisMonth.toLocaleString() },
+    { label: "Notification opt-ins", value: stats.optedInNotifications.toLocaleString() },
+    { label: "Active in 30 days", value: stats.activeInLast30Days.toLocaleString() },
+    { label: "Notified (25h)", value: recentlyNotified.toLocaleString() },
   ];
 
   return (
     <AdminPage>
       <AdminPageHeader title="Users" description="Review registered accounts, signup activity, and notification preferences." actions={actions} />
 
-      {error && <div className="mb-6"><ErrorMessage message={error} onRetry={handleRefresh} /></div>}
+      {error && <ErrorMessage className="mb-6" message={error} onRetry={handleRefresh} />}
 
-      <AdminStatGrid columns={5}>
-        {statCards.map(({ label, value, icon: Icon }) => (
-          <Card key={label} className="p-4">
-            <CardContent className="p-0">
-              <div className="mb-2 flex items-center gap-2.5">
-                <div className="flex size-8 items-center justify-center rounded-lg bg-surface-raised text-accent">
-                  <Icon className="size-4" />
-                </div>
-                <span className={`${labelStyles.md} text-text-muted`}>{label}</span>
-              </div>
-              <p className="font-mono text-xl font-semibold tracking-tight text-text-primary">{value.toLocaleString()}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </AdminStatGrid>
+      <AdminStats items={statItems} />
 
-      <Card className="mb-8 p-5">
-        <CardContent className="p-0">
-          <h2 className={`${headerStyles.xs} mb-4 text-text-primary`}>New accounts over time</h2>
+      <SectionCard title="New accounts over time" className="mb-6">
           {chartData.length > 1 ? (
             <div className="h-56">
               <ResponsiveContainer width="100%" height="100%">
@@ -180,7 +164,7 @@ export default function AdminUsersPage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                   <XAxis dataKey="month" tick={{ fontSize: 11, fill: "var(--text-muted)" }} axisLine={{ stroke: "var(--border)" }} tickLine={false} />
                   <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "var(--text-muted)" }} axisLine={{ stroke: "var(--border)" }} tickLine={false} />
-                  <Tooltip contentStyle={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} labelStyle={{ color: "var(--text-primary)", fontWeight: 600 }} />
+                  <Tooltip contentStyle={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius)", fontSize: 12 }} labelStyle={{ color: "var(--text-primary)", fontWeight: 600 }} />
                   <Line type="monotone" dataKey="signups" stroke="var(--accent)" strokeWidth={2} dot={{ r: 3, fill: "var(--accent)" }} activeDot={{ r: 5 }} />
                 </LineChart>
               </ResponsiveContainer>
@@ -188,17 +172,11 @@ export default function AdminUsersPage() {
           ) : (
             <p className={`${bodyStyles.md} py-12 text-center text-text-muted`}>Not enough signup history yet.</p>
           )}
-        </CardContent>
-      </Card>
+      </SectionCard>
 
-      <div className="mb-3 flex items-center justify-between gap-4">
-        <h2 className={`${headerStyles.xs} text-text-primary`}>Registered users</h2>
-        <span className={`${labelStyles.sm} font-mono text-text-subtle`}>{users.length} accounts</span>
-      </div>
-      <AdminTable>
-        <div className="overflow-x-auto">
+      <AdminTable title="Registered users" note={`${users.length} accounts`}>
           <table className="w-full min-w-[760px] text-left">
-            <thead className="border-b border-border bg-surface-raised">
+            <thead className="bg-surface-raised">
               <tr className={`${labelStyles.sm} uppercase tracking-wider text-text-subtle`}>
                 <th className="px-4 py-3 font-medium">User</th>
                 <th className="px-4 py-3 font-medium">Provider</th>
@@ -209,18 +187,18 @@ export default function AdminUsersPage() {
             </thead>
             <tbody>
               {users.map((user) => (
-                <tr key={user.id} className="border-b border-border last:border-0 hover:bg-surface-raised">
+                <tr key={user.id} className="border-t border-border hover:bg-surface-raised">
                   <td className="px-4 py-3">
-                    <Link href={`/admin/users/${user.id}`} className="group flex items-center gap-2 text-text-primary hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                    <Link href={`/admin/users/${user.id}`} className="group flex items-center gap-2 text-text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                       <span className={`${labelStyles.lg} max-w-64 truncate`}>{user.email}</span>
-                      <ArrowRight className="size-4 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
+                      <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-text-subtle" />
                     </Link>
                     {user.displayName && <p className={`${bodyStyles.sm} mt-0.5 text-text-muted`}>{user.displayName}</p>}
                   </td>
-                  <td className="px-4 py-3"><Badge variant="secondary">{user.provider || "email"}</Badge></td>
+                  <td className="px-4 py-3"><Badge variant="outline">{user.provider || "email"}</Badge></td>
                   <td className={`${bodyStyles.sm} whitespace-nowrap px-4 py-3 text-text-muted`}>{formatDate(user.createdAt)}</td>
                   <td className={`${bodyStyles.sm} whitespace-nowrap px-4 py-3 text-text-muted`}>{formatRelative(user.lastSignInAt)}</td>
-                  <td className={`${labelStyles.md} px-4 py-3 text-right font-mono text-text-primary`}>{user.bookmarkCount}</td>
+                  <td className={`${numericStyles.sm} px-4 py-3 text-right text-text-primary`}>{user.bookmarkCount}</td>
                 </tr>
               ))}
               {users.length === 0 && (
@@ -228,7 +206,6 @@ export default function AdminUsersPage() {
               )}
             </tbody>
           </table>
-        </div>
       </AdminTable>
     </AdminPage>
   );

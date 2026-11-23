@@ -1,459 +1,390 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useQueryState } from "nuqs";
 import { ClipboardList, X } from "lucide-react";
-import PageContainer from "@/components/layout/PageContainer";
-import LoadingSpinner from "@/components/feedback/LoadingSpinner";
-import ErrorMessage from "@/components/feedback/ErrorMessage";
+import CompareHeader from "@/components/compare/CompareHeader";
+import ComparisonTable, { type ComparisonRowData } from "@/components/compare/ComparisonTable";
+import SectionCard from "@/components/course/SectionCard";
+import LoadBar from "@/components/enrollment/LoadBar";
 import GradeHistogram from "@/components/analytics/GradeHistogram";
+import ErrorMessage from "@/components/feedback/ErrorMessage";
+import LoadingSpinner from "@/components/feedback/LoadingSpinner";
+import { TableRowsSkeleton } from "@/components/feedback/Skeletons";
 import TaskEmptyState from "@/components/feedback/TaskEmptyState";
-import { api, Department, Course, OfferingDetail } from "@/lib/api";
-import Link from "next/link";
-import { courseHref, parseComparedCourses, serializeComparedCourses } from "@/lib/course-routes";
-import { resolveCourseIds, resolveCourseIdentity } from "@/lib/course-resolver";
-import { Card, CardContent } from "@/components/ui/card";
+import PageContainer from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
-import { displayStyles, headerStyles, bodyStyles, labelStyles } from "@/app/fonts";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import { bodyStyles, labelStyles, numericStyles } from "@/app/fonts";
+import { api } from "@/lib/api";
+import { buildCourseComparison, type CompareCourseInput } from "@/lib/compare-courses";
+import { courseHref, parseComparedCourses, serializeComparedCourses } from "@/lib/course-routes";
+import { resolveCourseIdentity, resolveCourseIds, type ResolvedCourseRoute } from "@/lib/course-resolver";
+import { formatCourseCode, formatPercent } from "@/lib/course-stats";
+import { useRetryableRequest } from "@/hooks/useRetryableRequest";
+import { cn } from "@/lib/utils";
+import type { Course, Department, TermInfo } from "@/lib/types";
 
-const selectClass = `w-full rounded-md border border-border bg-background text-text-primary px-3 py-2 ${bodyStyles.md} focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50`;
+const MAX_COMPARED_COURSES = 3;
 
-type SelectedCourse = {
-  deptId: number;
-  courseId: number;
-  deptCode: string;
-  courseNumber: string;
-};
+const best = "font-semibold text-success-text";
+
+function sortByNumber(a: Course, b: Course) {
+  return a.courseNumber.localeCompare(b.courseNumber, undefined, { numeric: true });
+}
+
+/** Resolves a ?courses= value: readable "cmpt-225,math-232" or legacy "14:3998,…" id pairs. */
+async function resolveCoursesParam(param: string): Promise<ResolvedCourseRoute[]> {
+  const readable = parseComparedCourses(param);
+  const resolved = readable.length > 0
+    ? await Promise.all(readable.map(resolveCourseIdentity))
+    : await Promise.all(param.split(",").map((pair) => {
+        const [deptId, courseId] = pair.split(":").map(Number);
+        return resolveCourseIds(deptId, courseId);
+      }));
+  if (resolved.some((course) => course === null) || resolved.length > MAX_COMPARED_COURSES) {
+    throw new Error("Invalid comparison link");
+  }
+  return resolved as ResolvedCourseRoute[];
+}
 
 function CourseComparisonContent() {
   const [coursesParam, setCoursesParam] = useQueryState("courses");
 
-  const [departments, setDepartments] = useState<Department[]>([]);
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [selectedDept, setSelectedDept] = useState<number | null>(null);
-  const [selectedCourse, setSelectedCourse] = useState<number | null>(null);
+  // Picked courses; kept in step with ?courses= (the shareable source of truth).
+  const [selected, setSelected] = useState<ResolvedCourseRoute[]>([]);
+  const [linkError, setLinkError] = useState(false);
+  const [validation, setValidation] = useState<string | null>(null);
 
-  const [selectedCourses, setSelectedCourses] = useState<SelectedCourse[]>([]);
-  const [comparisonData, setComparisonData] = useState<OfferingDetail[]>([]);
+  // Picker data.
+  const departmentsRequest = useRetryableRequest();
+  const [departmentsResult, setDepartmentsResult] = useState<{ attempt: number; data: Department[] | null } | null>(null);
+  const [deptId, setDeptId] = useState("");
+  const [courseId, setCourseId] = useState("");
+  const coursesRequest = useRetryableRequest();
+  const [coursesResult, setCoursesResult] = useState<{ key: string; data: Course[] | null } | null>(null);
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Comparison data for the picked courses.
+  const comparisonRequest = useRetryableRequest();
+  const [comparison, setComparison] = useState<{ key: string; inputs: CompareCourseInput[] | null; term: TermInfo | null } | null>(null);
+
+  const departments = departmentsResult?.data ?? [];
+  const departmentsFailed = departmentsResult?.attempt === departmentsRequest.requestVersion && departmentsResult.data === null;
+  const coursesKey = deptId ? `${deptId}#${coursesRequest.requestVersion}` : "";
+  const courses = coursesResult?.key === coursesKey ? coursesResult.data : null;
+  const coursesFailed = Boolean(deptId) && coursesResult?.key === coursesKey && coursesResult.data === null;
 
   useEffect(() => {
-    void loadDepartments();
-  }, []);
+    let active = true;
+    const attempt = departmentsRequest.requestVersion;
+    api
+      .getDepartments()
+      .then((data) => active && setDepartmentsResult({ attempt, data: [...data].sort((a, b) => a.deptCode.localeCompare(b.deptCode)) }))
+      .catch(() => active && setDepartmentsResult({ attempt, data: null }));
+    return () => {
+      active = false;
+    };
+  }, [departmentsRequest.requestVersion]);
 
   useEffect(() => {
-    void loadFromURL();
-    // URL parameters are the source of truth for a shared comparison.
+    if (!deptId) return;
+    let active = true;
+    const key = coursesKey;
+    api
+      .getCourses(Number(deptId))
+      .then((data) => active && setCoursesResult({ key, data: [...data].sort(sortByNumber) }))
+      .catch(() => active && setCoursesResult({ key, data: null }));
+    return () => {
+      active = false;
+    };
+  }, [deptId, coursesKey]);
+
+  // Follow ?courses= when it changes from outside (shared links, back/forward).
+  useEffect(() => {
+    const current = serializeComparedCourses(selected);
+    if ((coursesParam ?? "") === current) return;
+    let active = true;
+    const param = coursesParam ?? "";
+    (param ? resolveCoursesParam(param) : Promise.resolve([]))
+      .then((resolved) => {
+        if (!active) return;
+        setLinkError(false);
+        setSelected(resolved);
+        const readable = serializeComparedCourses(resolved);
+        if (param && readable !== param) void setCoursesParam(readable);
+      })
+      .catch(() => active && setLinkError(true));
+    return () => {
+      active = false;
+    };
+    // `selected` is deliberately not a dependency: local edits update the URL themselves.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coursesParam]);
 
-  const loadDepartments = async () => {
-    try {
-      const depts = await api.getDepartments();
-      setDepartments(depts);
-    } catch {
-      setError("Failed to load departments");
-    }
-  };
-
-  const loadFromURL = async () => {
-    if (!coursesParam) {
-      setSelectedCourses([]);
-      setComparisonData([]);
-      setError(null);
-      return;
-    }
-
-    try {
-      const readableCourses = parseComparedCourses(coursesParam);
-      const parsed = readableCourses.length > 0
-        ? await Promise.all(readableCourses.map(resolveCourseIdentity))
-        : await Promise.all(
-            coursesParam.split(",").map((pair) => {
-              const [deptId, courseId] = pair.split(":").map(Number);
-              return resolveCourseIds(deptId, courseId);
-            }),
-          );
-
-      if (parsed.some((course) => course === null)) throw new Error("Invalid course reference");
-      const resolved = parsed.filter((course): course is NonNullable<typeof course> => course !== null);
-      if (resolved.length > 3) throw new Error("Invalid course count");
-
-      const selected = resolved.map((course) => ({
-        deptId: course.deptId,
-        courseId: course.courseId,
-        deptCode: course.deptCode,
-        courseNumber: course.courseNumber,
-      }));
-
-      if (readableCourses.length === 0) updateURL(selected);
-      setSelectedCourses(selected);
-      setComparisonData([]);
-      setError(null);
-      if (selected.length >= 2) void fetchComparisonData(selected);
-    } catch {
-      setError("Invalid URL parameters");
-    }
-  };
-
-  const updateURL = (courses: SelectedCourse[]) => {
-    if (courses.length === 0) {
-      setCoursesParam(null);
-    } else {
-      setCoursesParam(serializeComparedCourses(courses));
-    }
-  };
+  const comparisonKey = selected.length >= 2 ? `${selected.map((c) => c.courseId).join(",")}#${comparisonRequest.requestVersion}` : "";
 
   useEffect(() => {
-    if (selectedDept) loadCourses(selectedDept);
-  }, [selectedDept]);
+    if (!comparisonKey) return;
+    let active = true;
+    const key = comparisonKey;
+    const courses = selected;
+    Promise.all([
+      api.getEnrollingTerm().catch(() => null),
+      Promise.all(
+        courses.map(async (course): Promise<CompareCourseInput> => {
+          const [offerings, grades] = await Promise.all([
+            api.getOfferings(course.deptId, course.courseId),
+            api.getGradeDistribution(course.courseId).catch(() => null),
+          ]);
+          return { deptCode: course.department.deptCode, course: course.course, grades, offerings };
+        }),
+      ),
+    ])
+      .then(([term, inputs]) => active && setComparison({ key, inputs, term }))
+      .catch(() => active && setComparison({ key, inputs: null, term: null }));
+    return () => {
+      active = false;
+    };
+    // `selected` is captured through comparisonKey (its course IDs).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [comparisonKey]);
 
-  const loadCourses = async (deptId: number) => {
-    try {
-      const coursesData = await api.getCourses(deptId);
-      setCourses(coursesData);
-    } catch {
-      setError("Failed to load courses");
-    }
+  const updateSelection = (next: ResolvedCourseRoute[]) => {
+    setSelected(next);
+    void setCoursesParam(next.length > 0 ? serializeComparedCourses(next) : null);
   };
 
   const addCourse = () => {
-    if (!selectedDept || !selectedCourse) return;
-    if (selectedCourses.length >= 3) {
-      setError("Maximum 3 courses allowed");
+    const department = departments.find((d) => d.deptId === Number(deptId));
+    const course = courses?.find((c) => c.courseId === Number(courseId));
+    if (!department || !course) return;
+    const code = formatCourseCode(department.deptCode, course.courseNumber);
+    if (selected.some((c) => c.courseId === course.courseId)) {
+      setValidation(`${code} is already in the comparison.`);
       return;
     }
-    if (selectedCourses.some((c) => c.courseId === selectedCourse)) {
-      setError("Course already added");
+    if (selected.length >= MAX_COMPARED_COURSES) {
+      setValidation(`You can compare up to ${MAX_COMPARED_COURSES} courses. Remove one to add ${code}.`);
       return;
     }
-    const dept = departments.find((d) => d.deptId === selectedDept);
-    const course = courses.find((c) => c.courseId === selectedCourse);
-    if (!dept || !course) return;
-
-    const newCourse: SelectedCourse = {
-      deptId: selectedDept,
-      courseId: selectedCourse,
-      deptCode: dept.deptCode,
-      courseNumber: course.courseNumber,
-    };
-    const updated = [...selectedCourses, newCourse];
-    setSelectedCourses(updated);
-    updateURL(updated);
-    setSelectedDept(null);
-    setSelectedCourse(null);
-    setCourses([]);
-    setError(null);
+    setValidation(null);
+    setCourseId("");
+    updateSelection([
+      ...selected,
+      {
+        deptId: department.deptId,
+        courseId: course.courseId,
+        deptCode: department.deptCode.toLowerCase(),
+        courseNumber: course.courseNumber.toLowerCase(),
+        department,
+        course,
+      },
+    ]);
   };
 
-  const removeCourse = (courseId: number) => {
-    const updated = selectedCourses.filter((c) => c.courseId !== courseId);
-    setSelectedCourses(updated);
-    updateURL(updated);
-    setComparisonData([]);
-    setError(null);
+  const removeCourse = (id: number) => {
+    setValidation(null);
+    updateSelection(selected.filter((c) => c.courseId !== id));
   };
 
-  const fetchComparisonData = async (courses: SelectedCourse[]) => {
-    if (courses.length < 2) {
-      setComparisonData([]);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const enrollingTerm = await api.getEnrollingTerm();
-      const promises = courses.map((course) =>
-        api.getOfferingDetail(course.deptId, course.courseId, enrollingTerm.semesterCode),
-      );
-      const results = await Promise.all(promises);
-      setComparisonData(results);
-    } catch {
-      setError("Failed to fetch course data for the enrolling term. Some courses may not be offered this semester.");
-      setComparisonData([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const settled = comparison?.key === comparisonKey ? comparison : null;
+  const result = useMemo(
+    () => (settled?.inputs ? buildCourseComparison(settled.inputs, settled.term) : null),
+    [settled],
+  );
 
   return (
     <PageContainer>
-      <div>
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className={`${displayStyles.sm} text-text-primary mb-2`}>Compare Courses</h1>
-          <p className={`${bodyStyles.md} text-text-muted`}>
-            Select two or three courses to compare their requirements, historical grades, and course details.
-          </p>
+      <CompareHeader tab="courses" />
+
+      {departmentsFailed && (
+        <ErrorMessage className="mb-6" title="Couldn't load departments" message="The department list didn't load." onRetry={departmentsRequest.retry} />
+      )}
+      {coursesFailed && (
+        <ErrorMessage className="mb-6" title="Couldn't load courses" message="Courses for this department didn't load." onRetry={coursesRequest.retry} />
+      )}
+      {linkError && <ErrorMessage className="mb-6" title="Invalid comparison link" message="Some courses in this link couldn't be found." />}
+
+      <form
+        className="grid max-w-3xl gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
+        onSubmit={(event) => {
+          event.preventDefault();
+          addCourse();
+        }}
+      >
+        <div>
+          <label htmlFor="compare-course-department" className={cn(labelStyles.lg, "mb-2 block text-text-primary")}>
+            Department
+          </label>
+          <NativeSelect
+            id="compare-course-department"
+            className="w-full"
+            value={deptId}
+            disabled={departments.length === 0}
+            onChange={(event) => {
+              setDeptId(event.target.value);
+              setCourseId("");
+              setValidation(null);
+            }}
+          >
+            <NativeSelectOption value="">Select a department</NativeSelectOption>
+            {departments.map((d) => (
+              <NativeSelectOption key={d.deptId} value={d.deptId}>
+                {d.name}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
         </div>
+        <div>
+          <label htmlFor="compare-course-course" className={cn(labelStyles.lg, "mb-2 block text-text-primary")}>
+            Course
+          </label>
+          <NativeSelect
+            id="compare-course-course"
+            className="w-full"
+            value={courseId}
+            disabled={!courses}
+            onChange={(event) => {
+              setCourseId(event.target.value);
+              setValidation(null);
+            }}
+          >
+            <NativeSelectOption value="">{!deptId ? "Select a department first" : !courses ? "Loading courses…" : "Select a course"}</NativeSelectOption>
+            {(courses ?? []).map((c) => (
+              <NativeSelectOption key={c.courseId} value={c.courseId}>
+                {c.courseNumber} · {c.title}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+        </div>
+        <Button type="submit" disabled={!courseId}>
+          Add
+        </Button>
+      </form>
 
-        {/* Selection Panel */}
-        <Card className="p-5 sm:p-6 mb-6 sm:mb-8">
-          <CardContent className="p-0">
-            <h2 className={`${headerStyles.md} text-text-primary mb-1`}>Select courses</h2>
-            <p className={`${bodyStyles.md} text-text-muted mb-4`}>Add up to three courses, then compare once you have at least two.</p>
+      <p role="status" className={cn(bodyStyles.sm, "mt-2 min-h-5 text-warning-text")}>
+        {validation}
+      </p>
 
-            <div className="grid gap-4 md:grid-cols-3">
-              <div>
-                <label htmlFor="compare-course-department" className={`block ${labelStyles.md} text-text-primary mb-2`}>
-                  Department
-                </label>
-                <select
-                  id="compare-course-department"
-                  value={selectedDept || ""}
-                  onChange={(event) => setSelectedDept(Number(event.target.value) || null)}
-                  className={selectClass}
-                >
-                  <option value="">Select a department…</option>
-                  {departments.map((dept) => (
-                    <option key={dept.deptId} value={dept.deptId}>
-                      {dept.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="compare-course-course" className={`block ${labelStyles.md} text-text-primary mb-2`}>
-                  Course
-                </label>
-                <select
-                  id="compare-course-course"
-                  value={selectedCourse || ""}
-                  onChange={(event) => setSelectedCourse(Number(event.target.value) || null)}
-                  className={selectClass}
-                  disabled={!selectedDept}
-                >
-                  <option value="">Select a course…</option>
-                  {[...courses]
-                    .sort((a, b) => a.courseNumber.localeCompare(b.courseNumber))
-                    .map((course) => (
-                      <option key={course.courseId} value={course.courseId}>
-                        {course.courseNumber} — {course.title}
-                      </option>
-                    ))}
-                </select>
-              </div>
-
-              <div className="flex items-end">
-                <Button onClick={addCourse} disabled={!selectedCourse} className="w-full">
-                  Add to Comparison
-                </Button>
-              </div>
-            </div>
-
-            {selectedCourses.length > 0 && (
-              <div className="mt-4 border-t border-border pt-4">
-                <h3 className={`${labelStyles.md} text-text-muted mb-2`}>Selected courses ({selectedCourses.length}/3)</h3>
-                <div className="flex flex-wrap gap-2">
-                  {selectedCourses.map((course) => (
-                    <div
-                      key={course.courseId}
-                      className="bg-accent/10 text-accent px-3 py-1.5 rounded-lg flex items-center gap-2"
-                    >
-                      <span className={labelStyles.md}>
-                        {course.deptCode} {course.courseNumber}
-                      </span>
-                      <button
-                        type="button"
-                        aria-label={`Remove ${course.deptCode} ${course.courseNumber}`}
-                        onClick={() => removeCourse(course.courseId)}
-                        className="hover:text-destructive transition-colors"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {selectedCourses.length >= 2 && (
-              <div className="mt-4">
-                <Button onClick={() => fetchComparisonData(selectedCourses)} className="w-full sm:w-auto">
-                  Compare {selectedCourses.length} Courses
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {error && <ErrorMessage message={error} onRetry={() => setError(null)} />}
-        {loading && <LoadingSpinner />}
-
-        {!loading && comparisonData.length > 0 && (
-          <div className="space-y-8">
-            <ComparisonSection title="Basic Information">
-              <Table>
-                <TableBody>
-                  <ComparisonRow label="Course">
-                    {comparisonData.map((data, idx) => (
-                      <TableCell key={idx} className="font-semibold text-text-primary">
-                        {data.deptCode} {data.courseNumber}
-                      </TableCell>
-                    ))}
-                  </ComparisonRow>
-                  <ComparisonRow label="Title">
-                    {comparisonData.map((data, idx) => (
-                      <TableCell key={idx} className="text-text-primary">
-                        {data.title}
-                      </TableCell>
-                    ))}
-                  </ComparisonRow>
-                  <ComparisonRow label="Units">
-                    {comparisonData.map((data, idx) => (
-                      <TableCell key={idx} className="text-text-primary">
-                        {data.units}
-                      </TableCell>
-                    ))}
-                  </ComparisonRow>
-                  <ComparisonRow label="Degree Level">
-                    {comparisonData.map((data, idx) => (
-                      <TableCell key={idx} className="text-text-primary">
-                        {data.degreeLevel}
-                      </TableCell>
-                    ))}
-                  </ComparisonRow>
-                  {comparisonData.some((d) => d.designation) && (
-                    <ComparisonRow label="Designation">
-                      {comparisonData.map((data, idx) => (
-                        <TableCell key={idx} className="text-text-primary">
-                          {data.designation || "—"}
-                        </TableCell>
-                      ))}
-                    </ComparisonRow>
+      {selected.length > 0 && (
+        <ul aria-label="Courses to compare" className="mt-2 mb-8 flex flex-wrap gap-2">
+          {selected.map((course) => {
+            const code = formatCourseCode(course.deptCode, course.courseNumber);
+            return (
+              <li key={course.courseId}>
+                <button
+                  type="button"
+                  aria-label={`Remove ${code}`}
+                  onClick={() => removeCourse(course.courseId)}
+                  className={cn(
+                    labelStyles.lg,
+                    "inline-flex h-8 items-center gap-1.5 rounded-md bg-surface-raised px-3 text-text-primary transition-colors hover:bg-border focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
                   )}
-                </TableBody>
-              </Table>
-            </ComparisonSection>
+                >
+                  <span className={numericStyles.base}>{code}</span>
+                  <X aria-hidden="true" className="size-3.5 text-text-muted" />
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {selected.length === 0 && <div className="mb-8" />}
 
-            <ComparisonSection title="Course Description">
-              <div className="grid md:grid-cols-3 gap-4">
-                {comparisonData.map((data, idx) => (
-                  <Card key={idx} className="p-4">
-                    <p className={`${bodyStyles.md} text-text-muted`}>
-                      {data.description || "No description available"}
-                    </p>
-                  </Card>
-                ))}
-              </div>
-            </ComparisonSection>
+      {selected.length < 2 && !linkError && (
+        <TaskEmptyState
+          icon={ClipboardList}
+          title="Add at least two courses to compare them."
+          description="Pick a department and course above, then add it. You can compare up to three."
+        />
+      )}
 
-            <ComparisonSection title="Requirements">
-              <Table>
-                <TableBody>
-                  <ComparisonRow label="Prerequisites">
-                    {comparisonData.map((data, idx) => (
-                      <TableCell key={idx} className={`${bodyStyles.md} text-text-primary`}>
-                        {data.prerequisites || "None"}
-                      </TableCell>
-                    ))}
-                  </ComparisonRow>
-                  <ComparisonRow label="Corequisites">
-                    {comparisonData.map((data, idx) => (
-                      <TableCell key={idx} className={`${bodyStyles.md} text-text-primary`}>
-                        {data.corequisites || "None"}
-                      </TableCell>
-                    ))}
-                  </ComparisonRow>
-                </TableBody>
-              </Table>
-            </ComparisonSection>
+      {selected.length >= 2 && !settled && (
+        <SectionCard title="Comparison" flush>
+          <TableRowsSkeleton rows={6} columns={selected.length + 1} label="Loading comparison" className="p-4 sm:p-5" />
+        </SectionCard>
+      )}
 
-            <ComparisonSection title="Grade Statistics">
-              <Table>
-                <TableBody>
-                  <ComparisonRow label="Median Grade">
-                    {comparisonData.map((data, idx) => (
-                      <TableCell key={idx} className={`${headerStyles.sm} text-text-primary`}>
-                        {data.medianGrade || "N/A"}
-                      </TableCell>
-                    ))}
-                  </ComparisonRow>
-                  <ComparisonRow label="Fail Rate">
-                    {comparisonData.map((data, idx) => (
-                      <TableCell key={idx} className="text-text-primary">
-                        {data.failRate ? `${data.failRate.toFixed(2)}%` : "N/A"}
-                      </TableCell>
-                    ))}
-                  </ComparisonRow>
-                </TableBody>
-              </Table>
-            </ComparisonSection>
+      {selected.length >= 2 && settled && !result && (
+        <ErrorMessage title="Couldn't load the comparison" message="Course data didn't load." onRetry={comparisonRequest.retry} />
+      )}
 
-            {comparisonData.some((d) => d.gradeDistribution) && (
-              <ComparisonSection title="Grade Distribution">
-                <div className="grid md:grid-cols-3 gap-4">
-                  {comparisonData.map((data, idx) => (
-                    <Card key={idx} className="p-4">
-                      <h4 className={`${labelStyles.lg} text-text-primary text-center mb-4`}>
-                        {data.deptCode} {data.courseNumber}
-                      </h4>
-                      {data.gradeDistribution ? (
-                        <GradeHistogram distribution={data.gradeDistribution} />
-                      ) : (
-                        <p className={`text-center ${bodyStyles.md} text-text-subtle py-8`}>No data available</p>
-                      )}
-                    </Card>
-                  ))}
+      {result && (
+        <div className="space-y-6">
+          <SectionCard title="Comparison" note="Best value in each row in green" flush>
+            <ComparisonTable
+              columns={result.columns.map((column) => ({
+                key: `${column.deptCode}-${column.courseNumber}`,
+                header: (
+                  <>
+                    <Link
+                      href={courseHref(column.deptCode, column.courseNumber)}
+                      className={cn(numericStyles.md, "font-semibold text-text-primary underline-offset-4 hover:underline")}
+                    >
+                      {column.deptCode} {column.courseNumber}
+                    </Link>
+                    {column.title && <span className={cn(bodyStyles.sm, "block font-normal text-text-muted")}>{column.title}</span>}
+                  </>
+                ),
+              }))}
+              rows={comparisonRows(result)}
+            />
+          </SectionCard>
+
+          <SectionCard title="Grade distributions" note="All terms · CourseDiggers" flush>
+            <div className={cn("grid grid-cols-1 divide-y divide-border md:divide-x md:divide-y-0", result.columns.length === 3 ? "md:grid-cols-3" : "md:grid-cols-2")}>
+              {result.columns.map((column) => (
+                <div key={`${column.deptCode}-${column.courseNumber}`} className="p-4 sm:p-5">
+                  <p className={cn(labelStyles.lg, "mb-3 flex items-baseline justify-between gap-2 text-text-primary")}>
+                    <span className={numericStyles.base}>
+                      {column.deptCode} {column.courseNumber}
+                    </span>
+                    {column.medianGrade && <span className="text-text-muted">Median {column.medianGrade}</span>}
+                  </p>
+                  {column.distribution ? (
+                    <GradeHistogram distribution={column.distribution} medianGrade={column.medianGrade} size="sm" />
+                  ) : (
+                    <p className={cn(bodyStyles.md, "py-8 text-center text-text-subtle")}>No grade data.</p>
+                  )}
                 </div>
-              </ComparisonSection>
-            )}
-
-            <ComparisonSection title="View Full Details">
-              <div className="grid md:grid-cols-3 gap-4">
-                {selectedCourses.map((course, idx) => (
-                  <Link key={idx} href={courseHref(course.deptCode, course.courseNumber)} className="group">
-                    <Card className="p-4 text-center hover:scale-105 transition-transform">
-                      <p className={`${labelStyles.lg} text-text-primary mb-2`}>
-                        {course.deptCode} {course.courseNumber}
-                      </p>
-                      <p className={`${bodyStyles.md} text-accent`}>View in Browse →</p>
-                    </Card>
-                  </Link>
-                ))}
-              </div>
-            </ComparisonSection>
-          </div>
-        )}
-
-        {!loading && comparisonData.length === 0 && selectedCourses.length < 2 && (
-          <TaskEmptyState
-            icon={ClipboardList}
-            title={selectedCourses.length === 1 ? "Add one more course" : "Choose courses to compare"}
-            description={
-              selectedCourses.length === 1
-                ? "Add another course above to compare their details side by side."
-                : "Add two or three courses above to compare their details side by side."
-            }
-          />
-        )}
-      </div>
+              ))}
+            </div>
+          </SectionCard>
+        </div>
+      )}
     </PageContainer>
   );
 }
 
-function ComparisonSection({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <Card className="p-6">
-      <CardContent className="p-0">
-        <h2 className={`${headerStyles.lg} text-text-primary mb-4`}>{title}</h2>
-        {children}
-      </CardContent>
-    </Card>
-  );
-}
-
-function ComparisonRow({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <TableRow className="border-b border-border">
-      <TableCell className={`font-medium text-text-muted w-1/4 ${bodyStyles.md}`}>{label}</TableCell>
-      {children}
-    </TableRow>
-  );
+function comparisonRows({ columns, best: winners }: ReturnType<typeof buildCourseComparison>): ComparisonRowData[] {
+  const mark = (rowBest: number | null, index: number) => (rowBest === index ? best : undefined);
+  const rows: ComparisonRowData[] = [
+    {
+      label: "Median grade",
+      cells: columns.map((c, i) => <span key={i} className={cn(numericStyles.md, mark(winners.medianGrade, i))}>{c.medianGrade ?? "—"}</span>),
+    },
+    {
+      label: "Fail rate",
+      cells: columns.map((c, i) => <span key={i} className={cn(numericStyles.md, mark(winners.failRate, i))}>{formatPercent(c.failRate) ?? "—"}</span>),
+    },
+    {
+      label: "Avg. load, last 3 terms",
+      cells: columns.map((c, i) =>
+        c.avgLoad === null ? "—" : <LoadBar key={i} percent={Math.round(c.avgLoad)} labelClassName={mark(winners.avgLoad, i)} />,
+      ),
+    },
+    { label: "Units", cells: columns.map((c, i) => <span key={i} className={numericStyles.md}>{c.units ?? "—"}</span>) },
+    { label: "Campuses", cells: columns.map((c) => (c.campuses.length > 0 ? c.campuses.join(", ") : "—")) },
+  ];
+  if (columns.every((c) => c.offered !== null)) {
+    rows.push({
+      label: "Offered",
+      cells: columns.map((c) => `${c.offered!.offered} of last ${c.offered!.total} terms`),
+    });
+  }
+  rows.push({ label: "Prerequisites", cells: columns.map((c, i) => <span key={i} className="text-text-muted">{c.prerequisites || "None listed"}</span>) });
+  return rows;
 }
 
 export default function CourseComparison() {

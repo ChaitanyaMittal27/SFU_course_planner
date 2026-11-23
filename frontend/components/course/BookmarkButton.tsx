@@ -1,140 +1,72 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bookmark, Loader2 } from "lucide-react";
-import { api } from "@/lib/api";
-import { buildLoginPath } from "@/lib/auth/redirect";
-import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
+import { Bookmark as BookmarkIcon } from "lucide-react";
+import { toast } from "sonner";
 import { buttonStyles } from "@/app/fonts";
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
+import type { SectionBookmarks, SectionKey } from "@/hooks/useSectionBookmarks";
+import { buildLoginPath } from "@/lib/auth/redirect";
+import { cn } from "@/lib/utils";
 
-interface BookmarkButtonProps {
-  deptId: number;
-  courseId: number;
-  semesterCode: number;
-  section: string;
+interface BookmarkButtonProps extends SectionKey {
+  /** Shared bookmark state for the page (from useSectionBookmarks). */
+  bookmarks: SectionBookmarks;
+  /** Human label for toasts, e.g. "CMPT 225 D100". */
+  label: string;
   onBookmarkChange?: () => void;
 }
 
-export default function BookmarkButton({
-  deptId,
-  courseId,
-  semesterCode,
-  section,
-  onBookmarkChange,
-}: BookmarkButtonProps) {
+export default function BookmarkButton({ bookmarks, label, onBookmarkChange, ...key }: BookmarkButtonProps) {
   const router = useRouter();
-  const { user, isLoading: authLoading } = useAuth();
-  const [isBookmarked, setIsBookmarked] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [checking, setChecking] = useState(true);
-
-  useEffect(() => {
-    let isActive = true;
-
-    if (authLoading) {
-      setChecking(true);
-      return () => {
-        isActive = false;
-      };
-    }
-
-    if (!user) {
-      setIsBookmarked(false);
-      setChecking(false);
-      return () => {
-        isActive = false;
-      };
-    }
-
-    async function checkBookmark() {
-      try {
-        const bookmarks = await api.getBookmarks();
-        const exists = bookmarks.some(
-          (b) =>
-            b.deptId === deptId &&
-            b.courseId === courseId &&
-            b.semesterCode === semesterCode &&
-            b.section === section
-        );
-        if (isActive) setIsBookmarked(exists);
-      } catch (err: unknown) {
-        console.error("Failed to check bookmark:", err);
-      } finally {
-        if (isActive) setChecking(false);
-      }
-    }
-
-    setChecking(true);
-    void checkBookmark();
-
-    return () => {
-      isActive = false;
-    };
-  }, [authLoading, user, deptId, courseId, semesterCode, section]);
+  const [pending, setPending] = useState(false);
+  const existing = bookmarks.find(key);
+  const isBookmarked = Boolean(existing);
 
   const handleClick = async () => {
-    if (!user) {
+    if (!bookmarks.signedIn) {
       const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
       router.push(buildLoginPath(currentPath));
       return;
     }
 
-    if (isBookmarked) return;
-
+    setPending(true);
     try {
-      setLoading(true);
-      await api.createBookmark(deptId, courseId, semesterCode, section);
-      setIsBookmarked(true);
+      if (existing) {
+        await bookmarks.remove(existing);
+        toast.success(`Removed ${label} from your bookmarks.`);
+      } else {
+        await bookmarks.add(key);
+        toast.success(`Bookmarked ${label}. It will be in tomorrow's email.`);
+      }
       onBookmarkChange?.();
-    } catch (err: unknown) {
-      console.error("Failed to add bookmark:", err);
-      alert(`Failed to add bookmark: ${err instanceof Error ? err.message : "Unknown error"}`);
+    } catch (error: unknown) {
+      const reason = error instanceof Error ? error.message : "Unknown error";
+      toast.error(existing ? `Couldn't remove ${label}: ${reason}` : `Couldn't bookmark ${label}: ${reason}`);
     } finally {
-      setLoading(false);
+      setPending(false);
     }
   };
 
-  if (checking) {
-    return (
-      <Button variant="ghost" disabled className={buttonStyles.md}>
-        ...
-      </Button>
-    );
-  }
-
-  if (isBookmarked) {
-    return (
-      <Button
-        disabled
-        className={`${buttonStyles.md} bg-success/10 text-success border border-success/20 cursor-not-allowed`}
-        title="Already bookmarked — remove from dashboard to unbookmark"
-      >
-        <Bookmark className="w-4 h-4 fill-current" />
-        Bookmarked
-      </Button>
-    );
-  }
+  const busy = pending || !bookmarks.ready;
 
   return (
     <Button
+      variant={isBookmarked ? "secondary" : "outline"}
+      size="sm"
       onClick={handleClick}
-      disabled={loading}
-      className={`${buttonStyles.md} bg-accent/10 text-accent border border-accent/30 hover:bg-accent/20`}
-      title={user ? "Bookmark this section" : "Login to bookmark"}
+      disabled={busy}
+      aria-pressed={bookmarks.signedIn ? isBookmarked : undefined}
+      className={cn(buttonStyles.md, "min-w-30 justify-center")}
     >
-      {loading ? (
-        <>
-          <Loader2 className="w-4 h-4 animate-spin" />
-          Adding...
-        </>
+      {busy ? (
+        <Spinner aria-hidden="true" role="presentation" aria-label={undefined} />
       ) : (
-        <>
-          <Bookmark className="w-4 h-4" />
-          Bookmark
-        </>
+        <BookmarkIcon aria-hidden="true" className={cn(isBookmarked && "fill-current text-primary")} />
       )}
+      {isBookmarked ? "Bookmarked" : "Bookmark"}
     </Button>
   );
 }

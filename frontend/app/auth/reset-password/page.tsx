@@ -2,13 +2,15 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
-import { XCircle, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import LoadingSpinner from "@/components/feedback/LoadingSpinner";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { AuthCard } from "@/components/auth/LoginCard";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { displayStyles, bodyStyles, labelStyles, headerStyles } from "@/app/fonts";
+import { Field, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { bodyStyles, displayStyles } from "@/app/fonts";
+import { cn } from "@/lib/utils";
 
 function ResetPasswordPageContent() {
   const router = useRouter();
@@ -69,100 +71,91 @@ function ResetPasswordPageContent() {
 
   if (validatingToken) {
     return (
-      <div className="min-h-screen flex items-center justify-center gap-3">
-        <LoadingSpinner />
-        <p className={`${bodyStyles.md} text-text-muted`}>Validating reset link...</p>
-      </div>
+      <AuthCard>
+        <h1 className="sr-only">Reset your password</h1>
+        <LoadingSpinner size="sm" label="Validating reset link..." />
+        <p className={cn(bodyStyles.md, "text-center text-text-muted")} aria-hidden="true">
+          Validating reset link...
+        </p>
+      </AuthCard>
     );
   }
 
   if (!tokenValid) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <Card className="p-8 max-w-md w-full text-center">
-          <CardContent className="p-0">
-            <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <XCircle className="w-8 h-8 text-destructive" />
-            </div>
-            <h2 className={`${headerStyles.lg} text-text-primary mb-2`}>Invalid Reset Link</h2>
-            <p className={`${bodyStyles.md} text-text-muted mb-6`}>
-              {error || "This password reset link is invalid or has expired."}
-            </p>
-            <Button onClick={() => router.replace("/login")}>Back to Login</Button>
-          </CardContent>
-        </Card>
-      </div>
+      <AuthCard>
+        <div className="text-center">
+          <h1 className={cn(displayStyles.sm, "mb-3 text-text-primary")}>Invalid Reset Link</h1>
+          <Alert variant="destructive" className="mb-6 text-left">
+            <AlertDescription>{error || "This password reset link is invalid or has expired."}</AlertDescription>
+          </Alert>
+          <Button onClick={() => router.replace("/login")}>Back to Login</Button>
+        </div>
+      </AuthCard>
     );
   }
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <Card className="p-8 max-w-md w-full text-center">
-          <CardContent className="p-0">
-            <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle2 className="w-8 h-8 text-success" />
-            </div>
-            <h2 className={`${headerStyles.lg} text-text-primary mb-2`}>Password Reset Successful!</h2>
-            <p className={`${bodyStyles.md} text-text-muted`}>
-              Your password has been updated. Redirecting to login page...
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <AuthCard>
+        <div className="text-center" role="status" aria-live="polite">
+          <h1 className={cn(displayStyles.sm, "mb-2 text-text-primary")}>Password Reset Successful!</h1>
+          <p className={cn(bodyStyles.md, "text-text-muted")}>Your password has been updated. Redirecting to login page...</p>
+        </div>
+      </AuthCard>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12">
-      <Card className="p-8 max-w-md w-full">
-        <CardContent className="p-0">
-          <div className="text-center mb-6">
-            <h1 className={`${displayStyles.sm} text-text-primary mb-2`}>Reset Your Password</h1>
-            <p className={`${bodyStyles.md} text-text-muted`}>Enter your new password below</p>
-          </div>
+    <AuthCard>
+      <div className="mb-6 text-center">
+        <h1 className={cn(displayStyles.sm, "mb-2 text-text-primary")}>Reset Your Password</h1>
+        <p className={cn(bodyStyles.md, "text-text-muted")}>Enter your new password below</p>
+      </div>
 
-          {error && (
-            <div className={`mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded ${bodyStyles.md} text-destructive`}>
-              {error}
-            </div>
-          )}
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
-          <form onSubmit={handleResetPassword} className="space-y-4">
-            <div>
-              <label className={`${labelStyles.lg} text-text-primary block mb-1`}>New Password</label>
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-                placeholder="At least 6 characters"
-              />
-            </div>
-            <div>
-              <label className={`${labelStyles.lg} text-text-primary block mb-1`}>Confirm New Password</label>
-              <Input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                minLength={6}
-                placeholder="Re-enter your password"
-              />
-            </div>
-            <Button type="submit" disabled={isLoading} className="w-full">
-              {isLoading ? "Resetting Password..." : "Reset Password"}
-            </Button>
-            <div className="text-center">
-              <Button type="button" variant="link" onClick={() => router.replace("/login")} className="text-accent">
-                Back to Login
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+      <form onSubmit={handleResetPassword} className="space-y-4">
+        <Field>
+          <FieldLabel htmlFor="new-password">New Password</FieldLabel>
+          <Input
+            id="new-password"
+            type="password"
+            autoComplete="new-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            minLength={6}
+            placeholder="At least 6 characters"
+          />
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="confirm-new-password">Confirm New Password</FieldLabel>
+          <Input
+            id="confirm-new-password"
+            type="password"
+            autoComplete="new-password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+            minLength={6}
+            placeholder="Re-enter your password"
+          />
+        </Field>
+        <Button type="submit" disabled={isLoading} className="h-10 w-full">
+          {isLoading ? "Resetting Password..." : "Reset Password"}
+        </Button>
+        <div className="text-center">
+          <Button type="button" variant="link" onClick={() => router.replace("/login")} className="text-accent-text">
+            Back to Login
+          </Button>
+        </div>
+      </form>
+    </AuthCard>
   );
 }
 

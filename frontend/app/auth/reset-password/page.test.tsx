@@ -26,7 +26,20 @@ describe("reset password page", () => {
     mocks.getSession.mockResolvedValue({ data: { session: null }, error: null });
     render(<ResetPasswordPage />);
 
-    expect(await screen.findByRole("heading", { name: "Invalid Reset Link" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "Invalid Reset Link" })).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("Invalid or expired reset link. Please request a new password reset.");
+  });
+
+  it("labels each password field and has an h1 while validating", async () => {
+    let finish: (value: unknown) => void = () => {};
+    mocks.getSession.mockReturnValue(new Promise((resolve) => (finish = resolve)));
+    render(<ResetPasswordPage />);
+    expect(screen.getByRole("heading", { level: 1, name: "Reset your password" })).toBeInTheDocument();
+
+    finish({ data: { session: { user: { id: "user-1" } } }, error: null });
+    expect(await screen.findByLabelText("New Password")).toHaveAttribute("placeholder", "At least 6 characters");
+    expect(screen.getByLabelText("Confirm New Password")).toHaveAttribute("placeholder", "Re-enter your password");
+    expect(screen.getByRole("heading", { level: 1, name: "Reset Your Password" })).toBeInTheDocument();
   });
 
   it("validates passwords locally before calling Supabase", async () => {
@@ -37,7 +50,7 @@ describe("reset password page", () => {
     await user.type(screen.getByPlaceholderText("Re-enter your password"), "different-password");
     await user.click(screen.getByRole("button", { name: "Reset Password" }));
 
-    expect(screen.getByText("Passwords do not match")).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("Passwords do not match");
     expect(mocks.updateUser).not.toHaveBeenCalled();
   });
 
@@ -50,7 +63,7 @@ describe("reset password page", () => {
     await user.click(screen.getByRole("button", { name: "Reset Password" }));
 
     await waitFor(() => expect(mocks.updateUser).toHaveBeenCalledWith({ password: "password123" }));
-    expect(await screen.findByRole("heading", { name: "Password Reset Successful!" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "Password Reset Successful!" })).toBeInTheDocument();
   });
 
   it("keeps Supabase password update errors visible", async () => {
@@ -62,6 +75,6 @@ describe("reset password page", () => {
     await user.type(screen.getByPlaceholderText("Re-enter your password"), "password123");
     await user.click(screen.getByRole("button", { name: "Reset Password" }));
 
-    expect(await screen.findByText("Recovery session expired")).toBeInTheDocument();
+    expect(await screen.findByRole("alert")).toHaveTextContent("Recovery session expired");
   });
 });

@@ -1,15 +1,20 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { MessageSquare, Mail, Archive, Reply, Send, X, Check } from "lucide-react";
+import { MessageSquare, Archive, Reply, Send, Check } from "lucide-react";
 import { api, AdminSupportResponse, AdminContactSubmission } from "@/lib/api";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { tabsListVariants } from "@/components/ui/tabs";
+import { AdminPage, AdminPageHeader, AdminStats, AdminTable } from "@/components/admin/AdminPage";
+import SectionCard from "@/components/course/SectionCard";
+import TaskEmptyState from "@/components/feedback/TaskEmptyState";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import AdminPageSkeleton from "@/components/admin/AdminPageSkeleton";
 import ErrorMessage from "@/components/feedback/ErrorMessage";
-import { displayStyles, headerStyles, bodyStyles, labelStyles } from "@/app/fonts";
+import { bodyStyles, labelStyles, numericStyles } from "@/app/fonts";
 
 type FilterTab = "all" | "unresolved" | "archived";
 
@@ -34,11 +39,11 @@ function formatDate(iso: string | null) {
 }
 
 const REASON_COLORS: Record<string, string> = {
-  "Bug Report": "bg-destructive/15 text-destructive",
-  "Feature Request": "bg-accent/15 text-accent",
-  "General Inquiry": "bg-primary/15 text-primary",
-  "Technical Support": "bg-warning/15 text-warning",
-  "Other": "bg-text-muted/15 text-text-muted",
+  "Bug Report": "bg-destructive-tint text-destructive-text",
+  "Feature Request": "bg-success-tint text-success-text",
+  "General Inquiry": "bg-surface-raised text-text-muted",
+  "Technical Support": "bg-warning-tint text-warning-text",
+  "Other": "bg-surface-raised text-text-muted",
 };
 
 export default function AdminSupportPage() {
@@ -140,11 +145,16 @@ export default function AdminSupportPage() {
     return <AdminPageSkeleton statCards={3} hasTable tableRows={8} />;
   }
 
+  const header = (
+    <AdminPageHeader title="Support Inbox" description="Contact form submissions, replies and message management." />
+  );
+
   if (error && !data) {
     return (
-      <div className="flex-1 p-8 max-w-[1180px]">
+      <AdminPage>
+        {header}
         <ErrorMessage message={error} onRetry={() => fetchData(filter)} />
-      </div>
+      </AdminPage>
     );
   }
 
@@ -155,308 +165,203 @@ export default function AdminSupportPage() {
   const unresolved = submissions.filter((s) => !s.isReplied);
   const resolved = submissions.filter((s) => s.isReplied);
 
-  const statCards = [
-    { label: "Total Submissions", value: String(stats.totalSubmissions), icon: MessageSquare, color: "text-accent" },
-    { label: "Unread", value: String(stats.unreadCount), icon: Mail, color: "text-primary" },
-    { label: "Archived", value: String(stats.archivedCount), icon: Archive, color: "text-text-muted" },
-  ];
-
   const filterTabs: { key: FilterTab; label: string }[] = [
     { key: "all", label: "All" },
     { key: "unresolved", label: "Unresolved" },
     { key: "archived", label: "Archived" },
   ];
 
-  return (
-    <div className="flex-1 p-8 max-w-[1180px]">
-      {/* Heading */}
-      <div className="mb-6">
-        <h1 className={`${displayStyles.sm} text-text-primary mb-1`}>Support Inbox</h1>
-        <p className={`${bodyStyles.md} text-text-muted`}>
-          Contact form submissions, replies and message management.
-        </p>
-      </div>
-
-      {/* Stat cards */}
-      <div className="grid grid-cols-3 gap-3.5 mb-8">
-        {statCards.map((stat) => (
-          <Card key={stat.label} className="p-4">
-            <CardContent className="p-0">
-              <div className="flex items-center gap-2.5 mb-2">
-                <div className={`w-8 h-8 rounded-lg bg-surface-raised flex items-center justify-center ${stat.color}`}>
-                  <stat.icon className="w-4 h-4" />
-                </div>
-                <span className={`${labelStyles.md} text-text-muted`}>{stat.label}</span>
-              </div>
-              <span className="font-mono font-semibold text-[20px] tracking-tight text-text-primary">
-                {stat.value}
-              </span>
-            </CardContent>
-          </Card>
+  const list = (title: string, items: AdminContactSubmission[]) => (
+    <AdminTable title={title} note={`${items.length} messages`} className="mb-6">
+      <ul>
+        {items.map((sub) => (
+          <SubmissionRow
+            key={sub.id}
+            sub={sub}
+            isExpanded={expandedId === sub.id}
+            onExpand={() => handleExpand(sub)}
+            onArchive={() => handleArchive(sub)}
+            onReply={() => openReply(sub)}
+          />
         ))}
-      </div>
+      </ul>
+    </AdminTable>
+  );
 
-      {/* Filter tabs */}
-      <div className="flex items-center gap-1.5 mb-4">
+  return (
+    <AdminPage>
+      {header}
+
+      <AdminStats
+        items={[
+          { label: "Total Submissions", value: String(stats.totalSubmissions) },
+          { label: "Unread", value: String(stats.unreadCount), tone: stats.unreadCount > 0 ? "text-warning-text" : undefined },
+          { label: "Archived", value: String(stats.archivedCount) },
+        ]}
+      />
+
+      <div role="group" aria-label="Filter submissions" className={cn(tabsListVariants(), "mb-4 h-9 bg-surface-raised")}>
         {filterTabs.map((tab) => (
-          <Button
+          <button
             key={tab.key}
-            variant={filter === tab.key ? "default" : "ghost"}
-            size="sm"
+            type="button"
+            aria-pressed={filter === tab.key}
             onClick={() => handleFilterChange(tab.key)}
-            className={filter !== tab.key ? "text-text-muted" : ""}
+            className={cn(
+              labelStyles.lg,
+              "inline-flex h-full items-center rounded-md px-3 transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+              filter === tab.key ? "bg-background text-text-primary shadow-sm" : "text-text-muted hover:text-text-primary"
+            )}
           >
             {tab.label}
-          </Button>
+          </button>
         ))}
       </div>
 
       {submissions.length === 0 ? (
-        <Card className="p-8">
-          <CardContent className="p-0 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 bg-surface-raised rounded-full flex items-center justify-center">
-              <MessageSquare className="w-8 h-8 text-text-subtle" />
-            </div>
-            <p className={`${bodyStyles.md} text-text-muted`}>
-              {filter === "archived" ? "No archived submissions" : filter === "unresolved" ? "All caught up — no unresolved messages" : "No submissions yet"}
-            </p>
-          </CardContent>
-        </Card>
+        <SectionCard title="Inbox">
+          <TaskEmptyState
+            icon={MessageSquare}
+            title={filter === "archived" ? "No archived submissions" : filter === "unresolved" ? "All caught up — no unresolved messages" : "No submissions yet"}
+            description="Messages from the About page contact form show up here."
+          />
+        </SectionCard>
       ) : (
         <>
-          {/* Unresolved section */}
-          {(filter === "all" || filter === "unresolved") && unresolved.length > 0 && (
-            <>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className={`${headerStyles.xs} text-text-primary`}>Unresolved</h2>
-                <span className={`${labelStyles.sm} font-mono text-text-subtle`}>{unresolved.length} messages</span>
-              </div>
-              <Card className="overflow-hidden mb-6">
-                <CardContent className="p-0">
-                  {unresolved.map((sub, i) => (
-                    <SubmissionRow
-                      key={sub.id}
-                      sub={sub}
-                      isExpanded={expandedId === sub.id}
-                      isLast={i === unresolved.length - 1}
-                      onExpand={() => handleExpand(sub)}
-                      onArchive={() => handleArchive(sub)}
-                      onReply={() => openReply(sub)}
-                    />
-                  ))}
-                </CardContent>
-              </Card>
-            </>
-          )}
-
-          {/* Resolved section */}
-          {(filter === "all") && resolved.length > 0 && (
-            <>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className={`${headerStyles.xs} text-text-primary`}>Resolved</h2>
-                <span className={`${labelStyles.sm} font-mono text-text-subtle`}>{resolved.length} messages</span>
-              </div>
-              <Card className="overflow-hidden mb-6">
-                <CardContent className="p-0">
-                  {resolved.map((sub, i) => (
-                    <SubmissionRow
-                      key={sub.id}
-                      sub={sub}
-                      isExpanded={expandedId === sub.id}
-                      isLast={i === resolved.length - 1}
-                      onExpand={() => handleExpand(sub)}
-                      onArchive={() => handleArchive(sub)}
-                      onReply={() => openReply(sub)}
-                    />
-                  ))}
-                </CardContent>
-              </Card>
-            </>
-          )}
-
-          {/* Archived — flat list, no split */}
-          {filter === "archived" && (
-            <Card className="overflow-hidden">
-              <CardContent className="p-0">
-                {submissions.map((sub, i) => (
-                  <SubmissionRow
-                    key={sub.id}
-                    sub={sub}
-                    isExpanded={expandedId === sub.id}
-                    isLast={i === submissions.length - 1}
-                    onExpand={() => handleExpand(sub)}
-                    onArchive={() => handleArchive(sub)}
-                    onReply={() => openReply(sub)}
-                  />
-                ))}
-              </CardContent>
-            </Card>
-          )}
+          {(filter === "all" || filter === "unresolved") && unresolved.length > 0 && list("Unresolved", unresolved)}
+          {filter === "all" && resolved.length > 0 && list("Resolved", resolved)}
+          {filter === "archived" && list("Archived", submissions)}
         </>
       )}
 
-      {/* Reply compose modal */}
-      {replyingTo && (
-        <div className="fixed bottom-6 right-6 w-[440px] z-50 animate-slide-up">
-          <Card className="overflow-hidden border-border-strong shadow-lg">
-            <div className="h-0.5 bg-primary" />
-            <CardContent className="p-0">
-              {/* Header */}
-              <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-                <span className={`${labelStyles.lg} text-text-primary`}>Reply to {replyingTo.name}</span>
-                <Button variant="ghost" size="icon-xs" onClick={() => setReplyingTo(null)}>
-                  <X className="w-3.5 h-3.5" />
+      <Dialog open={replyingTo !== null} onOpenChange={(open) => !open && setReplyingTo(null)}>
+        <DialogContent className="sm:max-w-lg">
+          {replyingTo && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Reply to {replyingTo.name}</DialogTitle>
+                <DialogDescription>
+                  To: <span className={numericStyles.sm}>{replyingTo.email}</span> · From:{" "}
+                  <span className={numericStyles.sm}>support@sfucourseplanner.com</span>
+                </DialogDescription>
+              </DialogHeader>
+              <div className="border-l-2 border-border pl-3">
+                <p className={cn(labelStyles.sm, "mb-1 text-text-subtle")}>Their message:</p>
+                <p className={cn(bodyStyles.sm, "line-clamp-4 whitespace-pre-wrap text-text-muted")}>{replyingTo.message}</p>
+              </div>
+              <Textarea
+                aria-label="Reply"
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+                placeholder="Write your reply..."
+                rows={5}
+                className="resize-none"
+                autoFocus
+              />
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setReplyingTo(null)}>
+                  Cancel
                 </Button>
-              </div>
-
-              {/* To / From */}
-              <div className="px-4 py-2 border-b border-border space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className={`${labelStyles.sm} text-text-subtle w-10`}>To:</span>
-                  <span className={`${labelStyles.md} font-mono text-text-primary`}>{replyingTo.email}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={`${labelStyles.sm} text-text-subtle w-10`}>From:</span>
-                  <span className={`${labelStyles.md} font-mono text-text-muted`}>support@sfucourseplanner.com</span>
-                </div>
-              </div>
-
-              {/* Original message */}
-              <div className="px-4 py-3 border-b border-border">
-                <div className={`${labelStyles.sm} text-text-subtle mb-1.5`}>Their message:</div>
-                <div className="pl-3 border-l-2 border-border">
-                  <p className={`${bodyStyles.sm} text-text-muted whitespace-pre-wrap line-clamp-4`}>{replyingTo.message}</p>
-                </div>
-              </div>
-
-              {/* Reply textarea */}
-              <div className="p-4">
-                <Textarea
-                  value={replyText}
-                  onChange={(e) => setReplyText(e.target.value)}
-                  placeholder="Write your reply..."
-                  rows={5}
-                  className="resize-none mb-3"
-                  autoFocus
-                />
-                <div className="flex items-center gap-2">
-                  <Button onClick={handleSendReply} disabled={sendingReply || !replyText.trim()} className="gap-1.5">
-                    <Send className="w-3.5 h-3.5" />
-                    {sendingReply ? "Sending…" : "Send Reply"}
-                  </Button>
-                  <Button variant="outline" onClick={() => setReplyingTo(null)}>Cancel</Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-    </div>
+                <Button onClick={handleSendReply} disabled={sendingReply || !replyText.trim()} className="gap-1.5">
+                  <Send aria-hidden="true" />
+                  {sendingReply ? "Sending…" : "Send Reply"}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    </AdminPage>
   );
 }
 
 function SubmissionRow({
   sub,
   isExpanded,
-  isLast,
   onExpand,
   onArchive,
   onReply,
 }: {
   sub: AdminContactSubmission;
   isExpanded: boolean;
-  isLast: boolean;
   onExpand: () => void;
   onArchive: () => void;
   onReply: () => void;
 }) {
-  const reasonClass = sub.reason ? (REASON_COLORS[sub.reason] || "bg-text-muted/15 text-text-muted") : "";
+  const reasonClass = sub.reason ? (REASON_COLORS[sub.reason] || "bg-surface-raised text-text-muted") : "";
+  const panelId = `submission-${sub.id}`;
 
   return (
-    <div className={!isLast ? "border-b border-border" : ""}>
-      {/* Row */}
-      <div
+    <li className="border-t border-border first:border-t-0">
+      <button
+        type="button"
         onClick={onExpand}
-        className="flex items-center gap-3 px-[18px] py-3 cursor-pointer hover:bg-surface-raised transition-colors"
+        aria-expanded={isExpanded}
+        aria-controls={panelId}
+        className="flex w-full flex-wrap items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:flex-nowrap sm:px-5"
       >
-        {/* Unread dot */}
-        <div className="w-2 flex-none">
-          {!sub.isRead && <span className="block w-2 h-2 rounded-full bg-primary" />}
-        </div>
+        <span className="w-2 flex-none" aria-hidden="true">
+          {!sub.isRead && <span className="block size-2 rounded-full bg-primary" />}
+        </span>
+        {!sub.isRead && <span className="sr-only">Unread.</span>}
 
-        {/* Sender */}
-        <div className="w-36 flex-none min-w-0">
-          <span className={`${labelStyles.lg} text-text-primary block truncate ${!sub.isRead ? "font-semibold" : ""}`}>
-            {sub.name}
-          </span>
-          <span className={`${bodyStyles.sm} text-text-subtle block truncate`}>{sub.email}</span>
-        </div>
+        <span className="w-36 min-w-0 flex-none">
+          <span className={cn(labelStyles.lg, "block truncate text-text-primary", !sub.isRead && "font-semibold")}>{sub.name}</span>
+          <span className={cn(bodyStyles.sm, "block truncate text-text-subtle")}>{sub.email}</span>
+        </span>
 
-        {/* Reason badge */}
-        <div className="w-28 flex-none">
+        <span className="w-32 flex-none">
           {sub.reason ? (
-            <span className={`text-[10.5px] font-semibold px-2 py-0.5 rounded-full ${reasonClass}`}>
-              {sub.reason}
-            </span>
+            <span className={cn(labelStyles.sm, "rounded-full px-2 py-0.5 font-semibold", reasonClass)}>{sub.reason}</span>
           ) : (
-            <span className="text-text-subtle text-[16px]">—</span>
+            <span className="text-text-subtle">—</span>
           )}
-        </div>
+        </span>
 
-        {/* Message preview */}
-        <div className="flex-1 min-w-0">
-          <span className={`${bodyStyles.sm} text-text-muted truncate block`}>
-            {sub.message.length > 80 ? sub.message.slice(0, 80) + "…" : sub.message}
-          </span>
-        </div>
+        <span className={cn(bodyStyles.sm, "block min-w-0 flex-1 truncate text-text-muted")}>
+          {sub.message.length > 80 ? sub.message.slice(0, 80) + "…" : sub.message}
+        </span>
 
-        {/* Status + time */}
-        <div className="flex items-center gap-2 flex-none">
+        <span className="flex flex-none items-center gap-2">
           {sub.isReplied && (
-            <Badge className="bg-success/15 text-success border-transparent">
-              <Check className="w-3 h-3 mr-0.5" /> Replied
+            <Badge className="border-transparent bg-success-tint text-success-text">
+              <Check aria-hidden="true" className="mr-0.5 size-3" /> Replied
             </Badge>
           )}
-          <span className={`${labelStyles.sm} font-mono text-text-subtle`}>{formatRelative(sub.submittedAt)}</span>
-        </div>
-      </div>
+          <span className={cn(numericStyles.sm, "text-text-subtle")}>{formatRelative(sub.submittedAt)}</span>
+        </span>
+      </button>
 
-      {/* Expanded detail */}
       {isExpanded && (
-        <div className="px-[18px] pb-4 pt-1 animate-fade-in">
-          {/* Full message */}
-          <div className="p-4 bg-surface-raised rounded-lg mb-3">
-            <p className={`${bodyStyles.md} text-text-primary whitespace-pre-wrap`}>{sub.message}</p>
-          </div>
+        <div id={panelId} className="space-y-3 px-4 pt-1 pb-4 sm:px-5">
+          <p className={cn(bodyStyles.md, "whitespace-pre-wrap border-l-2 border-border pl-3 text-text-primary")}>{sub.message}</p>
 
-          {/* Reply if already replied */}
           {sub.isReplied && sub.replyMessage && (
-            <div className="p-4 bg-success/5 border border-success/20 rounded-lg mb-3">
-              <div className="flex items-center gap-1.5 mb-2">
-                <Reply className="w-3.5 h-3.5 text-success" />
-                <span className={`${labelStyles.md} text-success font-semibold`}>Your reply</span>
-                <span className={`${labelStyles.sm} font-mono text-text-subtle ml-auto`}>
+            <div className="border-l-2 border-success pl-3">
+              <p className={cn(labelStyles.md, "mb-1 flex flex-wrap items-center gap-x-2 font-semibold text-success-text")}>
+                <Reply aria-hidden="true" className="size-3.5" />
+                Your reply
+                <span className={cn(numericStyles.sm, "font-normal text-text-subtle")}>
                   {sub.replySentTo && `→ ${sub.replySentTo}`} · {formatDate(sub.repliedAt)}
                 </span>
-              </div>
-              <p className={`${bodyStyles.md} text-text-primary whitespace-pre-wrap`}>{sub.replyMessage}</p>
+              </p>
+              <p className={cn(bodyStyles.md, "whitespace-pre-wrap text-text-primary")}>{sub.replyMessage}</p>
             </div>
           )}
 
-          {/* Actions */}
           <div className="flex items-center gap-2">
             {!sub.isReplied && (
               <Button size="sm" onClick={onReply} className="gap-1.5">
-                <Reply className="w-3.5 h-3.5" /> Reply
+                <Reply aria-hidden="true" /> Reply
               </Button>
             )}
             <Button variant="outline" size="sm" onClick={onArchive} className="gap-1.5">
-              <Archive className="w-3.5 h-3.5" />
+              <Archive aria-hidden="true" />
               {sub.isArchived ? "Unarchive" : "Archive"}
             </Button>
           </div>
         </div>
       )}
-    </div>
+    </li>
   );
 }

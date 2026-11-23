@@ -7,6 +7,16 @@ vi.mock("next/font/google", () => ({
   Geist_Mono: () => ({ variable: "--font-geist-mono" }),
 }));
 
+// jsdom lacks these; cmdk (shadcn Command) uses both.
+if (typeof window !== "undefined") {
+  window.HTMLElement.prototype.scrollIntoView ??= function scrollIntoView() {};
+  globalThis.ResizeObserver ??= class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}
+
 afterEach(() => {
   cleanup();
 });
